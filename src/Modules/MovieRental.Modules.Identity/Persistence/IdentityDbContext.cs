@@ -13,6 +13,8 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
     public DbSet<RefreshTokenEntity> RefreshTokens => Set<RefreshTokenEntity>();
     public DbSet<VerificationCode> VerificationCodes => Set<VerificationCode>();
     public DbSet<AuditEntryRow> AuditEntries => Set<AuditEntryRow>();
+    public DbSet<SupportMessage> SupportMessages => Set<SupportMessage>();
+    public DbSet<SupportReply> SupportReplies => Set<SupportReply>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -63,6 +65,33 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             e.Property(x => x.ActorRoles).HasMaxLength(200).IsRequired();
             e.HasIndex(x => x.AtUtc);
             e.HasIndex(x => new { x.Action, x.AtUtc });
+        });
+
+        b.Entity<SupportMessage>(e =>
+        {
+            e.ToTable("SupportMessages");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.UserEmail).HasMaxLength(256).IsRequired();
+            e.Property(x => x.UserName).HasMaxLength(150).IsRequired();
+            e.Property(x => x.Subject).HasMaxLength(160).IsRequired();
+            e.Property(x => x.Body).HasMaxLength(4000).IsRequired();
+            e.Property(x => x.Status).HasConversion<int>();
+            // The desk reads oldest-open-first; the customer reads their own newest-first.
+            e.HasIndex(x => new { x.Status, x.CreatedAtUtc });
+            e.HasIndex(x => new { x.UserId, x.CreatedAtUtc });
+
+            e.HasMany(x => x.Replies).WithOne(x => x.Message!)
+             .HasForeignKey(x => x.MessageId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<SupportReply>(e =>
+        {
+            e.ToTable("SupportReplies");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.AuthorName).HasMaxLength(150).IsRequired();
+            e.Property(x => x.AuthorRole).HasMaxLength(30).IsRequired();
+            e.Property(x => x.Body).HasMaxLength(4000).IsRequired();
+            e.HasIndex(x => new { x.MessageId, x.CreatedAtUtc });
         });
 
         base.OnModelCreating(b);
