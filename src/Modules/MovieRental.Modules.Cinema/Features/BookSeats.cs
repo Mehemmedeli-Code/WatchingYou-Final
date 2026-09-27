@@ -35,7 +35,7 @@ public sealed record CheckoutStarted(
 public sealed record TicketSeat(int Row, int Number, string Label, string QrPayload);
 
 public sealed record TicketResponse(
-    string Reference, string MovieTitle, string Hall, DateTime StartsAtUtc,
+    Guid PaymentId, string Reference, string MovieTitle, string Hall, DateTime StartsAtUtc,
     string AudioLanguage, string? SubtitleLanguage,
     IReadOnlyList<TicketSeat> Seats, decimal Amount, string Brand, string Last4,
     DateTime ConfirmedAtUtc);
@@ -294,6 +294,7 @@ internal static class TicketMapper
     public static string Label(int row, int number) => $"{(char)('A' + row - 1)}{number}";
 
     public static TicketResponse ToTicket(SeatPayment payment) => new(
+        payment.Id,
         payment.Reference,
         payment.Screening?.MovieTitle ?? "",
         payment.Screening?.Hall ?? "",

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Field } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/useAuth";
-import { auth, post, ApiError, type AuthResponse, type RegistrationResponse } from "@/lib/api";
+import { auth, post, put, ApiError, type AuthResponse, type RegistrationResponse, type UserProfile } from "@/lib/api";
 import { t } from "@/lib/i18n";
 
 type Mode = "signin" | "register" | "verify" | "forgot" | "reset";
@@ -146,8 +146,46 @@ export default function AccountPage() {
 
           {message ? <div className="mt-4"><Notice tone={message.tone === "info" ? "info" : message.tone}>{message.text}</Notice></div> : null}
 
+          {/* Without this, anyone who skipped the optional phone field at registration had no
+              way to add one later — and so no way to ever receive an SMS code. */}
+          <div className="mt-6 border-t border-line pt-5">
+            <p className="font-display text-lg text-ink">{t("account.profile")}</p>
+            <div className="mt-3 space-y-3">
+              <Field label={t("account.fullName")}>
+                <Input value={fullName || user.fullName} onChange={(e) => setFullName(e.target.value)} />
+              </Field>
+              <Field label={t("account.phone")} hint={t("account.phoneHint")}>
+                <Input
+                  value={phone || user.phoneNumber || ""}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+994..."
+                />
+              </Field>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true); setMessage(null);
+                  try {
+                    const updated = await put<UserProfile>("/api/auth/profile", {
+                      fullName: fullName || user.fullName,
+                      phoneNumber: (phone || user.phoneNumber) ?? null,
+                    });
+                    auth.patchUser(updated);
+                    setMessage({ tone: "ok", text: t("account.saved") });
+                  } catch (err) { fail(err, "Could not save."); }
+                  finally { setBusy(false); }
+                }}
+              >
+                {t("account.saveProfile")}
+              </Button>
+            </div>
+          </div>
+
           {user.phoneNumber && !user.isPhoneConfirmed ? (
             <div className="mt-5 space-y-3">
+              <p className="text-xs text-ink-mute">{t("account.smsConsole")}</p>
               <Button size="sm" variant="outline" disabled={busy} onClick={() => resend("Sms")}>
                 {t("account.resend")} (SMS)
               </Button>

@@ -31,4 +31,9 @@ public static class AppPolicies
     /// the slices that need them — guessing attacks are aimed at endpoints, not at modules.</summary>
     public const string AuthRateLimit = "auth";
     public const string CodeRateLimit = "codes";
+
+    /// <summary>Questions to the assistant. Partitioned per account rather than per address,
+    /// because the cost lands on the site's API key and a shared office IP should not share
+    /// one allowance.</summary>
+    public const string AssistantRateLimit = "assistant";
 }

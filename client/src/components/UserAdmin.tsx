@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ShieldOff, ShieldCheck } from "lucide-react";
 import { Panel, Notice, Empty, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchField } from "@/components/SearchField";
 import { Badge } from "@/components/ui/badge";
 import { get, put, query, ApiError } from "@/lib/api";
 import { t } from "@/lib/i18n";
@@ -84,12 +84,7 @@ export function UserAdmin() {
   return (
     <>
       <div className="mb-4 max-w-sm">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t("common.search")}
-          aria-label={t("common.search")}
-        />
+        <SearchField value={search} onChange={setSearch} />
       </div>
 
       {message ? <div className="mb-4"><Notice tone={message.tone}>{message.text}</Notice></div> : null}

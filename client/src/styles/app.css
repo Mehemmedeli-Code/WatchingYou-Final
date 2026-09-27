@@ -54,3 +54,68 @@
     scroll-behavior: auto !important;
   }
 }
+
+
+/* ---- Search beam ---------------------------------------------------------------------
+   A green glow travelling along the bottom edge of a search field. Two layers: a sharp
+   one-pixel line and a blurred copy beneath it, which is what reads as light rather than
+   as a moving stripe.
+   ------------------------------------------------------------------------------------ */
+.rr-beam {
+  position: relative;
+  isolation: isolate;
+  /* The beam travels from -42% to 142% of the width, which is what makes it enter and leave
+     rather than appear and vanish. Without clipping, that overshoot showed as a green line
+     sticking out past the rounded corners on both sides. */
+  overflow: hidden;
+}
+
+.rr-beam-line,
+.rr-beam-glow {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 1px;
+  width: 42%;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-accent-dim) 25%,
+    var(--color-accent-bright) 50%,
+    var(--color-accent-dim) 75%,
+    transparent 100%
+  );
+  animation: rr-beam-travel 3.1s linear infinite;
+}
+
+.rr-beam-glow {
+  height: 3px;
+  filter: blur(6px);
+  opacity: 0.75;
+}
+
+/* Brighter while the field has focus — the beam doubles as a focus cue rather than
+   competing with one. */
+.rr-beam:focus-within .rr-beam-line { height: 2px; }
+.rr-beam:focus-within .rr-beam-glow { opacity: 1; filter: blur(8px); }
+
+.rr-beam[data-active="0"] .rr-beam-line,
+.rr-beam[data-active="0"] .rr-beam-glow { animation-play-state: paused; opacity: 0.25; }
+
+@keyframes rr-beam-travel {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(238%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The affordance survives; the movement does not. */
+  .rr-beam-line,
+  .rr-beam-glow {
+    animation: none;
+    width: 100%;
+    transform: none;
+    opacity: 0.45;
+  }
+}

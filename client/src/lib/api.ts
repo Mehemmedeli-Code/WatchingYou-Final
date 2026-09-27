@@ -76,6 +76,11 @@ export const auth = {
     listeners.add(listener);
     return () => listeners.delete(listener);
   },
+  /** Replaces the cached profile after an edit, so the UI reflects it without re-logging in. */
+  patchUser(user: UserProfile) {
+    currentUser = user;
+    announce();
+  },
   apply(response: AuthResponse) {
     accessToken = response.accessToken;
     currentUser = response.user;

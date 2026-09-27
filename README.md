@@ -237,6 +237,24 @@ The client has no test runner yet, so `tsc --noEmit` is the gate. It catches the
 that actually happens here: a contract changing on the server while the client still reads the
 old shape.
 
+## Error pages
+
+`/error/{code}` handles 401, 403, 404, 429 and everything else, in all four languages.
+
+Two routes reach it. A missing page never throws, so `UseStatusCodePagesWithReExecute` sends
+it there; a thrown exception on a page request is redirected there by the exception
+middleware. Both are scoped away from `/api`, because a `fetch` expecting JSON should not be
+handed a page of HTML to parse — API calls still get RFC 7807 ProblemDetails as before.
+
+**Rendered entirely by Razor, with no React island.** The moment you most need an error page
+is the moment the bundle failed to load, and a page that depends on the same JavaScript that
+just broke is not an error page. It carries the half-closed eye from the wordmark, the same
+travelling green beam as the search fields, and the trace identifier — quiet until somebody is
+reporting the problem.
+
+The response keeps its real status code. A 404 rendered with a 200 header tells every crawler
+and monitor that the page was fine.
+
 ## Smoke test
 
 ```bash
@@ -278,11 +296,33 @@ is on the database row count, not on what the handler returned.
 The rest run anywhere, in well under a second, because the logic they cover was written as
 pure functions with no clock and no database of their own.
 
+## Help service
+
+**Help service** in the nav writes to the Security desk; the desk reads and answers it from
+**Security → Incoming messages**. Both sides see the same thread, and a customer coming back
+after an answer reopens it rather than leaving it quietly marked as done.
+
+What travels with a message is the sender's **name, e-mail and what they wrote** — taken from
+the signed-in session, not from a form field, so a sender address cannot be forged. Nothing
+else about the account reaches the desk: no roles, no phone, no bookings, and no password.
+Passwords are not stored in readable form anywhere and would not be shown here if they were.
+Staff answering a question do not need credentials, and a support screen that displayed them
+would cost exactly the trust a help desk runs on. The page says so, in all four languages.
+
+This sits beside **WatchingYou AI** rather than replacing it: one answers instantly from a
+model or the written FAQ, the other reaches a person.
+
 ## WatchingYou AI
 
 **AI Support** in the nav opens a chat box that answers questions about the site.
 
-It runs in one of two modes, chosen by `Assistant:Provider`:
+**Signed in only.** The API key belongs to the site, so every question is spent from one
+budget — an open endpoint is somebody else's free model. The assistant is told the visitor's
+**name**, never their e-mail address: the model has no use for it and it would sit in a third
+party's logs for nothing. The quota is per account rather than per IP address, so one person
+cannot spend the allowance and an office sharing one connection does not share one budget.
+
+It runs in one of three modes, chosen by `Assistant:Provider`:
 
 - **`Builtin`** (the default) answers from a written FAQ — twelve topics, in all four
   languages, matched by keyword. It is not a language model and the interface does not pretend
@@ -290,14 +330,18 @@ It runs in one of two modes, chosen by `Assistant:Provider`:
   It needs no credentials, which is why it is the default. A support box that is broken until
   somebody pastes an API key is worse than one that answers the twelve questions people
   actually ask.
-- **`Anthropic`** forwards the conversation to a model with a system prompt describing the
-  site. Any failure — bad key, timeout, empty reply — falls back to the written answers, so
-  the box always responds.
+- **`OpenAI`** calls chat completions, `gpt-4o-mini` by default.
+- **`Anthropic`** calls the messages API, `claude-sonnet-4-6` by default.
+
+Both take the same system prompt describing the site. Any failure — bad key, timeout, empty
+reply — falls back to the written answers, so the box always responds.
 
 ```powershell
-dotnet user-secrets set "Assistant:Provider" "Anthropic" --project src\MovieRental.Host
-dotnet user-secrets set "Assistant:ApiKey" "sk-ant-…" --project src\MovieRental.Host
+dotnet user-secrets set "Assistant:Provider" "OpenAI" --project src\MovieRental.Host
+dotnet user-secrets set "Assistant:ApiKey" "sk-…" --project src\MovieRental.Host
 ```
+
+Leave `Assistant:Model` empty to take each provider's default, or set it to pin a version.
 
 The key goes in user secrets, never `appsettings.json`. Calls are made server-side: a key in
 the browser is a key anyone can read and spend.
@@ -407,6 +451,18 @@ it does model correctly is the part students usually get wrong: never keeping th
 Signing in is required before checkout. Pressing Confirm while signed out sends the visitor
 to `/account?returnUrl=…` and back to the same performance afterwards.
 
+## Profile and SMS
+
+**Account → Profile** sets the display name and the phone number. This is what makes SMS
+verification reachable at all: the phone field at registration is optional, and until this
+existed anyone who skipped it had no way to add one later, so the SMS button never appeared.
+
+Changing the number clears its confirmation — a new number is an unproven number, and carrying
+the old flag across would mean a "verified" phone nobody verified.
+
+Requesting a code while signed in uses the account already in session rather than a typed
+address, so an SMS cannot be aimed at somebody else's number.
+
 ## Password reset
 
 Two steps, both anonymous, both answering identically whether or not the address exists —
@@ -435,6 +491,34 @@ Rejections return 429 with a `Retry-After` header, because a user who mistyped t
 a straight answer rather than a silent wall. Behind a proxy the socket address is the proxy's,
 so `X-Forwarded-For` is preferred when present — configure `ForwardedHeaders` before trusting
 it in production.
+
+## Refunds
+
+| When | What happens |
+|---|---|
+| More than 48 hours before the screening | Refundable, 30% of the price kept |
+| 48 hours or less | No refund |
+| Screening cancelled by the cinema | Everything back, whatever the clock says |
+| Ticket already scanned at the door | No refund, cancelled screening or not |
+
+`RefundPolicy` is a pure function of (booking, screening, now) — no clock of its own and no
+database. The quote shown on the ticket and the amount actually refunded come from the same
+call, because two implementations would eventually disagree and the customer would be the one
+to find out. It is recomputed when the refund is carried out, not taken from the client: the
+cut-off moves while somebody is reading the page.
+
+A screening can override the window, the fee, and add a note of its own. That is why every
+ticket carries a **Rules** section rather than the site quoting one policy everywhere — the
+customer reads the rule that applies to their booking.
+
+Refunding releases the seats back on sale, e-mails a receipt naming the fee, and writes an
+audit entry. **Cancelling a screening is not deleting it**: it makes every booking on it fully
+refundable and keeps the record. The money still goes back when the customer asks rather than
+silently, so they keep a ticket to point at until then.
+
+`RefundPolicyTests` pins the edges: the boundary at exactly 48 hours is inclusive, a scanned
+ticket is refused even when the screening was cancelled, and a per-screening override is
+honoured.
 
 ## The door
 

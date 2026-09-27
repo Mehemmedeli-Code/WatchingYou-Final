@@ -43,6 +43,11 @@ interface Screening {
   audioLanguage: string;
   subtitleLanguage?: string | null;
   seatsSold: number;
+  isCancelled: boolean;
+  cancellationReason?: string | null;
+  refundWindowHours?: number | null;
+  refundFeePercent?: number | null;
+  refundNote?: string | null;
 }
 
 const BLANK = {
@@ -298,18 +303,42 @@ export default function AdminPage() {
                       {screening.subtitleLanguage ? (
                         <Badge className="ml-1">{languageName(screening.subtitleLanguage)}</Badge>
                       ) : null}
+                      {screening.isCancelled ? (
+                        <Badge tone="bad" className="ml-1">{t("admin.cancelled")}</Badge>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3 text-ink-mute">
                       {screening.seatsSold}/{screening.rows * screening.seatsPerRow}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => run(() => del(`/api/admin/screenings/${screening.id}`), "Screening removed.")}
-                      >
-                        {t("common.reject")}
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        {/* Cancelling is not deleting: it makes every booking fully refundable
+                            and keeps the record, which is what customers are owed. */}
+                        {!screening.isCancelled ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const reason = window.prompt(t("admin.suspendReason"));
+                              if (!reason) return;
+                              void run(
+                                () => post(`/api/admin/screenings/${screening.id}/cancel`, { reason }),
+                                t("admin.cancelled"),
+                              );
+                            }}
+                          >
+                            {t("admin.cancelScreening")}
+                          </Button>
+                        ) : null}
+
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => run(() => del(`/api/admin/screenings/${screening.id}`), "Screening removed.")}
+                        >
+                          {t("common.reject")}
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -447,6 +476,9 @@ function NewScreeningForm({
   const [audio, setAudio] = useState("az");
   const [subtitles, setSubtitles] = useState("");
   const [price, setPrice] = useState(9);
+  const [refundWindow, setRefundWindow] = useState("");
+  const [refundFee, setRefundFee] = useState("");
+  const [refundNote, setRefundNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -461,6 +493,9 @@ function NewScreeningForm({
         seatPrice: price,
         audioLanguage: audio,
         subtitleLanguage: subtitles || null,
+        refundWindowHours: refundWindow === "" ? null : Number(refundWindow),
+        refundFeePercent: refundFee === "" ? null : Number(refundFee),
+        refundNote: refundNote || null,
       });
       setStartsAt("");
       await onSaved();
@@ -523,6 +558,31 @@ function NewScreeningForm({
 
         <Field label={t("admin.seatPrice")}>
           <Input type="number" step="0.5" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
+        </Field>
+
+        {/* Blank means the site defaults — 48 hours and 30%. Filled in, this performance
+            carries its own rule, which is why each one shows a Rules section. */}
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={t("admin.refundWindow")} hint="48">
+            <Input
+              type="number"
+              value={refundWindow}
+              onChange={(e) => setRefundWindow(e.target.value)}
+              placeholder="48"
+            />
+          </Field>
+          <Field label={t("admin.refundFee")} hint="30">
+            <Input
+              type="number"
+              value={refundFee}
+              onChange={(e) => setRefundFee(e.target.value)}
+              placeholder="30"
+            />
+          </Field>
+        </div>
+
+        <Field label={t("admin.refundNote")}>
+          <Input value={refundNote} onChange={(e) => setRefundNote(e.target.value)} />
         </Field>
 
         {error ? <Notice tone="error">{error}</Notice> : null}

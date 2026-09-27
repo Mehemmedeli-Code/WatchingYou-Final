@@ -19,11 +19,42 @@ namespace MovieRental.Modules.Cinema.Features;
 public sealed record ScreeningAdminItem(
     Guid Id, Guid MovieId, string MovieTitle, Guid HallId, string VenueName, string Hall,
     DateTime StartsAtUtc, int Rows, int SeatsPerRow, decimal SeatPrice,
-    string AudioLanguage, string? SubtitleLanguage, int SeatsSold);
+    string AudioLanguage, string? SubtitleLanguage, int SeatsSold,
+    bool IsCancelled, string? CancellationReason,
+    int? RefundWindowHours, decimal? RefundFeePercent, string? RefundNote);
 
 public sealed record SaveScreeningCommand(
     Guid? Id, Guid MovieId, Guid HallId, DateTime StartsAtUtc,
-    decimal SeatPrice, string AudioLanguage, string? SubtitleLanguage) : ICommand<Result<ScreeningAdminItem>>;
+    decimal SeatPrice, string AudioLanguage, string? SubtitleLanguage,
+    int? RefundWindowHours, decimal? RefundFeePercent, string? RefundNote)
+    : ICommand<Result<ScreeningAdminItem>>;
+
+public sealed record CancelScreeningCommand(Guid Id, string Reason) : ICommand<Result>;
+
+internal sealed class CancelScreeningHandler(CinemaDbContext db, IAuditLog audit)
+    : ICommandHandler<CancelScreeningCommand, Result>
+{
+    public async Task<Result> Handle(CancelScreeningCommand command, CancellationToken ct)
+    {
+        var screening = await db.Screenings.FirstOrDefaultAsync(s => s.Id == command.Id, ct);
+        if (screening is null) return Result.Failure(Error.NotFound("Screening"));
+        if (screening.IsCancelled) return Result.Failure(Error.Conflict("This screening is already cancelled."));
+        if (string.IsNullOrWhiteSpace(command.Reason))
+            return Result.Failure(Error.Validation("Say why it was cancelled — the customers will be told."));
+
+        screening.IsCancelled = true;
+        screening.CancellationReason = command.Reason.Trim();
+        await db.SaveChangesAsync(ct);
+
+        // The seats are deliberately left alone. Cancelling makes every booking fully
+        // refundable, but the money goes back when the customer asks, not silently — and they
+        // keep a record of what they held until then.
+        await audit.RecordAsync(new AuditEntry(
+            "screening.cancelled", $"{screening.MovieTitle} · {screening.Hall}", command.Reason, screening.Id), ct);
+
+        return Result.Success();
+    }
+}
 
 internal sealed class SaveScreeningValidator : AbstractValidator<SaveScreeningCommand>
 {
@@ -87,13 +118,18 @@ internal sealed class SaveScreeningHandler(CinemaDbContext db, ICatalogApi catal
         screening.SeatPrice = command.SeatPrice;
         screening.AudioLanguage = command.AudioLanguage;
         screening.SubtitleLanguage = command.SubtitleLanguage;
+        screening.RefundWindowHours = command.RefundWindowHours;
+        screening.RefundFeePercent = command.RefundFeePercent;
+        screening.RefundNote = string.IsNullOrWhiteSpace(command.RefundNote) ? null : command.RefundNote.Trim();
 
         await db.SaveChangesAsync(ct);
 
         return Result.Success(new ScreeningAdminItem(
             screening.Id, screening.MovieId, screening.MovieTitle, hall.Id, hall.Venue?.Name ?? "",
             hall.Name, screening.StartsAtUtc, screening.Rows, screening.SeatsPerRow, screening.SeatPrice,
-            screening.AudioLanguage, screening.SubtitleLanguage, screening.Bookings.Count));
+            screening.AudioLanguage, screening.SubtitleLanguage, screening.Bookings.Count,
+            screening.IsCancelled, screening.CancellationReason,
+            screening.RefundWindowHours, screening.RefundFeePercent, screening.RefundNote));
     }
 }
 
@@ -108,7 +144,9 @@ internal sealed class GetScreeningsForAdminHandler(CinemaDbContext db)
             .Select(s => new ScreeningAdminItem(
                 s.Id, s.MovieId, s.MovieTitle, s.HallId, s.HallRoom!.Venue!.Name, s.Hall,
                 s.StartsAtUtc, s.Rows, s.SeatsPerRow, s.SeatPrice,
-                s.AudioLanguage, s.SubtitleLanguage, s.Bookings.Count))
+                s.AudioLanguage, s.SubtitleLanguage, s.Bookings.Count,
+                s.IsCancelled, s.CancellationReason,
+                s.RefundWindowHours, s.RefundFeePercent, s.RefundNote))
             .ToListAsync(ct);
 }
 
@@ -142,6 +180,20 @@ public static class ManageScreeningsEndpoints
                 ? TypedResults.NotFound(result.Error)
                 : TypedResults.BadRequest(result.Error);
         }).WithName("UpdateScreeningWithId");
+
+        admin.MapPost("/{id:guid}/cancel",
+            async Task<Results<NoContent, BadRequest<Error>, Conflict<Error>, NotFound<Error>>> (
+                Guid id, CancelScreeningCommand body, IDispatcher dispatcher, CancellationToken ct) =>
+            {
+                var result = await dispatcher.Send(body with { Id = id }, ct);
+                if (result.IsSuccess) return TypedResults.NoContent();
+                return result.Error.Code switch
+                {
+                    "not_found" => TypedResults.NotFound(result.Error),
+                    "conflict" => TypedResults.Conflict(result.Error),
+                    _ => TypedResults.BadRequest(result.Error)
+                };
+            }).WithName("CancelScreeningWithId");
 
         admin.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound>> (
             Guid id, CinemaDbContext db, CancellationToken ct) =>

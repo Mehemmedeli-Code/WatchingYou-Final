@@ -17,6 +17,7 @@ import HumanCraftPage from "@/pages/HumanCraftPage";
 import SecurityPage from "@/pages/SecurityPage";
 import GlobePage from "@/pages/GlobePage";
 import SupportPage from "@/pages/SupportPage";
+import HelpPage from "@/pages/HelpPage";
 
 /**
  * Island mounting. Razor owns routing and the page shell; each page declares which React
@@ -36,6 +37,7 @@ const ISLANDS: Record<string, () => JSX.Element> = {
   security: SecurityPage,
   globe: GlobePage,
   support: SupportPage,
+  help: HelpPage,
 };
 
 async function bootstrap() {

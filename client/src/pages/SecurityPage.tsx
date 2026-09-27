@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Section, Panel, Notice, Empty, Spinner } from "@/components/Shell";
 import { TicketCheckIn } from "@/components/TicketCheckIn";
+import { HelpInbox } from "@/components/HelpInbox";
 import { Button } from "@/components/ui/button";
 import { Textarea, Field } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -88,6 +89,10 @@ export default function SecurityPage() {
     <>
       <Section title={t("checkin.title")} lede={t("checkin.lede")}>
         <TicketCheckIn />
+      </Section>
+
+      <Section title={t("help.inbox")} lede={t("help.noPassword")}>
+        <HelpInbox />
       </Section>
 
     <Section title={t("security.title")} lede={t("security.lede")}>

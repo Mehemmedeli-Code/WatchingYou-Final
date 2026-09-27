@@ -48,19 +48,29 @@ builder.Services.AddSingleton<BuiltinAssistant>();
 
 // The written answers are always registered. A model, when one is configured, wraps them and
 // falls back to them on any failure — so the support box answers even when the API does not.
-if (string.Equals(builder.Configuration[$"{AssistantOptions.SectionName}:Provider"], "Anthropic",
-        StringComparison.OrdinalIgnoreCase))
+switch ((builder.Configuration[$"{AssistantOptions.SectionName}:Provider"] ?? "Builtin").ToLowerInvariant())
 {
-    builder.Services.AddHttpClient(nameof(AnthropicAssistant));
-    builder.Services.AddSingleton<IAssistant>(sp => new AnthropicAssistant(
-        sp.GetRequiredService<IHttpClientFactory>(),
-        sp.GetRequiredService<IOptions<AssistantOptions>>(),
-        sp.GetRequiredService<BuiltinAssistant>(),
-        sp.GetRequiredService<ILogger<AnthropicAssistant>>()));
-}
-else
-{
-    builder.Services.AddSingleton<IAssistant>(sp => sp.GetRequiredService<BuiltinAssistant>());
+    case "openai":
+        builder.Services.AddHttpClient(nameof(OpenAiAssistant));
+        builder.Services.AddSingleton<IAssistant>(sp => new OpenAiAssistant(
+            sp.GetRequiredService<IHttpClientFactory>(),
+            sp.GetRequiredService<IOptions<AssistantOptions>>(),
+            sp.GetRequiredService<BuiltinAssistant>(),
+            sp.GetRequiredService<ILogger<OpenAiAssistant>>()));
+        break;
+
+    case "anthropic":
+        builder.Services.AddHttpClient(nameof(AnthropicAssistant));
+        builder.Services.AddSingleton<IAssistant>(sp => new AnthropicAssistant(
+            sp.GetRequiredService<IHttpClientFactory>(),
+            sp.GetRequiredService<IOptions<AssistantOptions>>(),
+            sp.GetRequiredService<BuiltinAssistant>(),
+            sp.GetRequiredService<ILogger<AnthropicAssistant>>()));
+        break;
+
+    default:
+        builder.Services.AddSingleton<IAssistant>(sp => sp.GetRequiredService<BuiltinAssistant>());
+        break;
 }
 
 builder.Services.AddSingleton<Translations>();
@@ -163,6 +173,12 @@ builder.Services.AddRateLimiter(options =>
         ClientKey(http),
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 12, Window = TimeSpan.FromMinutes(5) }));
 
+    options.AddPolicy(AppPolicies.AssistantRateLimit, http => RateLimitPartition.GetFixedWindowLimiter(
+        // Per account: one person cannot spend the whole budget, and people sharing an office
+        // connection do not share one allowance.
+        http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? ClientKey(http),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(5) }));
+
     // Behind a proxy the socket address is the proxy's, so the forwarded header is used when
     // present. Configure ForwardedHeaders before trusting it in production.
     static string ClientKey(HttpContext http) =>
@@ -223,6 +239,15 @@ else
 }
 
 app.UseHttpsRedirection();
+
+// A missing page produces no exception, so the middleware above never sees it. Re-executing
+// into the error page keeps 404 and 403 looking like part of the site rather than the
+// server's default blank response. Scoped away from /api, because a fetch expecting JSON
+// should not be handed a page of HTML to parse.
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/api"),
+    branch => branch.UseStatusCodePagesWithReExecute("/error/{0}"));
+
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();

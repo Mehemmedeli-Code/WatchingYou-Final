@@ -1,4 +1,5 @@
 using MovieRental.Host.Infrastructure.Localization;
+using MovieRental.SharedKernel.Contracts;
 using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Host.Infrastructure.Assistant;
@@ -17,7 +18,8 @@ public static class AssistantEndpoints
 
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPost("/api/assistant", async (
-                AskAssistantRequest body, IAssistant assistant, ILanguageContext language, CancellationToken ct) =>
+                AskAssistantRequest body, IAssistant assistant, ILanguageContext language,
+                ICurrentUser currentUser, IUserDirectory users, CancellationToken ct) =>
             {
                 var turns = (body.Messages ?? [])
                     .Where(t => t.Role is "user" or "assistant" && !string.IsNullOrWhiteSpace(t.Content))
@@ -30,8 +32,17 @@ public static class AssistantEndpoints
                 if (turns.Count == 0 || turns[^1].Role != "user")
                     return Results.BadRequest(new { code = "empty", message = "Ask a question first." });
 
-                return Results.Ok(await assistant.AskAsync(turns, language.Code, ct));
+                // The assistant knows who it is talking to by name. The e-mail deliberately
+                // does not travel to the model: it has no use for it, and it would sit in a
+                // third party's logs for nothing.
+                var contact = currentUser.IsAuthenticated
+                    ? await users.GetContactAsync(currentUser.RequireId(), ct)
+                    : null;
+
+                return Results.Ok(await assistant.AskAsync(turns, language.Code, contact?.FullName, ct));
             })
-        .WithName("AskAssistant").WithTags("Assistant").AllowAnonymous()
-        .RequireRateLimiting(AppPolicies.CodeRateLimit);
+        // Signed in only. The API key belongs to the site, so every question is spent from
+        // one budget — an open endpoint is somebody else's free model.
+        .WithName("AskAssistant").WithTags("Assistant").RequireAuthorization()
+        .RequireRateLimiting(AppPolicies.AssistantRateLimit);
 }

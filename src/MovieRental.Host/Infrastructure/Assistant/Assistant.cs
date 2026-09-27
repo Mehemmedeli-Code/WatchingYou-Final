@@ -9,11 +9,14 @@ public sealed class AssistantOptions
 {
     public const string SectionName = "Assistant";
 
-    /// <summary>"Builtin" answers from the FAQ below and needs no credentials. "Anthropic"
-    /// forwards the conversation to a model and needs an API key in user secrets.</summary>
+    /// <summary>"Builtin", "OpenAI" or "Anthropic". The last two need an API key in user
+    /// secrets; the first needs nothing.</summary>
     public string Provider { get; set; } = "Builtin";
     public string ApiKey { get; set; } = string.Empty;
-    public string Model { get; set; } = "claude-sonnet-4-6";
+
+    /// <summary>Left empty, each provider's sensible default is used — gpt-4o-mini for
+    /// OpenAI, claude-sonnet-4-6 for Anthropic.</summary>
+    public string Model { get; set; } = string.Empty;
     public int MaxTokens { get; set; } = 600;
 }
 
@@ -23,7 +26,8 @@ public sealed record AssistantReply(string Content, bool FromModel);
 
 public interface IAssistant
 {
-    Task<AssistantReply> AskAsync(IReadOnlyList<AssistantTurn> history, string language, CancellationToken ct);
+    Task<AssistantReply> AskAsync(
+        IReadOnlyList<AssistantTurn> history, string language, string? visitorName, CancellationToken ct);
 }
 
 /// <summary>
@@ -128,7 +132,8 @@ internal sealed class BuiltinAssistant : IAssistant
         ["tr"] = "Bunu bilmiyorum. Sitenin kendisiyle ilgili soruları yanıtlıyorum — kiralama, sinema bileti, kısa film gönderme, hesap ve diller. Farklı sözcüklerle sorarsanız bulabilirim.",
     };
 
-    public Task<AssistantReply> AskAsync(IReadOnlyList<AssistantTurn> history, string language, CancellationToken ct)
+    public Task<AssistantReply> AskAsync(
+        IReadOnlyList<AssistantTurn> history, string language, string? visitorName, CancellationToken ct)
     {
         var question = history.LastOrDefault(t => t.Role == "user")?.Content?.ToLowerInvariant() ?? "";
         var lang = Translations.Normalise(language);
@@ -148,17 +153,9 @@ internal sealed class BuiltinAssistant : IAssistant
     }
 }
 
-/// <summary>
-/// Forwards the conversation to Anthropic's API. Used only when a key is configured, and the
-/// key lives in user secrets — never in appsettings.json, which goes into source control.
-/// </summary>
-internal sealed class AnthropicAssistant(
-    IHttpClientFactory factory, IOptions<AssistantOptions> options, IAssistant fallback, ILogger<AnthropicAssistant> logger)
-    : IAssistant
+internal static class AssistantPrompt
 {
-    private readonly AssistantOptions _options = options.Value;
-
-    private const string SystemPrompt = """
+    public const string Base = """
         You are WatchingYou AI, the support assistant for a film rental and cinema booking site.
         Answer only questions about this site and about films. Keep replies to a few sentences.
         Reply in the same language the visitor used.
@@ -174,7 +171,90 @@ internal sealed class AnthropicAssistant(
         not know, say so plainly rather than guessing.
         """;
 
-    public async Task<AssistantReply> AskAsync(IReadOnlyList<AssistantTurn> history, string language, CancellationToken ct)
+    /// <summary>
+    /// The visitor's own name, so the assistant is talking to them rather than to nobody.
+    /// Only the display name goes in — never the e-mail address, which the model has no use
+    /// for and which would end up in a third party's logs for nothing.
+    /// </summary>
+    public static string For(string? visitorName) =>
+        string.IsNullOrWhiteSpace(visitorName)
+            ? Base
+            : $"{Base}\n\nThe visitor is signed in and their name is {visitorName}. Address them by it when it reads naturally.";
+}
+
+/// <summary>
+/// Forwards the conversation to OpenAI's chat completions API. Used only when a key is
+/// configured, and the key lives in user secrets — never in appsettings.json.
+/// </summary>
+internal sealed class OpenAiAssistant(
+    IHttpClientFactory factory, IOptions<AssistantOptions> options, IAssistant fallback, ILogger<OpenAiAssistant> logger)
+    : IAssistant
+{
+    private readonly AssistantOptions _options = options.Value;
+
+    public async Task<AssistantReply> AskAsync(
+        IReadOnlyList<AssistantTurn> history, string language, string? visitorName, CancellationToken ct)
+    {
+        try
+        {
+            var client = factory.CreateClient(nameof(OpenAiAssistant));
+            client.Timeout = TimeSpan.FromSeconds(30);
+
+            // OpenAI takes the system prompt as the first message rather than a separate
+            // field, which is the only real shape difference from Anthropic here.
+            var messages = new List<object> { new { role = "system", content = AssistantPrompt.For(visitorName) } };
+            messages.AddRange(history.Select(turn => new { role = turn.Role, content = turn.Content }));
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions")
+            {
+                Content = JsonContent.Create(new
+                {
+                    model = string.IsNullOrWhiteSpace(_options.Model) ? "gpt-4o-mini" : _options.Model,
+                    max_tokens = _options.MaxTokens,
+                    messages
+                })
+            };
+            request.Headers.Add("Authorization", $"Bearer {_options.ApiKey}");
+
+            var response = await client.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogWarning("OpenAI call failed: {Status} {Body}",
+                    response.StatusCode, await response.Content.ReadAsStringAsync(ct));
+                return await fallback.AskAsync(history, language, visitorName, ct);
+            }
+
+            var body = await response.Content.ReadFromJsonAsync<OpenAiResponse>(cancellationToken: ct);
+            var text = body?.Choices?.FirstOrDefault()?.Message?.Content;
+
+            return string.IsNullOrWhiteSpace(text)
+                ? await fallback.AskAsync(history, language, visitorName, ct)
+                : new AssistantReply(text.Trim(), FromModel: true);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "OpenAI call threw; falling back to the written answers.");
+            return await fallback.AskAsync(history, language, visitorName, ct);
+        }
+    }
+
+    private sealed record OpenAiResponse([property: JsonPropertyName("choices")] Choice[]? Choices);
+    private sealed record Choice([property: JsonPropertyName("message")] ChoiceMessage? Message);
+    private sealed record ChoiceMessage([property: JsonPropertyName("content")] string? Content);
+}
+
+/// <summary>
+/// Forwards the conversation to Anthropic's API. Used only when a key is configured, and the
+/// key lives in user secrets — never in appsettings.json, which goes into source control.
+/// </summary>
+internal sealed class AnthropicAssistant(
+    IHttpClientFactory factory, IOptions<AssistantOptions> options, IAssistant fallback, ILogger<AnthropicAssistant> logger)
+    : IAssistant
+{
+    private readonly AssistantOptions _options = options.Value;
+
+    public async Task<AssistantReply> AskAsync(
+        IReadOnlyList<AssistantTurn> history, string language, string? visitorName, CancellationToken ct)
     {
         try
         {
@@ -183,9 +263,9 @@ internal sealed class AnthropicAssistant(
 
             var payload = new
             {
-                model = _options.Model,
+                model = string.IsNullOrWhiteSpace(_options.Model) ? "claude-sonnet-4-6" : _options.Model,
                 max_tokens = _options.MaxTokens,
-                system = SystemPrompt,
+                system = AssistantPrompt.For(visitorName),
                 messages = history.Select(turn => new { role = turn.Role, content = turn.Content }).ToArray()
             };
 
@@ -200,7 +280,7 @@ internal sealed class AnthropicAssistant(
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogWarning("Assistant call failed: {Status}", response.StatusCode);
-                return await fallback.AskAsync(history, language, ct);
+                return await fallback.AskAsync(history, language, visitorName, ct);
             }
 
             var body = await response.Content.ReadFromJsonAsync<AnthropicResponse>(cancellationToken: ct);
@@ -208,14 +288,14 @@ internal sealed class AnthropicAssistant(
 
             // An empty answer is not an answer; better the written one than a blank bubble.
             return string.IsNullOrWhiteSpace(text)
-                ? await fallback.AskAsync(history, language, ct)
+                ? await fallback.AskAsync(history, language, visitorName, ct)
                 : new AssistantReply(text.Trim(), FromModel: true);
         }
         catch (Exception ex)
         {
             // The support box must never take the page down with it.
             logger.LogError(ex, "Assistant call threw; falling back to the built-in answers.");
-            return await fallback.AskAsync(history, language, ct);
+            return await fallback.AskAsync(history, language, visitorName, ct);
         }
     }
 

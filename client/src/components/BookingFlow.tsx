@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { CreditCard, Ticket } from "lucide-react";
 import { Panel, Notice } from "@/components/Shell";
+import { RefundPanel } from "@/components/RefundPanel";
 import { Button } from "@/components/ui/button";
 import { Input, Field } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,7 @@ export interface TicketSeat {
 }
 
 export interface TicketResponse {
+  paymentId: string;
   reference: string;
   movieTitle: string;
   hall: string;
@@ -322,7 +324,15 @@ export function BookingFlow({
   );
 }
 
-export function TicketCard({ ticket, onDone }: { ticket: TicketResponse; onDone?: () => void }) {
+export function TicketCard({
+  ticket,
+  onDone,
+  onRefunded,
+}: {
+  ticket: TicketResponse;
+  onDone?: () => void;
+  onRefunded?: () => void;
+}) {
   const [codes, setCodes] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -394,6 +404,8 @@ export function TicketCard({ ticket, onDone }: { ticket: TicketResponse; onDone?
       </div>
 
       <p className="mt-3 text-xs text-ink-mute">{t("book.showQr")}</p>
+
+      <RefundPanel paymentId={ticket.paymentId} onRefunded={onRefunded} />
 
       {onDone ? (
         <Button className="mt-5" variant="outline" onClick={onDone}>{t("book.newBooking")}</Button>

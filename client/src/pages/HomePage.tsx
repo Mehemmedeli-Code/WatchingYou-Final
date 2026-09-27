@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
 import StackSpread from "@/components/ui/stack-spread";
 import { MovieCarousel } from "@/components/ui/movie-carousel";
 import { MovieCard, type MovieListItem } from "@/components/MovieCard";
+import { SearchField } from "@/components/SearchField";
 import { Section, Notice, Empty, Spinner } from "@/components/Shell";
 import { Toaster, type ToastMessage } from "@/components/Toast";
 import { MovieDialog } from "@/components/MovieDialog";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/input";
+import { Select } from "@/components/ui/input";
 import { useAuth } from "@/components/useAuth";
 import { get, post, query, ApiError, type Paged } from "@/lib/api";
 import { t } from "@/lib/i18n";
@@ -152,16 +152,12 @@ export default function HomePage() {
         className="scroll-mt-20"
       >
         <div id="catalogue" className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="relative sm:col-span-2 lg:col-span-1">
-            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute" aria-hidden />
-            <Input
-              className="pl-9"
-              placeholder={t("home.searchPlaceholder")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label={t("common.search")}
-            />
-          </div>
+          <SearchField
+            className="sm:col-span-2 lg:col-span-1"
+            value={search}
+            onChange={setSearch}
+            placeholder={t("home.searchPlaceholder")}
+          />
 
           <Select value={genre} onChange={(e) => { setGenre(e.target.value); setPage(1); }} aria-label={t("home.genre")}>
             <option value="all">{t("home.everyGenre")}</option>

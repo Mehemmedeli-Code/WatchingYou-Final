@@ -1,5 +1,7 @@
 import { useCallback, useState } from "react";
-import { Section, Notice } from "@/components/Shell";
+import { Section, Notice, Empty } from "@/components/Shell";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/components/useAuth";
 import { ChatMessages, type ChatMessage } from "@/components/ui/chat-messages";
 import { post, ApiError } from "@/lib/api";
 import { t } from "@/lib/i18n";
@@ -10,6 +12,7 @@ import { t } from "@/lib/i18n";
  * retention question to answer later.
  */
 export default function SupportPage() {
+  const { isSignedIn } = useAuth();
   const greeting = (): ChatMessage => ({
     id: "greeting",
     sender: "assistant",
@@ -47,6 +50,18 @@ export default function SupportPage() {
       setPending(false);
     }
   }, [messages]);
+
+  if (!isSignedIn) {
+    return (
+      <Section title={t("support.title")} lede={t("support.lede")}>
+        <Empty
+          title={t("support.signIn")}
+          hint=""
+          action={<a href="/account"><Button>{t("nav.signIn")}</Button></a>}
+        />
+      </Section>
+    );
+  }
 
   return (
     <Section title={t("support.title")} lede={t("support.lede")}>

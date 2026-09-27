@@ -214,3 +214,109 @@ html.rr { background: var(--surface); }
 @media (max-width: 520px) {
   main { padding-inline: 0.9rem; }
 }
+
+
+/* ---- Error page ----------------------------------------------------------------------
+   Razor only, no React: the moment you most need this page is the moment the bundle failed
+   to load, so it must not depend on it. The beam below is the same green used by the search
+   fields, written again here because that one lives in the Tailwind bundle.
+   ------------------------------------------------------------------------------------ */
+.rr-error {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: clamp(3rem, 12vh, 7rem) 1.25rem;
+  text-align: center;
+}
+
+.rr-error-code {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(4.5rem, 18vw, 8rem);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  margin: 0;
+  color: transparent;
+  -webkit-text-stroke: 1.5px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.rr-error-eye {
+  display: block;
+  margin: 1.25rem auto 0;
+  color: var(--accent);
+  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--accent) 55%, transparent));
+}
+
+.rr-error h1 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(1.4rem, 4vw, 1.9rem);
+  margin: 1.5rem 0 0;
+  color: var(--ink);
+}
+
+.rr-error-body {
+  margin: 0.6rem auto 0;
+  max-width: 44ch;
+  color: var(--ink-mute);
+  line-height: 1.6;
+}
+
+.rr-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
+  margin-top: 1.75rem;
+}
+
+.rr-error-primary,
+.rr-error-secondary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.6rem 1.2rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  overflow: hidden;
+}
+
+.rr-error-primary { background: var(--accent); color: var(--surface); }
+.rr-error-primary:hover { background: var(--accent-bright); }
+
+.rr-error-secondary {
+  border: 1px solid var(--line);
+  color: var(--ink-mute);
+}
+.rr-error-secondary:hover { color: var(--ink); border-color: var(--accent-dim); }
+
+/* The same travelling beam as the search fields, under the primary action. */
+.rr-error-primary::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 45%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--ink), transparent);
+  animation: rr-error-beam 2.6s linear infinite;
+}
+
+@keyframes rr-error-beam {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(222%); }
+}
+
+/* A reference nobody needs until they are reporting the problem, so it stays quiet. */
+.rr-error-trace {
+  margin-top: 2.5rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, var(--ink-mute) 55%, transparent);
+  word-break: break-all;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rr-error-primary::after { animation: none; width: 100%; transform: none; opacity: 0.5; }
+}

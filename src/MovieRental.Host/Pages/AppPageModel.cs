@@ -69,13 +69,16 @@ internal sealed class PageShellFactory(
             new("on-display", "/on-display", language["nav.onDisplay"]),
             new("ai-catalog", "/ai-catalog", language["nav.aiCatalog"]),
             new("human-craft", "/human-craft", language["nav.humanCraft"]),
-            new("cinema", "/cinema", language["nav.cinema"]),
-            new("support", "/support", language["nav.support"])
+            new("cinema", "/cinema", language["nav.cinema"])
         };
 
         if (isSignedIn)
         {
             // Signed-in only: an anonymous visitor has no business browsing who uses the site.
+            // The assistant spends the site's API key, so it sits behind sign-in like the
+            // globe does.
+            nav.Add(new NavItem("support", "/support", language["nav.support"]));
+            nav.Add(new NavItem("help", "/help", language["nav.help"]));
             nav.Add(new NavItem("globe", "/globe", language["nav.globe"]));
             nav.Add(new NavItem("rentals", "/rentals", language["nav.rentals"]));
             nav.Add(new NavItem("studio", "/studio", language["nav.studio"]));

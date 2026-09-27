@@ -23,6 +23,19 @@ public sealed class Screening : BaseEntity, ISoftDeletable
     public string AudioLanguage { get; set; } = "az";
     public string? SubtitleLanguage { get; set; }
 
+    /// <summary>Called off by the cinema. Every booking on it becomes fully refundable, and no
+    /// cut-off applies — the customer did not change their mind.</summary>
+    public bool IsCancelled { get; set; }
+    public string? CancellationReason { get; set; }
+
+    // --- refund rules, overriding the site defaults for this performance only ---
+    /// <summary>Hours before the start up to which a refund is possible. Null uses 48.</summary>
+    public int? RefundWindowHours { get; set; }
+    /// <summary>Percentage kept on a refund inside that window. Null uses 30.</summary>
+    public decimal? RefundFeePercent { get; set; }
+    /// <summary>Anything unusual about this screening, shown in its Rules section.</summary>
+    public string? RefundNote { get; set; }
+
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAtUtc { get; set; }
 

@@ -5,8 +5,11 @@ using Microsoft.EntityFrameworkCore;
 namespace MovieRental.Host.Middleware;
 
 /// <summary>
-/// Single place where an exception becomes an HTTP response. Everything is emitted as
-/// RFC 7807 ProblemDetails so the React client has one error shape to handle.
+/// Single place where an exception becomes an HTTP response.
+///
+/// API calls get RFC 7807 ProblemDetails, so the client has one error shape to handle. A
+/// browser navigating to a page gets the error page instead — a visitor who mistyped a URL
+/// should not be shown a wall of JSON.
 /// </summary>
 public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
 {
@@ -32,6 +35,15 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
 
             context.Response.Clear();
             context.Response.StatusCode = status;
+
+            // A page request is anything that is not under /api and would accept HTML.
+            if (!context.Request.Path.StartsWithSegments("/api") &&
+                context.Request.Headers.Accept.ToString().Contains("text/html", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Response.Redirect($"/error/{status}");
+                return;
+            }
+
             context.Response.ContentType = "application/problem+json";
 
             var payload = new

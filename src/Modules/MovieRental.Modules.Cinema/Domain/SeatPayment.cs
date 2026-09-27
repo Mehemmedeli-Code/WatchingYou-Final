@@ -2,7 +2,7 @@ using MovieRental.SharedKernel.Abstractions;
 
 namespace MovieRental.Modules.Cinema.Domain;
 
-public enum PaymentStatus { AwaitingCode = 1, Confirmed = 2, Expired = 3, Cancelled = 4 }
+public enum PaymentStatus { AwaitingCode = 1, Confirmed = 2, Expired = 3, Cancelled = 4, Refunded = 5 }
 
 public enum CardBrand { Unknown = 0, Visa = 1, Mastercard = 2 }
 
@@ -37,6 +37,12 @@ public sealed class SeatPayment : BaseEntity
     public PaymentStatus Status { get; set; } = PaymentStatus.AwaitingCode;
     public DateTime ExpiresAtUtc { get; set; } = DateTime.UtcNow.AddMinutes(15);
     public DateTime? ConfirmedAtUtc { get; set; }
+
+    public DateTime? RefundedAtUtc { get; set; }
+    /// <summary>What went back, after any fee. Stored rather than recomputed: the policy may
+    /// change later, and a receipt must still say what was actually paid back.</summary>
+    public decimal? RefundedAmount { get; set; }
+    public string? RefundReason { get; set; }
 
     public List<SeatBooking> Seats { get; set; } = [];
 

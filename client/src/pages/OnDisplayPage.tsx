@@ -2,10 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Clock, Languages, Ticket } from "lucide-react";
 import { Section, Panel, Empty, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/input";
+import { Select } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { get, query } from "@/lib/api";
 import { CinemaMap, VenueFilterHint, type MappedVenue } from "@/components/CinemaMap";
+import { SearchField } from "@/components/SearchField";
 import { t, formatWhen, formatDay, languageName } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
 
@@ -63,12 +64,7 @@ export default function OnDisplayPage() {
       <VenueFilterHint venue={venues.find((v) => v.id === venueId)} />
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t("common.search")}
-          aria-label={t("common.search")}
-        />
+        <SearchField value={search} onChange={setSearch} />
         <Select value={language} onChange={(e) => setLanguage(e.target.value)} aria-label={t("onDisplay.language")}>
           <option value="">{t("common.all")}</option>
           {LANGUAGES.map((code) => (

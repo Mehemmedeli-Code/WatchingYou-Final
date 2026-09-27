@@ -26,6 +26,9 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
             e.Property(x => x.SeatPrice).HasPrecision(10, 2);
             e.Property(x => x.AudioLanguage).HasMaxLength(8).IsRequired();
             e.Property(x => x.SubtitleLanguage).HasMaxLength(8);
+            e.Property(x => x.CancellationReason).HasMaxLength(300);
+            e.Property(x => x.RefundNote).HasMaxLength(500);
+            e.Property(x => x.RefundFeePercent).HasPrecision(5, 2);
             e.HasIndex(x => x.StartsAtUtc);
             // What the Movies on Display filters sort and narrow by.
             e.HasIndex(x => new { x.StartsAtUtc, x.AudioLanguage });
@@ -57,6 +60,8 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
             e.Property(x => x.Amount).HasPrecision(10, 2);
             e.Property(x => x.Last4).HasMaxLength(4).IsRequired();
             e.Property(x => x.CardHolder).HasMaxLength(120).IsRequired();
+            e.Property(x => x.RefundedAmount).HasPrecision(10, 2);
+            e.Property(x => x.RefundReason).HasMaxLength(300);
             e.Property(x => x.CodeHash).HasMaxLength(128).IsRequired();
             e.Property(x => x.Salt).HasMaxLength(64).IsRequired();
             e.Property(x => x.Brand).HasConversion<int>();

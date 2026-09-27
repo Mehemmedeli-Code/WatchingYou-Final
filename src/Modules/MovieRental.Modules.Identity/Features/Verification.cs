@@ -22,19 +22,32 @@ namespace MovieRental.Modules.Identity.Features;
 
 public sealed record SendVerificationCommand(string Email, VerificationChannel Channel) : ICommand<Result>;
 
-internal sealed class SendVerificationHandler(IdentityDbContext db, IVerificationService verification)
+internal sealed class SendVerificationHandler(
+    IdentityDbContext db, IVerificationService verification, ICurrentUser currentUser)
     : ICommandHandler<SendVerificationCommand, Result>
 {
     public async Task<Result> Handle(SendVerificationCommand command, CancellationToken ct)
     {
-        var email = command.Email.Trim().ToLowerInvariant();
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+        // Signed in: use the account we already know, so an SMS cannot be aimed at somebody
+        // else's number by typing their address.
+        var user = currentUser.IsAuthenticated
+            ? await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.Id, ct)
+            : null;
+
+        if (user is null)
+        {
+            var email = command.Email.Trim().ToLowerInvariant();
+            user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+        }
 
         // Unknown address: report success anyway, send nothing.
         if (user is null) return Result.Success();
 
         if (command.Channel == VerificationChannel.Email && user.IsEmailConfirmed)
             return Result.Failure(Error.Conflict("This e-mail is already confirmed."));
+
+        if (command.Channel == VerificationChannel.Sms && user.IsPhoneConfirmed)
+            return Result.Failure(Error.Conflict("This phone number is already confirmed."));
 
         return await verification.IssueAsync(
             user, command.Channel, VerificationPurpose.AccountVerification, ct);
@@ -43,13 +56,21 @@ internal sealed class SendVerificationHandler(IdentityDbContext db, IVerificatio
 
 public sealed record ConfirmCodeCommand(string Email, VerificationChannel Channel, string Code) : ICommand<Result>;
 
-internal sealed class ConfirmCodeHandler(IdentityDbContext db, IVerificationService verification)
+internal sealed class ConfirmCodeHandler(
+    IdentityDbContext db, IVerificationService verification, ICurrentUser currentUser)
     : ICommandHandler<ConfirmCodeCommand, Result>
 {
     public async Task<Result> Handle(ConfirmCodeCommand command, CancellationToken ct)
     {
-        var email = command.Email.Trim().ToLowerInvariant();
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+        var user = currentUser.IsAuthenticated
+            ? await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.Id, ct)
+            : null;
+
+        if (user is null)
+        {
+            var email = command.Email.Trim().ToLowerInvariant();
+            user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+        }
 
         if (user is null)
             return Result.Failure(Error.Validation("That code has expired or been used up. Ask for a new one."));

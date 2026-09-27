@@ -398,7 +398,11 @@ export default function CinemaPage() {
           <h3 className="mb-4 font-display text-2xl text-ink">{t("book.myTickets")}</h3>
           <div className="space-y-4">
             {tickets.map((ticket) => (
-              <TicketCard key={ticket.reference} ticket={ticket} />
+              <TicketCard
+                key={ticket.reference}
+                ticket={ticket}
+                onRefunded={() => { void loadTickets(); if (activeId) void loadMap(activeId); }}
+              />
             ))}
           </div>
         </div>

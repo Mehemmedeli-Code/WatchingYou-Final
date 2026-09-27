@@ -13,7 +13,7 @@ import { JSDOM } from "jsdom";
 import { pathToFileURL } from "node:url";
 
 const PAGES = ["home", "onDisplay", "cinema", "rentals", "studio", "admin", "account",
-               "aiCatalog", "humanCraft", "security", "globe", "support"];
+               "aiCatalog", "humanCraft", "security", "globe", "support", "help"];
 
 const VENUES = [{
   id: "11111111-1111-1111-1111-111111111111", name: "Nizami", city: "Baku",
@@ -29,7 +29,7 @@ const respond = (path) =>
   : /\/api\/movies(\?|$)/.test(path) ? { items: [], page: 1, pageSize: 12, total: 0, totalPages: 0 }
   : /\/api\/bookings\/(mine|pending)/.test(path) ? []
   : /\/api\/globe\/members/.test(path) ? { city: "Baku", total: 0, page: 1, pageSize: 24, items: [] }
-  : /\/(screenings|shorts|cities|audit|users|on-display|gallery|analytics|queue)/.test(path) ? []
+  : /\/(screenings|shorts|cities|audit|users|on-display|gallery|analytics|queue|help)/.test(path) ? []
   : {};
 
 async function check(page) {
