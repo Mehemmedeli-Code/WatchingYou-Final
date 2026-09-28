@@ -136,7 +136,21 @@ builder.Services.AddModules(
 
 **Tokens.** Access tokens are short-lived JWTs built by `JwtSecurityTokenHandler`. Refresh tokens are rows in `identity.RefreshTokens` with rotation: using one revokes it and points it at its replacement. A revoked token coming back means the chain leaked, so every live token for that user is revoked at once.
 
-### Migrations
+### Extracting over an old copy
+
+A zip overwrites what changed but leaves behind what was **deleted**. A stale `.cs` file still
+compiles into the project and fails against code that has moved on — that is where `CS0101`
+(duplicate definition) and `CS0117` (missing member) come from after an update.
+
+Delete the folder before extracting. When that is inconvenient:
+
+```powershell
+.\scripts\clean-stale.ps1
+```
+
+It removes the files this version no longer has, clears `bin` and `obj`, and says what it did.
+
+## Migrations
 
 The development bootstrapper creates the schemas on first run so you can start with only a connection string. For anything beyond that, each module owns its own migration history:
 
@@ -201,6 +215,20 @@ A film reaches a public gallery only when it is **Approved** *and* its author ha
 **Public**. Which gallery is decided by the origin declared at upload — AI Catalog or Human
 Craft. Video is served through an authorising endpoint, never as a static file, so a private
 film cannot be reached by guessing its URL.
+
+## Extracting over an old copy
+
+A zip overwrites what changed but leaves behind what was **deleted**. A stale `.cs` file still
+compiles into the project and fails against code that has moved on — that is where `CS0101`
+(duplicate definition) and `CS0117` (missing member) come from after an update.
+
+Delete the folder before extracting. When that is inconvenient:
+
+```powershell
+.\scripts\clean-stale.ps1
+```
+
+It removes the files this version no longer has, clears `bin` and `obj`, and says what it did.
 
 ## Migrations
 
@@ -298,59 +326,28 @@ pure functions with no clock and no database of their own.
 
 ## Help service
 
-**Help service** in the nav writes to the Security desk; the desk reads and answers it from
-**Security → Incoming messages**. Both sides see the same thread, and a customer coming back
-after an answer reopens it rather than leaving it quietly marked as done.
+A live chat between a customer and the Security desk — the model a bank's chat window uses,
+not a ticket queue. One thread per customer that they keep coming back to, rather than a new
+numbered case for every question.
 
-What travels with a message is the sender's **name, e-mail and what they wrote** — taken from
-the signed-in session, not from a form field, so a sender address cannot be forged. Nothing
-else about the account reaches the desk: no roles, no phone, no bookings, and no password.
-Passwords are not stored in readable form anywhere and would not be shown here if they were.
-Staff answering a question do not need credentials, and a support screen that displayed them
-would cost exactly the trust a help desk runs on. The page says so, in all four languages.
+**Customer:** *Help service* in the nav. Type, and the desk answers in the same window.
+**Desk:** *Security → Live conversations*. Who is waiting on the left, the conversation on the
+right, with an unread count and the last thing each person said.
 
-This sits beside **WatchingYou AI** rather than replacing it: one answers instantly from a
-model or the written FAQ, the other reaches a person.
+New messages arrive by polling every five seconds. A socket would be tidier, but polling one
+small thread is cheap, survives a dropped connection with no reconnect logic, and needs
+nothing added to the host — and nobody notices five seconds when a person is typing the reply.
 
-## WatchingYou AI
+### What the desk sees
 
-**AI Support** in the nav opens a chat box that answers questions about the site.
+The sender's **name, e-mail and what they wrote**. Taken from the signed-in session, never
+from a form field, so an address cannot be forged.
 
-**Signed in only.** The API key belongs to the site, so every question is spent from one
-budget — an open endpoint is somebody else's free model. The assistant is told the visitor's
-**name**, never their e-mail address: the model has no use for it and it would sit in a third
-party's logs for nothing. The quota is per account rather than per IP address, so one person
-cannot spend the allowance and an office sharing one connection does not share one budget.
-
-It runs in one of three modes, chosen by `Assistant:Provider`:
-
-- **`Builtin`** (the default) answers from a written FAQ — twelve topics, in all four
-  languages, matched by keyword. It is not a language model and the interface does not pretend
-  it is: an unmatched question gets "I do not know that one" rather than an invented answer.
-  It needs no credentials, which is why it is the default. A support box that is broken until
-  somebody pastes an API key is worse than one that answers the twelve questions people
-  actually ask.
-- **`OpenAI`** calls chat completions, `gpt-4o-mini` by default.
-- **`Anthropic`** calls the messages API, `claude-sonnet-4-6` by default.
-
-Both take the same system prompt describing the site. Any failure — bad key, timeout, empty
-reply — falls back to the written answers, so the box always responds.
-
-```powershell
-dotnet user-secrets set "Assistant:Provider" "OpenAI" --project src\MovieRental.Host
-dotnet user-secrets set "Assistant:ApiKey" "sk-…" --project src\MovieRental.Host
-```
-
-Leave `Assistant:Model` empty to take each provider's default, or set it to pin a version.
-
-The key goes in user secrets, never `appsettings.json`. Calls are made server-side: a key in
-the browser is a key anyone can read and spend.
-
-**Stateless.** The client sends the conversation with each question and the server stores
-nothing — no table, no retention question, and no transcript of what people asked support
-sitting in a database nobody remembers is there. The history is trimmed to twenty turns and
-each message to 2,000 characters, because one enormous message is the cheapest way to run up a
-bill on somebody else's key. The endpoint shares the rate limiter used by the code endpoints.
+Nothing else about the account crosses over: no roles, no phone, no bookings, and **no
+password**. Passwords are not stored in readable form anywhere and would not be shown here if
+they were. Staff answering a question do not need credentials, and a support screen that
+displayed them would cost exactly the trust a help desk runs on. The page says so plainly, in
+all four languages, because the worry is a reasonable one.
 
 ## The globe
 

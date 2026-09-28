@@ -16,7 +16,6 @@ import AiCatalogPage from "@/pages/GalleryPage";
 import HumanCraftPage from "@/pages/HumanCraftPage";
 import SecurityPage from "@/pages/SecurityPage";
 import GlobePage from "@/pages/GlobePage";
-import SupportPage from "@/pages/SupportPage";
 import HelpPage from "@/pages/HelpPage";
 
 /**
@@ -36,7 +35,6 @@ const ISLANDS: Record<string, () => JSX.Element> = {
   humanCraft: HumanCraftPage,
   security: SecurityPage,
   globe: GlobePage,
-  support: SupportPage,
   help: HelpPage,
 };
 

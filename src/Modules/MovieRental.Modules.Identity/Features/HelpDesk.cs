@@ -12,156 +12,201 @@ using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Identity.Features;
 
-// Help service: a customer writes, the Security desk reads and answers.
+// Live help: the customer types, the Security desk answers, both watch the same thread.
 //
-// What travels with a message is the sender's name, e-mail and what they wrote. Nothing else
-// about the account is exposed to the desk — no password, obviously, but also no roles, no
-// phone, no bookings. Staff answering a question do not need them, and a support screen that
-// showed them would be a standing invitation to misuse.
+// What the desk receives is the sender's name, e-mail and what they wrote — taken from the
+// signed-in session, never from a form field, so an address cannot be forged. Nothing else
+// about the account crosses over: no roles, no phone, no bookings, and no password. Passwords
+// are not stored in readable form anywhere and would not be shown here if they were.
 
-public sealed record HelpReplyItem(
-    Guid Id, string AuthorName, string AuthorRole, string Body, DateTime CreatedAtUtc);
+public sealed record ChatLine(
+    Guid Id, bool FromDesk, string AuthorName, string Body, DateTime CreatedAtUtc);
 
-public sealed record HelpThread(
-    Guid Id, string UserEmail, string UserName, string Subject, string Body,
-    string Status, DateTime CreatedAtUtc, IReadOnlyList<HelpReplyItem> Replies);
+public sealed record ChatThread(
+    Guid Id, string UserEmail, string UserName, string Status,
+    DateTime LastMessageAtUtc, int UnreadForDesk, IReadOnlyList<ChatLine> Messages);
 
-public sealed record SendHelpMessageCommand(string Subject, string Body) : ICommand<Result<HelpThread>>;
+/// <summary>What the desk's list shows: who is waiting, and the last thing they said.</summary>
+public sealed record InboxRow(
+    Guid Id, string UserEmail, string UserName, string Status,
+    DateTime LastMessageAtUtc, int Unread, string Preview);
 
-internal sealed class SendHelpMessageValidator : AbstractValidator<SendHelpMessageCommand>
+// ---------------------------------------------------------------- customer side
+
+public sealed record GetMyChatQuery : IQuery<ChatThread?>;
+
+internal sealed class GetMyChatHandler(IdentityDbContext db, ICurrentUser currentUser)
+    : IQueryHandler<GetMyChatQuery, ChatThread?>
 {
-    public SendHelpMessageValidator()
+    public async Task<ChatThread?> Handle(GetMyChatQuery query, CancellationToken ct)
     {
-        RuleFor(x => x.Subject).NotEmpty().MaximumLength(160);
-        RuleFor(x => x.Body).NotEmpty().MaximumLength(4000);
+        var userId = currentUser.RequireId();
+
+        var conversation = await db.SupportConversations
+            .Include(c => c.Messages)
+            .FirstOrDefaultAsync(c => c.UserId == userId, ct);
+
+        if (conversation is null) return null;
+
+        // Reading the thread marks the desk's replies as seen. Done here rather than on a
+        // separate call, because opening the window is what "read" means.
+        var unseen = conversation.Messages.Where(m => m.FromDesk && m.SeenAtUtc is null).ToList();
+        if (unseen.Count > 0)
+        {
+            foreach (var message in unseen) message.SeenAtUtc = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+        }
+
+        return HelpMapper.ToThread(conversation);
     }
 }
 
-internal sealed class SendHelpMessageHandler(IdentityDbContext db, ICurrentUser currentUser)
-    : ICommandHandler<SendHelpMessageCommand, Result<HelpThread>>
+public sealed record SendChatMessageCommand(string Body) : ICommand<Result<ChatThread>>;
+
+internal sealed class SendChatMessageValidator : AbstractValidator<SendChatMessageCommand>
 {
-    public async Task<Result<HelpThread>> Handle(SendHelpMessageCommand command, CancellationToken ct)
+    public SendChatMessageValidator() => RuleFor(x => x.Body).NotEmpty().MaximumLength(4000);
+}
+
+internal sealed class SendChatMessageHandler(IdentityDbContext db, ICurrentUser currentUser)
+    : ICommandHandler<SendChatMessageCommand, Result<ChatThread>>
+{
+    public async Task<Result<ChatThread>> Handle(SendChatMessageCommand command, CancellationToken ct)
     {
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.RequireId(), ct);
-        if (user is null) return Result.Failure<HelpThread>(Error.NotFound("User"));
+        if (user is null) return Result.Failure<ChatThread>(Error.NotFound("User"));
 
-        // Taken from the signed-in account rather than a form field: a sender address anyone
-        // could type is a sender address anyone could forge.
-        var message = new SupportMessage
+        var conversation = await db.SupportConversations
+            .Include(c => c.Messages)
+            .FirstOrDefaultAsync(c => c.UserId == user.Id, ct);
+
+        if (conversation is null)
         {
-            UserId = user.Id,
-            UserEmail = user.Email,
-            UserName = user.FullName,
-            Subject = command.Subject.Trim(),
+            conversation = new SupportConversation
+            {
+                UserId = user.Id,
+                UserEmail = user.Email,
+                UserName = user.FullName
+            };
+            db.SupportConversations.Add(conversation);
+        }
+
+        conversation.Messages.Add(new SupportChatMessage
+        {
+            FromDesk = false,
+            AuthorUserId = user.Id,
+            AuthorName = user.FullName,
             Body = command.Body.Trim()
-        };
+        });
 
-        db.SupportMessages.Add(message);
+        // A closed thread reopens when the customer writes again. Anything else would make
+        // them start over to ask a follow-up.
+        conversation.Status = SupportStatus.Open;
+        conversation.LastMessageAtUtc = DateTime.UtcNow;
+
         await db.SaveChangesAsync(ct);
-
-        return Result.Success(HelpMapper.ToThread(message));
+        return Result.Success(HelpMapper.ToThread(conversation));
     }
 }
 
-public sealed record GetMyHelpThreadsQuery : IQuery<IReadOnlyList<HelpThread>>;
+// ---------------------------------------------------------------- desk side
 
-internal sealed class GetMyHelpThreadsHandler(IdentityDbContext db, ICurrentUser currentUser)
-    : IQueryHandler<GetMyHelpThreadsQuery, IReadOnlyList<HelpThread>>
+public sealed record GetInboxQuery(bool IncludeClosed) : IQuery<IReadOnlyList<InboxRow>>;
+
+internal sealed class GetInboxHandler(IdentityDbContext db)
+    : IQueryHandler<GetInboxQuery, IReadOnlyList<InboxRow>>
 {
-    public async Task<IReadOnlyList<HelpThread>> Handle(GetMyHelpThreadsQuery query, CancellationToken ct)
+    public async Task<IReadOnlyList<InboxRow>> Handle(GetInboxQuery query, CancellationToken ct)
     {
-        var mine = await db.SupportMessages.AsNoTracking()
-            .Include(m => m.Replies)
-            .Where(m => m.UserId == currentUser.RequireId())
-            .OrderByDescending(m => m.CreatedAtUtc)
-            .Take(50)
+        var conversations = db.SupportConversations.AsNoTracking().Include(c => c.Messages);
+
+        var rows = await (query.IncludeClosed
+                ? conversations
+                : conversations.Where(c => c.Status != SupportStatus.Closed))
+            .OrderByDescending(c => c.LastMessageAtUtc)
+            .Take(200)
             .ToListAsync(ct);
 
-        return [.. mine.Select(HelpMapper.ToThread)];
+        return [.. rows.Select(c => new InboxRow(
+            c.Id, c.UserEmail, c.UserName, c.Status.ToString(), c.LastMessageAtUtc,
+            c.Messages.Count(m => !m.FromDesk && m.SeenAtUtc is null),
+            c.Messages.OrderByDescending(m => m.CreatedAtUtc).FirstOrDefault()?.Body is { } last
+                ? last[..Math.Min(last.Length, 90)]
+                : ""))];
     }
 }
 
-public sealed record GetHelpInboxQuery(bool IncludeClosed) : IQuery<IReadOnlyList<HelpThread>>;
+public sealed record GetChatQuery(Guid ConversationId) : IQuery<ChatThread?>;
 
-internal sealed class GetHelpInboxHandler(IdentityDbContext db)
-    : IQueryHandler<GetHelpInboxQuery, IReadOnlyList<HelpThread>>
+internal sealed class GetChatHandler(IdentityDbContext db) : IQueryHandler<GetChatQuery, ChatThread?>
 {
-    public async Task<IReadOnlyList<HelpThread>> Handle(GetHelpInboxQuery query, CancellationToken ct)
+    public async Task<ChatThread?> Handle(GetChatQuery query, CancellationToken ct)
     {
-        var inbox = db.SupportMessages.AsNoTracking().Include(m => m.Replies);
+        var conversation = await db.SupportConversations
+            .Include(c => c.Messages)
+            .FirstOrDefaultAsync(c => c.Id == query.ConversationId, ct);
 
-        var threads = await (query.IncludeClosed ? inbox : inbox.Where(m => m.Status != SupportStatus.Closed))
-            // Oldest first: the person who has waited longest is served first.
-            .OrderBy(m => m.Status == SupportStatus.Open ? 0 : 1)
-            .ThenBy(m => m.CreatedAtUtc)
-            .Take(100)
-            .ToListAsync(ct);
+        if (conversation is null) return null;
 
-        return [.. threads.Select(HelpMapper.ToThread)];
+        var unseen = conversation.Messages.Where(m => !m.FromDesk && m.SeenAtUtc is null).ToList();
+        if (unseen.Count > 0)
+        {
+            foreach (var message in unseen) message.SeenAtUtc = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+        }
+
+        return HelpMapper.ToThread(conversation);
     }
 }
 
-public sealed record ReplyToHelpCommand(Guid MessageId, string Body) : ICommand<Result<HelpReplyItem>>;
+public sealed record DeskReplyCommand(Guid ConversationId, string Body) : ICommand<Result<ChatThread>>;
 
-internal sealed class ReplyToHelpHandler(IdentityDbContext db, ICurrentUser currentUser)
-    : ICommandHandler<ReplyToHelpCommand, Result<HelpReplyItem>>
+internal sealed class DeskReplyHandler(IdentityDbContext db, ICurrentUser currentUser)
+    : ICommandHandler<DeskReplyCommand, Result<ChatThread>>
 {
-    public async Task<Result<HelpReplyItem>> Handle(ReplyToHelpCommand command, CancellationToken ct)
+    public async Task<Result<ChatThread>> Handle(DeskReplyCommand command, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(command.Body))
-            return Result.Failure<HelpReplyItem>(Error.Validation("Write something first."));
+            return Result.Failure<ChatThread>(Error.Validation("Write something first."));
 
-        var message = await db.SupportMessages.FirstOrDefaultAsync(m => m.Id == command.MessageId, ct);
-        if (message is null) return Result.Failure<HelpReplyItem>(Error.NotFound("Message"));
+        var conversation = await db.SupportConversations
+            .Include(c => c.Messages)
+            .FirstOrDefaultAsync(c => c.Id == command.ConversationId, ct);
 
-        var userId = currentUser.RequireId();
-        var isDesk = currentUser.IsInRole(AppRoles.Security) || currentUser.IsInRole(AppRoles.Admin);
+        if (conversation is null) return Result.Failure<ChatThread>(Error.NotFound("Conversation"));
 
-        // Either the person who wrote it, or the desk. Nobody else can read the thread, so
-        // nobody else can add to it.
-        if (message.UserId != userId && !isDesk)
-            return Result.Failure<HelpReplyItem>(Error.Forbidden("This conversation is not yours."));
+        var deskUserId = currentUser.RequireId();
+        var agent = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == deskUserId, ct);
 
-        var author = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct);
-
-        var reply = new SupportReply
+        conversation.Messages.Add(new SupportChatMessage
         {
-            MessageId = message.Id,
-            AuthorUserId = userId,
-            AuthorName = author?.FullName ?? "Unknown",
-            AuthorRole = isDesk && message.UserId != userId ? AppRoles.Security : "Customer",
+            FromDesk = true,
+            AuthorUserId = deskUserId,
+            // The agent's own name, so the customer knows they are talking to a person.
+            AuthorName = agent?.FullName ?? "Security",
             Body = command.Body.Trim()
-        };
+        });
 
-        db.SupportReplies.Add(reply);
-
-        if (reply.AuthorRole == AppRoles.Security)
-        {
-            message.Status = SupportStatus.Answered;
-            message.AnsweredAtUtc = DateTime.UtcNow;
-        }
-        else if (message.Status == SupportStatus.Answered)
-        {
-            // The customer came back, so it is open again rather than quietly finished.
-            message.Status = SupportStatus.Open;
-        }
+        conversation.Status = SupportStatus.Answered;
+        conversation.LastMessageAtUtc = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
-        return Result.Success(HelpMapper.ToItem(reply));
+        return Result.Success(HelpMapper.ToThread(conversation));
     }
 }
 
-public sealed record CloseHelpThreadCommand(Guid MessageId) : ICommand<Result>;
+public sealed record CloseChatCommand(Guid ConversationId) : ICommand<Result>;
 
-internal sealed class CloseHelpThreadHandler(IdentityDbContext db)
-    : ICommandHandler<CloseHelpThreadCommand, Result>
+internal sealed class CloseChatHandler(IdentityDbContext db) : ICommandHandler<CloseChatCommand, Result>
 {
-    public async Task<Result> Handle(CloseHelpThreadCommand command, CancellationToken ct)
+    public async Task<Result> Handle(CloseChatCommand command, CancellationToken ct)
     {
-        var message = await db.SupportMessages.FirstOrDefaultAsync(m => m.Id == command.MessageId, ct);
-        if (message is null) return Result.Failure(Error.NotFound("Message"));
+        var conversation = await db.SupportConversations
+            .FirstOrDefaultAsync(c => c.Id == command.ConversationId, ct);
 
-        message.Status = SupportStatus.Closed;
+        if (conversation is null) return Result.Failure(Error.NotFound("Conversation"));
+
+        conversation.Status = SupportStatus.Closed;
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }
@@ -169,13 +214,12 @@ internal sealed class CloseHelpThreadHandler(IdentityDbContext db)
 
 internal static class HelpMapper
 {
-    public static HelpReplyItem ToItem(SupportReply reply) =>
-        new(reply.Id, reply.AuthorName, reply.AuthorRole, reply.Body, reply.CreatedAtUtc);
-
-    public static HelpThread ToThread(SupportMessage message) => new(
-        message.Id, message.UserEmail, message.UserName, message.Subject, message.Body,
-        message.Status.ToString(), message.CreatedAtUtc,
-        [.. message.Replies.OrderBy(r => r.CreatedAtUtc).Select(ToItem)]);
+    public static ChatThread ToThread(SupportConversation c) => new(
+        c.Id, c.UserEmail, c.UserName, c.Status.ToString(), c.LastMessageAtUtc,
+        c.Messages.Count(m => !m.FromDesk && m.SeenAtUtc is null),
+        [.. c.Messages
+            .OrderBy(m => m.CreatedAtUtc)
+            .Select(m => new ChatLine(m.Id, m.FromDesk, m.AuthorName, m.Body, m.CreatedAtUtc))]);
 }
 
 public static class HelpDeskEndpoints
@@ -184,47 +228,51 @@ public static class HelpDeskEndpoints
     {
         var mine = app.MapGroup("/api/help").WithTags("Help").RequireAuthorization();
 
-        mine.MapPost("", async Task<Results<Ok<HelpThread>, BadRequest<Error>, NotFound<Error>>> (
-            SendHelpMessageCommand body, IDispatcher dispatcher, CancellationToken ct) =>
+        // Null when they have never written: the page opens with a greeting rather than an
+        // error, and the thread is created by the first message.
+        mine.MapGet("/chat", async (IDispatcher dispatcher, CancellationToken ct) =>
+                Results.Ok(await dispatcher.Ask(new GetMyChatQuery(), ct)))
+            .WithName("GetMyChat");
+
+        mine.MapPost("/chat", async Task<Results<Ok<ChatThread>, BadRequest<Error>, NotFound<Error>>> (
+            SendChatMessageCommand body, IDispatcher dispatcher, CancellationToken ct) =>
         {
             var result = await dispatcher.Send(body, ct);
             if (result.IsSuccess) return TypedResults.Ok(result.Value);
             return result.Error.Code == "not_found"
                 ? TypedResults.NotFound(result.Error)
                 : TypedResults.BadRequest(result.Error);
-        }).WithName("SendHelpMessage");
-
-        mine.MapGet("/mine", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetMyHelpThreadsQuery(), ct)))
-            .WithName("GetMyHelpThreads");
-
-        mine.MapPost("/{id:guid}/replies",
-            async Task<Results<Ok<HelpReplyItem>, BadRequest<Error>, NotFound<Error>, ForbidHttpResult>> (
-                Guid id, ReplyToHelpCommand body, IDispatcher dispatcher, CancellationToken ct) =>
-            {
-                var result = await dispatcher.Send(body with { MessageId = id }, ct);
-                if (result.IsSuccess) return TypedResults.Ok(result.Value);
-                return result.Error.Code switch
-                {
-                    "not_found" => TypedResults.NotFound(result.Error),
-                    "forbidden" => TypedResults.Forbid(),
-                    _ => TypedResults.BadRequest(result.Error)
-                };
-            }).WithName("ReplyToHelpWithId");
+        }).WithName("SendChatMessage");
 
         var desk = app.MapGroup("/api/help/inbox").WithTags("Help")
             .RequireAuthorization(AppPolicies.SecurityDesk);
 
         desk.MapGet("", async (bool? includeClosed, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetHelpInboxQuery(includeClosed ?? false), ct)))
+                Results.Ok(await dispatcher.Ask(new GetInboxQuery(includeClosed ?? false), ct)))
             .WithName("GetHelpInbox");
 
-        desk.MapPost("/{id:guid}/close",
-            async Task<Results<NoContent, NotFound<Error>>> (
-                Guid id, IDispatcher dispatcher, CancellationToken ct) =>
+        desk.MapGet("/{id:guid}", async (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
             {
-                var result = await dispatcher.Send(new CloseHelpThreadCommand(id), ct);
-                return result.IsSuccess ? TypedResults.NoContent() : TypedResults.NotFound(result.Error);
-            }).WithName("CloseHelpThreadWithId");
+                var thread = await dispatcher.Ask(new GetChatQuery(id), ct);
+                return thread is null ? Results.NotFound() : Results.Ok(thread);
+            })
+            .WithName("GetHelpChatWithId");
+
+        desk.MapPost("/{id:guid}", async Task<Results<Ok<ChatThread>, BadRequest<Error>, NotFound<Error>>> (
+            Guid id, DeskReplyCommand body, IDispatcher dispatcher, CancellationToken ct) =>
+        {
+            var result = await dispatcher.Send(body with { ConversationId = id }, ct);
+            if (result.IsSuccess) return TypedResults.Ok(result.Value);
+            return result.Error.Code == "not_found"
+                ? TypedResults.NotFound(result.Error)
+                : TypedResults.BadRequest(result.Error);
+        }).WithName("DeskReplyWithId");
+
+        desk.MapPost("/{id:guid}/close", async Task<Results<NoContent, NotFound<Error>>> (
+            Guid id, IDispatcher dispatcher, CancellationToken ct) =>
+        {
+            var result = await dispatcher.Send(new CloseChatCommand(id), ct);
+            return result.IsSuccess ? TypedResults.NoContent() : TypedResults.NotFound(result.Error);
+        }).WithName("CloseHelpChatWithId");
     }
 }

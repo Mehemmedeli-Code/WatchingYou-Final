@@ -1,41 +1,53 @@
-import { useCallback, useEffect, useState } from "react";
-import { LifeBuoy, ShieldCheck } from "lucide-react";
-import { Section, Panel, Notice, Empty, Spinner } from "@/components/Shell";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ShieldCheck } from "lucide-react";
+import { Section, Notice, Empty } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
-import { Input, Textarea, Field } from "@/components/ui/input";
+import { ChatMessages, type ChatMessage } from "@/components/ui/chat-messages";
 import { useAuth } from "@/components/useAuth";
 import { get, post, ApiError } from "@/lib/api";
 import { t } from "@/lib/i18n";
-import { HelpThreadCard, type HelpThreadItem } from "@/components/HelpThread";
+import type { ChatThread } from "@/lib/help";
+import { toBubbles } from "@/lib/help";
 
+/**
+ * The customer's side: one window they keep coming back to, the way a bank's chat works.
+ *
+ * New replies arrive by polling every five seconds. A socket would be tidier, but polling a
+ * single small thread is cheap, survives a dropped connection without reconnect logic, and
+ * needs nothing added to the host — and nobody notices five seconds in a conversation with a
+ * human on the other end.
+ */
 export default function HelpPage() {
   const { isSignedIn, user } = useAuth();
-  const [threads, setThreads] = useState<HelpThreadItem[] | null>(null);
-  const [subject, setSubject] = useState("");
-  const [body, setBody] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [thread, setThread] = useState<ChatThread | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const sending = useRef(false);
 
   const load = useCallback(async () => {
-    if (!isSignedIn) { setThreads([]); return; }
-    setThreads(await get<HelpThreadItem[]>("/api/help/mine").catch(() => []));
-  }, [isSignedIn]);
+    // Skipped mid-send, or the poll would overwrite the message being added.
+    if (sending.current) return;
+    setThread(await get<ChatThread | null>("/api/help/chat").catch(() => null));
+  }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    if (!isSignedIn) return;
+    void load();
+    const timer = setInterval(() => void load(), 5000);
+    return () => clearInterval(timer);
+  }, [isSignedIn, load]);
 
-  async function send() {
-    setBusy(true);
-    setMessage(null);
+  async function send(text: string) {
+    sending.current = true;
+    setPending(true);
+    setError(null);
     try {
-      await post("/api/help", { subject, body });
-      setSubject("");
-      setBody("");
-      setMessage({ tone: "ok", text: t("help.sent") });
-      await load();
+      setThread(await post<ChatThread>("/api/help/chat", { body: text }));
     } catch (err) {
-      setMessage({ tone: "error", text: err instanceof ApiError ? err.message : t("error.action") });
+      setError(err instanceof ApiError ? err.message : t("error.action"));
     } finally {
-      setBusy(false);
+      sending.current = false;
+      setPending(false);
     }
   }
 
@@ -51,52 +63,40 @@ export default function HelpPage() {
     );
   }
 
+  const greeting: ChatMessage = {
+    id: "greeting",
+    sender: "desk",
+    content: t("help.greeting"),
+    authorName: t("help.desk"),
+  };
+
+  const messages = thread ? [greeting, ...toBubbles(thread)] : [greeting];
+
   return (
     <Section title={t("help.title")} lede={t("help.lede")}>
-      <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-        <Panel>
-          <p className="flex items-center gap-2 font-display text-xl text-ink">
-            <LifeBuoy size={18} aria-hidden />
-            {t("help.title")}
-          </p>
+      {error ? <div className="mb-4"><Notice tone="error">{error}</Notice></div> : null}
 
-          {/* Shown, not asked for: the address comes from the session, so nobody can put
-              somebody else's in the box. */}
-          <p className="mt-2 text-xs text-ink-mute">{user?.email}</p>
+      <div className="max-w-2xl">
+        <ChatMessages
+          className="h-[520px] w-full"
+          messages={messages}
+          pending={pending}
+          onSend={send}
+          onRefresh={load}
+          title={t("help.title")}
+          subtitle={user?.email ?? ""}
+          placeholder={t("help.placeholder")}
+        />
 
-          <div className="mt-4 space-y-3">
-            <Field label={t("help.subject")}>
-              <Input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={160} />
-            </Field>
-            <Field label={t("help.body")}>
-              <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} maxLength={4000} />
-            </Field>
-
-            {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
-
-            <Notice tone="info">
-              <span className="flex items-center gap-1.5">
-                <ShieldCheck size={13} aria-hidden />
-                {t("help.noPassword")}
-              </span>
-            </Notice>
-
-            <Button disabled={busy || !subject.trim() || !body.trim()} onClick={send}>
-              {busy ? t("common.loading") : t("help.send")}
-            </Button>
-          </div>
-        </Panel>
-
-        <div>
-          <p className="mb-3 font-display text-lg text-ink">{t("help.mine")}</p>
-          {threads === null ? <Spinner label={t("common.loading")} /> : null}
-          {threads?.length === 0 ? <Empty title={t("help.empty")} hint="" /> : null}
-
-          <div className="space-y-3">
-            {threads?.map((thread) => (
-              <HelpThreadCard key={thread.id} thread={thread} onChanged={load} />
-            ))}
-          </div>
+        {/* Said plainly, because the worry is reasonable: people are used to being asked for
+            things a support desk has no business knowing. */}
+        <div className="mt-3">
+          <Notice tone="info">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck size={13} aria-hidden />
+              {t("help.noPassword")}
+            </span>
+          </Notice>
         </div>
       </div>
     </Section>

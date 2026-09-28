@@ -75,9 +75,7 @@ internal sealed class PageShellFactory(
         if (isSignedIn)
         {
             // Signed-in only: an anonymous visitor has no business browsing who uses the site.
-            // The assistant spends the site's API key, so it sits behind sign-in like the
-            // globe does.
-            nav.Add(new NavItem("support", "/support", language["nav.support"]));
+            // A live desk, so it needs an account to write from and to answer to.
             nav.Add(new NavItem("help", "/help", language["nav.help"]));
             nav.Add(new NavItem("globe", "/globe", language["nav.globe"]));
             nav.Add(new NavItem("rentals", "/rentals", language["nav.rentals"]));

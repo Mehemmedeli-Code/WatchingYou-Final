@@ -13,7 +13,7 @@ import { JSDOM } from "jsdom";
 import { pathToFileURL } from "node:url";
 
 const PAGES = ["home", "onDisplay", "cinema", "rentals", "studio", "admin", "account",
-               "aiCatalog", "humanCraft", "security", "globe", "support", "help"];
+               "aiCatalog", "humanCraft", "security", "globe", "help"];
 
 const VENUES = [{
   id: "11111111-1111-1111-1111-111111111111", name: "Nizami", city: "Baku",

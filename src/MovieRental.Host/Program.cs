@@ -4,11 +4,9 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MovieRental.Host.Infrastructure;
-using MovieRental.Host.Infrastructure.Assistant;
 using MovieRental.Host.Infrastructure.Localization;
 using MovieRental.Host.Middleware;
 using MovieRental.Host.Pages;
@@ -42,36 +40,6 @@ builder.Services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavi
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
-
-builder.Services.Configure<AssistantOptions>(builder.Configuration.GetSection(AssistantOptions.SectionName));
-builder.Services.AddSingleton<BuiltinAssistant>();
-
-// The written answers are always registered. A model, when one is configured, wraps them and
-// falls back to them on any failure — so the support box answers even when the API does not.
-switch ((builder.Configuration[$"{AssistantOptions.SectionName}:Provider"] ?? "Builtin").ToLowerInvariant())
-{
-    case "openai":
-        builder.Services.AddHttpClient(nameof(OpenAiAssistant));
-        builder.Services.AddSingleton<IAssistant>(sp => new OpenAiAssistant(
-            sp.GetRequiredService<IHttpClientFactory>(),
-            sp.GetRequiredService<IOptions<AssistantOptions>>(),
-            sp.GetRequiredService<BuiltinAssistant>(),
-            sp.GetRequiredService<ILogger<OpenAiAssistant>>()));
-        break;
-
-    case "anthropic":
-        builder.Services.AddHttpClient(nameof(AnthropicAssistant));
-        builder.Services.AddSingleton<IAssistant>(sp => new AnthropicAssistant(
-            sp.GetRequiredService<IHttpClientFactory>(),
-            sp.GetRequiredService<IOptions<AssistantOptions>>(),
-            sp.GetRequiredService<BuiltinAssistant>(),
-            sp.GetRequiredService<ILogger<AnthropicAssistant>>()));
-        break;
-
-    default:
-        builder.Services.AddSingleton<IAssistant>(sp => sp.GetRequiredService<BuiltinAssistant>());
-        break;
-}
 
 builder.Services.AddSingleton<Translations>();
 builder.Services.AddScoped<ILanguageContext, LanguageContext>();
@@ -173,12 +141,6 @@ builder.Services.AddRateLimiter(options =>
         ClientKey(http),
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 12, Window = TimeSpan.FromMinutes(5) }));
 
-    options.AddPolicy(AppPolicies.AssistantRateLimit, http => RateLimitPartition.GetFixedWindowLimiter(
-        // Per account: one person cannot spend the whole budget, and people sharing an office
-        // connection do not share one allowance.
-        http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? ClientKey(http),
-        _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(5) }));
-
     // Behind a proxy the socket address is the proxy's, so the forwarded header is used when
     // present. Configure ForwardedHeaders before trusting it in production.
     static string ClientKey(HttpContext http) =>
@@ -259,7 +221,6 @@ app.MapRazorPages();
 app.MapModules();
 AnalyticsEndpoints.Map(app);
 LanguageEndpoints.Map(app);
-AssistantEndpoints.Map(app);
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", utc = DateTime.UtcNow }))
    .WithTags("System").AllowAnonymous();

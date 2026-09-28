@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Send, RotateCcw, Eye } from "lucide-react";
+import { Send, RotateCcw, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 
 /**
  * Chat surface, adapted from the 21st.dev chat-messages component.
+ *
+ * Used by the Help service, where the other side is a person at the Security desk rather than
+ * a model — which is why the demo's scripted transcript and fabricated reply had to go: a
+ * support window that invents an answer on a timer is worse than one that says nothing.
  *
  * What changed, and why:
  *
@@ -20,10 +24,11 @@ import { t } from "@/lib/i18n";
 
 export interface ChatMessage {
   id: string;
-  sender: "user" | "assistant";
+  sender: "user" | "desk";
   content: string;
-  /** False when the answer came from the written FAQ rather than a model. */
-  fromModel?: boolean;
+  /** Who wrote it, shown on the desk's side so the customer sees a name, not a department. */
+  authorName?: string;
+  at?: string;
 }
 
 function TypingIndicator() {
@@ -70,19 +75,25 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       <div className={cn("flex items-end gap-2", isUser && "flex-row-reverse")}>
         {!isUser ? (
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-dim">
-            <Eye className="size-4 text-surface" aria-hidden />
+            <ShieldCheck className="size-4 text-surface" aria-hidden />
           </div>
         ) : null}
 
-        <div
-          className={cn(
-            "max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
-            isUser
-              ? "rounded-tr-md bg-accent text-surface"
-              : "rounded-tl-md border border-line bg-surface-raised text-ink",
-          )}
-        >
-          {renderContent(message.content)}
+        <div className={cn("max-w-[80%]", isUser ? "text-right" : "text-left")}>
+          {!isUser && message.authorName ? (
+            <p className="mb-1 text-[11px] text-ink-mute">{message.authorName}</p>
+          ) : null}
+
+          <div
+            className={cn(
+              "whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-left text-sm leading-relaxed",
+              isUser
+                ? "rounded-tr-md bg-accent text-surface"
+                : "rounded-tl-md border border-line bg-surface-raised text-ink",
+            )}
+          >
+            {renderContent(message.content)}
+          </div>
         </div>
       </div>
     </motion.div>
@@ -93,13 +104,19 @@ export function ChatMessages({
   messages,
   pending,
   onSend,
-  onClear,
+  onRefresh,
+  title,
+  subtitle,
+  placeholder,
   className,
 }: {
   messages: ChatMessage[];
   pending: boolean;
   onSend: (text: string) => void;
-  onClear: () => void;
+  onRefresh?: () => void;
+  title: string;
+  subtitle: string;
+  placeholder: string;
   className?: string;
 }) {
   const [value, setValue] = useState("");
@@ -133,28 +150,29 @@ export function ChatMessages({
       <div className="flex items-center justify-between border-b border-line px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent">
-            <Eye className="size-4 text-surface" aria-hidden />
+            <ShieldCheck className="size-4 text-surface" aria-hidden />
           </div>
           <div>
-            <h3 className="text-sm font-medium text-ink">WatchingYou AI</h3>
-            <p className="text-xs text-ink-mute">{t("support.lede")}</p>
+            <h3 className="text-sm font-medium text-ink">{title}</h3>
+            <p className="text-xs text-ink-mute">{subtitle}</p>
           </div>
         </div>
 
-        <button
-          onClick={onClear}
-          aria-label={t("support.clear")}
-          className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs text-ink-mute transition-colors hover:text-ink"
-        >
-          <RotateCcw className="size-3.5" aria-hidden />
-          {t("support.clear")}
-        </button>
+        {onRefresh ? (
+          <button
+            onClick={onRefresh}
+            aria-label={t("common.next")}
+            className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs text-ink-mute transition-colors hover:text-ink"
+          >
+            <RotateCcw className="size-3.5" aria-hidden />
+          </button>
+        ) : null}
       </div>
 
       <div
         ref={scrollRef}
         role="log"
-        aria-label="WatchingYou AI"
+        aria-label={title}
         aria-live="polite"
         className="flex-1 space-y-3 overflow-y-auto p-4"
       >
@@ -169,14 +187,14 @@ export function ChatMessages({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder={t("support.placeholder")}
-            aria-label={t("support.placeholder")}
+            placeholder={placeholder}
+            aria-label={placeholder}
             className="flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-mute/70"
           />
           <button
             onClick={send}
             disabled={pending || !value.trim()}
-            aria-label={t("support.send")}
+            aria-label={t("help.send")}
             className={cn(
               "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
               value.trim() && !pending ? "bg-accent text-surface hover:bg-accent-bright" : "bg-line text-ink-mute",
