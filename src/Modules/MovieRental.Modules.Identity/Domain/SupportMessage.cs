@@ -5,42 +5,45 @@ namespace MovieRental.Modules.Identity.Domain;
 public enum SupportStatus { Open = 1, Answered = 2, Closed = 3 }
 
 /// <summary>
-/// A message from a customer to the Security desk.
+/// One live conversation between a customer and the Security desk — the model a bank's chat
+/// window uses, not a ticket queue. A customer has one thread they keep coming back to rather
+/// than a new numbered case each time they have a question.
 ///
-/// The sender's e-mail and name are snapshotted at the time of writing, so a thread still
-/// reads correctly after somebody changes their display name. Nothing else about the account
-/// is copied here — and a password never appears anywhere in this file, this table, or the
-/// screen that renders it. Staff answering a question have no business seeing credentials,
-/// and a support desk that displayed them would deserve to lose the trust it needs.
+/// The e-mail and name are snapshotted so the thread still reads correctly after a rename.
+/// Nothing else about the account is copied here. A password does not appear in this file, in
+/// this table, or on the screen that renders it: staff answering a question have no business
+/// seeing credentials, and a desk that displayed them would deserve to lose the trust it runs on.
 /// </summary>
-public sealed class SupportMessage : BaseEntity, ISoftDeletable
+public sealed class SupportConversation : BaseEntity, ISoftDeletable
 {
     public Guid UserId { get; set; }
     public required string UserEmail { get; set; }
     public required string UserName { get; set; }
 
-    public required string Subject { get; set; }
-    public required string Body { get; set; }
-
     public SupportStatus Status { get; set; } = SupportStatus.Open;
-    public DateTime? AnsweredAtUtc { get; set; }
 
-    public List<SupportReply> Replies { get; set; } = [];
+    /// <summary>Sorts the desk's list, so whoever has been waiting longest is at the top.</summary>
+    public DateTime LastMessageAtUtc { get; set; } = DateTime.UtcNow;
+
+    public List<SupportChatMessage> Messages { get; set; } = [];
 
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAtUtc { get; set; }
 }
 
-public sealed class SupportReply : BaseEntity
+public sealed class SupportChatMessage : BaseEntity
 {
-    public Guid MessageId { get; set; }
-    public SupportMessage? Message { get; set; }
+    public Guid ConversationId { get; set; }
+    public SupportConversation? Conversation { get; set; }
+
+    /// <summary>True when the desk wrote it. One flag rather than a role string: there are
+    /// exactly two sides to this conversation and a reader only needs to know which.</summary>
+    public bool FromDesk { get; set; }
 
     public Guid AuthorUserId { get; set; }
     public required string AuthorName { get; set; }
-
-    /// <summary>"Customer" or "Security" — shown as a badge so a reader can tell who is who.</summary>
-    public required string AuthorRole { get; set; }
-
     public required string Body { get; set; }
+
+    /// <summary>Set when the other side has seen it, which is what drives the unread count.</summary>
+    public DateTime? SeenAtUtc { get; set; }
 }
