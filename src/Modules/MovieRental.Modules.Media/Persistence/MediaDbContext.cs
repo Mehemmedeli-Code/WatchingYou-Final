@@ -77,6 +77,11 @@ public sealed class MediaDbContext(DbContextOptions<MediaDbContext> options) : M
             e.HasIndex(x => new { x.ShortFilmId, x.CreatedAtUtc });
         });
 
+        // A report belongs to its film; hiding one without the other leaves an inspection
+        // attached to nothing.
+        b.Entity<SecurityReport>().HasQueryFilter(r => !r.ShortFilm!.IsDeleted);
+        b.Entity<SecurityCheckResult>().HasQueryFilter(c => !c.Report!.ShortFilm!.IsDeleted);
+
         base.OnModelCreating(b);
     }
 }
