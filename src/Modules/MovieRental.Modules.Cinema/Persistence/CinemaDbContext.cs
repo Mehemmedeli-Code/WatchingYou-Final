@@ -102,6 +102,9 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
             e.HasIndex(x => new { x.VenueId, x.Name }).IsUnique().HasFilter("[IsDeleted] = 0");
         });
 
+        // Payments follow their screening out of sight.
+        b.Entity<SeatPayment>().HasQueryFilter(p => !p.Screening!.IsDeleted);
+
         base.OnModelCreating(b);
     }
 }

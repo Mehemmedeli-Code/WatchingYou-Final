@@ -91,7 +91,7 @@ export default function SecurityPage() {
         <TicketCheckIn />
       </Section>
 
-      <Section title={t("help.inbox")} lede={t("help.noPassword")}>
+      <Section title={t("help.requests")} lede={t("help.fromOthers")}>
         <HelpInbox />
       </Section>
 

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using MovieRental.SharedKernel.Abstractions;
 
 namespace MovieRental.Modules.Media.Domain;
@@ -42,6 +43,9 @@ public sealed class SecurityReport : BaseEntity
 
     public List<SecurityCheckResult> Checks { get; set; } = [];
 
+    /// <summary>A view over <see cref="Checks"/>, not a second relationship — without
+    /// [NotMapped], EF discovers it as one and adds a duplicate foreign key column.</summary>
+    [NotMapped]
     public IEnumerable<SecurityCheckResult> Failures => Checks.Where(c => c.Outcome == CheckOutcome.Fail);
 }
 

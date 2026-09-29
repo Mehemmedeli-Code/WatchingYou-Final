@@ -30,7 +30,8 @@ export function HelpInbox() {
 
   const loadThread = useCallback(async (id: string) => {
     if (sending.current) return;
-    setThread(await get<ChatThread>(`/api/help/inbox/${id}`).catch(() => null));
+    const latest = await get<ChatThread>(`/api/help/inbox/${id}`).catch(() => undefined);
+    if (latest !== undefined) setThread(latest);
   }, []);
 
   // The list and the open conversation both refresh on a timer, so an agent sees a new
@@ -55,6 +56,9 @@ export function HelpInbox() {
     try {
       setThread(await post<ChatThread>(`/api/help/inbox/${openId}`, { body: text }));
       await loadInbox();
+    } catch {
+      // Same reasoning as the customer's side: retry once, then let the poll catch up.
+      await loadThread(openId);
     } finally {
       sending.current = false;
       setPending(false);

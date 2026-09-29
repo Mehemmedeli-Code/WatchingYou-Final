@@ -61,6 +61,17 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
           ?? throw new InvalidOperationException("The Jwt configuration section is missing.");
 
+// The value in appsettings.json is a placeholder, and that file is committed. Signing real
+// tokens with it means anyone who has read the repository can mint one for any account, so
+// the app refuses to start on it anywhere but a developer's machine.
+if (!builder.Environment.IsDevelopment() &&
+    jwt.SecretKey.Contains("change", StringComparison.OrdinalIgnoreCase))
+{
+    throw new InvalidOperationException(
+        "Jwt:SecretKey is still the placeholder from appsettings.json. Set a real one: " +
+        "dotnet user-secrets set \"Jwt:SecretKey\" \"<64 random characters>\"");
+}
+
 if (jwt.SecretKey.Length < 32)
     throw new InvalidOperationException("Jwt:SecretKey must be at least 32 characters. Use user secrets, not appsettings.json.");
 

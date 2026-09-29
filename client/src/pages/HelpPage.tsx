@@ -27,14 +27,28 @@ export default function HelpPage() {
   const load = useCallback(async () => {
     // Skipped mid-send, or the poll would overwrite the message being added.
     if (sending.current) return;
-    setThread(await get<ChatThread | null>("/api/help/chat").catch(() => null));
+
+    const latest = await get<ChatThread | null>("/api/help/chat").catch(() => undefined);
+
+    // undefined means the request failed; null means there is genuinely no conversation yet.
+    // Only the second should clear what is on screen — a dropped poll must not wipe a
+    // conversation the customer is reading.
+    if (latest !== undefined) setThread(latest);
   }, []);
 
   useEffect(() => {
     if (!isSignedIn) return;
     void load();
-    const timer = setInterval(() => void load(), 5000);
-    return () => clearInterval(timer);
+    const timer = setInterval(() => void load(), 4000);
+
+    // Coming back to the tab should show the answer immediately rather than after the next tick.
+    const onFocus = () => void load();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+    };
   }, [isSignedIn, load]);
 
   async function send(text: string) {
@@ -44,6 +58,16 @@ export default function HelpPage() {
     try {
       setThread(await post<ChatThread>("/api/help/chat", { body: text }));
     } catch (err) {
+      // A 409 here means two writes crossed, not that the customer did anything wrong. Retry
+      // once rather than telling them to reload — they should never have to.
+      if (err instanceof ApiError && err.status === 409) {
+        try {
+          setThread(await post<ChatThread>("/api/help/chat", { body: text }));
+          return;
+        } catch {
+          /* fall through to the message below */
+        }
+      }
       setError(err instanceof ApiError ? err.message : t("error.action"));
     } finally {
       sending.current = false;

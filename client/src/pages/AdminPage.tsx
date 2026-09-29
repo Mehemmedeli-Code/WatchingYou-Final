@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { Section, Panel, Notice, Empty, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Input, Field, Textarea, Select } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import { UserAdmin } from "@/components/UserAdmin";
 import { AuditTrail } from "@/components/AuditTrail";
 import { statusTone, type ShortFilmDetail } from "@/lib/shorts";
 import type { MovieListItem } from "@/components/MovieCard";
+import type { MovieDetail } from "@/components/MovieDialog";
 
 interface RentalStats {
   activeCount: number;
@@ -20,6 +22,15 @@ interface RentalStats {
   returnedCount: number;
   outstandingLateFees: number;
   revenueThisMonth: number;
+}
+
+interface OverdueRental {
+  id: string;
+  movieTitle: string;
+  userId: string;
+  dueAtUtc: string;
+  lateFee: number;
+  daysLate: number;
 }
 
 interface Venue {
@@ -72,6 +83,9 @@ export default function AdminPage() {
   const [shorts, setShorts] = useState<ShortFilmDetail[]>([]);
   const [screenings, setScreenings] = useState<Screening[]>([]);
   const [venues, setVenues] = useState<Venue[]>([]);
+  const [editing, setEditing] = useState<MovieListItem | null>(null);
+  const [editingScreening, setEditingScreening] = useState<Screening | null>(null);
+  const [overdue, setOverdue] = useState<OverdueRental[] | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
   const [draft, setDraft] = useState(BLANK);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
@@ -81,13 +95,14 @@ export default function AdminPage() {
     if (!isAdmin) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [statsData, chartData, movieData, shortData, screeningData, venueData] = await Promise.all([
+      const [statsData, chartData, movieData, shortData, screeningData, venueData, overdueData] = await Promise.all([
         get<RentalStats>("/api/admin/rentals/stats"),
         get<ChartSeries[]>("/api/admin/analytics/overview"),
         get<Paged<MovieListItem>>("/api/movies" + query({ includeDeleted: showDeleted, pageSize: 24, sortBy: "title" })),
         get<ShortFilmDetail[]>("/api/admin/shorts/queue"),
         get<Screening[]>("/api/admin/screenings"),
         get<Venue[]>("/api/venues"),
+        get<OverdueRental[]>("/api/admin/rentals/overdue").catch(() => []),
       ]);
       setStats(statsData);
       setCharts(chartData);
@@ -95,6 +110,7 @@ export default function AdminPage() {
       setShorts(shortData);
       setScreenings(screeningData);
       setVenues(venueData);
+      setOverdue(overdueData);
     } catch (err) {
       setMessage({ tone: "error", text: err instanceof ApiError ? err.message : t("error.dashboard") });
     } finally {
@@ -210,9 +226,14 @@ export default function AdminPage() {
                           {t("common.restore")}
                         </Button>
                       ) : (
-                        <Button size="sm" variant="danger" onClick={() => run(() => del(`/api/admin/movies/${movie.id}`), "Title removed.")}>
-                          {t("common.remove")}
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="outline" onClick={() => setEditing(movie)}>
+                            {t("admin.edit")}
+                          </Button>
+                          <Button size="sm" variant="danger" onClick={() => run(() => del(`/api/admin/movies/${movie.id}`), "Title removed.")}>
+                            {t("common.remove")}
+                          </Button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -264,6 +285,27 @@ export default function AdminPage() {
             ))}
           </div>
         )}
+      </Section>
+
+      {editing ? (
+        <EditMovieDialog
+          movie={editing}
+          onClose={() => setEditing(null)}
+          onSaved={async () => { setEditing(null); await load(); }}
+        />
+      ) : null}
+
+      {editingScreening ? (
+        <EditScreeningDialog
+          screening={editingScreening}
+          venues={venues}
+          onClose={() => setEditingScreening(null)}
+          onSaved={async () => { setEditingScreening(null); await load(); }}
+        />
+      ) : null}
+
+      <Section title={t("admin.overdue")} lede={t("admin.overdueLede")}>
+        <OverdueList rentals={overdue} />
       </Section>
 
       <Section title={t("admin.users")} lede={t("admin.usersLede")}>
@@ -330,6 +372,10 @@ export default function AdminPage() {
                             {t("admin.cancelScreening")}
                           </Button>
                         ) : null}
+
+                        <Button size="sm" variant="outline" onClick={() => setEditingScreening(screening)}>
+                          {t("admin.edit")}
+                        </Button>
 
                         <Button
                           size="sm"
@@ -592,5 +638,276 @@ function NewScreeningForm({
         </Button>
       </div>
     </Panel>
+  );
+}
+
+/**
+ * Editing a title. `PUT /api/admin/movies/{id}` existed from the start but nothing on the site
+ * called it, so changing a synopsis or adding a video link meant opening Swagger.
+ *
+ * Stock is not here: it has its own endpoint because it is the one field that changes while
+ * copies are out on loan, and it must not be overwritten by a form somebody opened ten minutes
+ * ago.
+ */
+function EditMovieDialog({
+  movie,
+  onClose,
+  onSaved,
+}: {
+  movie: MovieListItem;
+  onClose: () => void;
+  onSaved: () => void | Promise<void>;
+}) {
+  const [detail, setDetail] = useState<MovieDetail | null>(null);
+  const [draft, setDraft] = useState<Record<string, string | number>>({});
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    get<MovieDetail>(`/api/movies/${movie.id}`)
+      .then((found) => {
+        setDetail(found);
+        setDraft({
+          title: found.title,
+          description: found.description,
+          genre: found.genre,
+          releaseYear: found.releaseYear,
+          durationMinutes: found.durationMinutes,
+          director: found.director ?? "",
+          posterUrl: found.posterUrl ?? "",
+          trailerUrl: found.trailerUrl ?? "",
+          videoUrl: found.videoUrl ?? "",
+          dailyPrice: found.dailyPrice,
+        });
+      })
+      .catch(() => setError(t("error.action")));
+  }, [movie.id]);
+
+  async function save() {
+    setBusy(true);
+    setError(null);
+    try {
+      await put(`/api/admin/movies/${movie.id}`, draft);
+      await onSaved();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("error.action"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const field = (key: string, label: string, type: "text" | "number" = "text") => (
+    <Field label={label}>
+      <Input
+        type={type}
+        value={String(draft[key] ?? "")}
+        onChange={(e) => setDraft((d) => ({ ...d, [key]: type === "number" ? Number(e.target.value) : e.target.value }))}
+      />
+    </Field>
+  );
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-black/80 p-4 backdrop-blur-sm sm:p-8"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div className="my-auto w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <Panel>
+          <div className="flex items-start justify-between gap-3">
+            <p className="font-display text-xl text-ink">{t("admin.editMovie")}</p>
+            <button onClick={onClose} aria-label={t("common.cancel")} className="text-ink-mute hover:text-ink">
+              <X size={18} aria-hidden />
+            </button>
+          </div>
+
+          {!detail ? (
+            <div className="mt-4"><Spinner label={t("common.loading")} /></div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {field("title", t("admin.title"))}
+              <Field label={t("admin.description")}>
+                <Textarea
+                  rows={3}
+                  value={String(draft.description ?? "")}
+                  onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
+                />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                {field("genre", t("admin.genre"))}
+                {field("releaseYear", t("admin.year"), "number")}
+                {field("durationMinutes", t("admin.duration"), "number")}
+                {field("dailyPrice", t("admin.price"), "number")}
+              </div>
+              {field("director", t("admin.director"))}
+              {field("posterUrl", t("admin.poster"))}
+              {field("trailerUrl", t("admin.trailer"))}
+              {field("videoUrl", t("admin.video"))}
+
+              {error ? <Notice tone="error">{error}</Notice> : null}
+
+              <div className="flex gap-2">
+                <Button size="sm" disabled={busy} onClick={save}>
+                  {busy ? t("common.loading") : t("common.save")}
+                </Button>
+                <Button size="sm" variant="outline" onClick={onClose}>{t("common.cancel")}</Button>
+              </div>
+            </div>
+          )}
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+/** Moving a screening, changing its price or its refund rule. */
+function EditScreeningDialog({
+  screening,
+  venues,
+  onClose,
+  onSaved,
+}: {
+  screening: Screening;
+  venues: Venue[];
+  onClose: () => void;
+  onSaved: () => void | Promise<void>;
+}) {
+  const local = (iso: string) => new Date(iso).toISOString().slice(0, 16);
+
+  const [hallId, setHallId] = useState(screening.hallId);
+  const [startsAt, setStartsAt] = useState(local(screening.startsAtUtc));
+  const [price, setPrice] = useState(screening.seatPrice);
+  const [audio, setAudio] = useState(screening.audioLanguage);
+  const [subtitles, setSubtitles] = useState(screening.subtitleLanguage ?? "");
+  const [refundWindow, setRefundWindow] = useState(screening.refundWindowHours?.toString() ?? "");
+  const [refundFee, setRefundFee] = useState(screening.refundFeePercent?.toString() ?? "");
+  const [refundNote, setRefundNote] = useState(screening.refundNote ?? "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    setBusy(true);
+    setError(null);
+    try {
+      await put(`/api/admin/screenings/${screening.id}`, {
+        movieId: screening.movieId,
+        hallId,
+        startsAtUtc: new Date(startsAt).toISOString(),
+        seatPrice: price,
+        audioLanguage: audio,
+        subtitleLanguage: subtitles || null,
+        refundWindowHours: refundWindow === "" ? null : Number(refundWindow),
+        refundFeePercent: refundFee === "" ? null : Number(refundFee),
+        refundNote: refundNote || null,
+      });
+      await onSaved();
+    } catch (err) {
+      // The server refuses a hall change once seats are sold; its message says so.
+      setError(err instanceof ApiError ? err.message : t("error.action"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-black/80 p-4 backdrop-blur-sm sm:p-8"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div className="my-auto w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <Panel>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-display text-xl text-ink">{t("admin.editScreening")}</p>
+              <p className="mt-1 text-xs text-ink-mute">{screening.movieTitle}</p>
+            </div>
+            <button onClick={onClose} aria-label={t("common.cancel")} className="text-ink-mute hover:text-ink">
+              <X size={18} aria-hidden />
+            </button>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <Field label={t("admin.hall")} hint={t("admin.hallHint")}>
+              <Select value={hallId} onChange={(e) => setHallId(e.target.value)}>
+                {venues.map((venue) => (
+                  <optgroup key={venue.id} label={venue.name}>
+                    {venue.halls.map((h) => (
+                      <option key={h.id} value={h.id}>{h.name}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </Select>
+            </Field>
+
+            <Field label={t("admin.startsAt")}>
+              <Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+            </Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t("admin.seatPrice")}>
+                <Input type="number" step="0.5" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
+              </Field>
+              <Field label={t("admin.audio")}>
+                <Input value={audio} onChange={(e) => setAudio(e.target.value)} />
+              </Field>
+              <Field label={t("admin.subtitles")}>
+                <Input value={subtitles} onChange={(e) => setSubtitles(e.target.value)} />
+              </Field>
+              <Field label={t("admin.refundWindow")} hint="48">
+                <Input type="number" value={refundWindow} onChange={(e) => setRefundWindow(e.target.value)} />
+              </Field>
+              <Field label={t("admin.refundFee")} hint="30">
+                <Input type="number" value={refundFee} onChange={(e) => setRefundFee(e.target.value)} />
+              </Field>
+            </div>
+
+            <Field label={t("admin.refundNote")}>
+              <Input value={refundNote} onChange={(e) => setRefundNote(e.target.value)} />
+            </Field>
+
+            {error ? <Notice tone="error">{error}</Notice> : null}
+
+            <div className="flex gap-2">
+              <Button size="sm" disabled={busy} onClick={save}>
+                {busy ? t("common.loading") : t("common.save")}
+              </Button>
+              <Button size="sm" variant="outline" onClick={onClose}>{t("common.cancel")}</Button>
+            </div>
+          </div>
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+/** Who has not brought a film back, and what it has cost them so far. */
+function OverdueList({ rentals }: { rentals: OverdueRental[] | null }) {
+  if (rentals === null) return <Spinner label={t("common.loading")} />;
+  if (rentals.length === 0) return <Empty title={t("admin.noOverdue")} hint="" />;
+
+  return (
+    <div className="-mx-1 overflow-x-auto rounded-xl border border-line">
+      <table className="w-full min-w-[34rem] text-left text-sm">
+        <thead className="border-b border-line text-xs uppercase tracking-wide text-ink-mute">
+          <tr>
+            <th className="px-3 py-2">{t("admin.title")}</th>
+            <th className="px-3 py-2">{t("rentals.due")}</th>
+            <th className="px-3 py-2">{t("rentals.lateFee")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rentals.map((rental) => (
+            <tr key={rental.id} className="border-b border-line/60 last:border-0">
+              <td className="px-3 py-2 text-ink">{rental.movieTitle}</td>
+              <td className="px-3 py-2 text-ink-mute">{formatDate(rental.dueAtUtc)}</td>
+              <td className="px-3 py-2 text-bad">{formatMoney(rental.lateFee)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

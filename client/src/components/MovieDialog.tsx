@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Star, X } from "lucide-react";
+import { Textarea } from "@/components/ui/input";
+import { post, ApiError } from "@/lib/api";
+import { Notice } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/Shell";
@@ -68,10 +71,42 @@ export function MovieDialog({
 }) {
   const [detail, setDetail] = useState<MovieDetail | null>(null);
   const [playing, setPlaying] = useState(mode === "watch");
+  const [stars, setStars] = useState(0);
+  const [comment, setComment] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+
+  const reload = useCallback(
+    () => get<MovieDetail>(`/api/movies/${movieId}`).then(setDetail),
+    [movieId],
+  );
 
   useEffect(() => {
-    get<MovieDetail>(`/api/movies/${movieId}`).then(setDetail).catch(() => onClose());
-  }, [movieId, onClose]);
+    reload().catch(() => onClose());
+  }, [reload, onClose]);
+
+  async function postReview() {
+    setPosting(true);
+    setReviewMessage(null);
+    try {
+      await post(`/api/movies/${movieId}/reviews`, { stars, comment });
+      setStars(0);
+      setComment("");
+      setReviewMessage({ tone: "ok", text: t("review.posted") });
+      await reload();
+    } catch (err) {
+      // The server refuses a review from somebody who never rented the film; say which it was
+      // rather than a generic failure.
+      setReviewMessage({
+        tone: "error",
+        text: err instanceof ApiError
+          ? (err.status === 403 ? t("review.needRental") : err.message)
+          : t("error.action"),
+      });
+    } finally {
+      setPosting(false);
+    }
+  }
 
   // Escape closes, and the page behind stops scrolling while the dialog is open.
   useEffect(() => {
@@ -179,6 +214,48 @@ export function MovieDialog({
                     {t("movie.rent")}
                   </Button>
                 ) : null}
+              </div>
+
+              <div className="mt-6 border-t border-line pt-4">
+                <h3 className="font-display text-lg text-ink">{t("review.write")}</h3>
+
+                <div className="mt-2 flex items-center gap-1" role="radiogroup" aria-label={t("review.stars")}>
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={stars === value}
+                      aria-label={`${value}`}
+                      onClick={() => setStars(value)}
+                      className={value <= stars ? "text-accent" : "text-ink-mute/50 hover:text-ink-mute"}
+                    >
+                      <Star size={20} fill={value <= stars ? "currentColor" : "none"} aria-hidden />
+                    </button>
+                  ))}
+                </div>
+
+                <Textarea
+                  className="mt-3"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder={t("review.comment")}
+                  rows={3}
+                  maxLength={1000}
+                />
+
+                {reviewMessage ? (
+                  <div className="mt-2"><Notice tone={reviewMessage.tone}>{reviewMessage.text}</Notice></div>
+                ) : null}
+
+                <Button
+                  className="mt-3"
+                  size="sm"
+                  disabled={posting || stars === 0 || !comment.trim()}
+                  onClick={postReview}
+                >
+                  {posting ? t("common.loading") : t("review.submit")}
+                </Button>
               </div>
 
               {detail.reviews.length > 0 ? (

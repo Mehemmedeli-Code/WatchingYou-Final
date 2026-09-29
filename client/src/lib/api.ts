@@ -51,6 +51,28 @@ export class ApiError extends Error {
 }
 
 const REFRESH_KEY = "rr.refresh";
+
+/**
+ * Per tab, not per browser. localStorage is shared across every tab on the origin, so two
+ * accounts open at once fought over one key — and testing a support chat means having exactly
+ * that: the customer in one window, the desk in another. sessionStorage gives each tab its own,
+ * and localStorage is still read once at startup so an ordinary single-tab visit stays signed
+ * in across a restart.
+ */
+const tokenStore = {
+  read(): string | null {
+    return sessionStorage.getItem(REFRESH_KEY) ?? localStorage.getItem(REFRESH_KEY);
+  },
+  write(token: string) {
+    sessionStorage.setItem(REFRESH_KEY, token);
+    localStorage.setItem(REFRESH_KEY, token);
+  },
+  clear() {
+    sessionStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+  },
+};
+
 let accessToken: string | null = null;
 let currentUser: UserProfile | null = null;
 const listeners = new Set<(user: UserProfile | null) => void>();
@@ -84,13 +106,13 @@ export const auth = {
   apply(response: AuthResponse) {
     accessToken = response.accessToken;
     currentUser = response.user;
-    localStorage.setItem(REFRESH_KEY, response.refreshToken);
+    tokenStore.write(response.refreshToken);
     announce();
   },
   clear() {
     accessToken = null;
     currentUser = null;
-    localStorage.removeItem(REFRESH_KEY);
+    tokenStore.clear();
     announce();
   },
 };
@@ -126,7 +148,7 @@ async function send(path: string, init: RequestInit, retry: boolean): Promise<Re
 }
 
 async function tryRefresh(): Promise<boolean> {
-  const refreshToken = localStorage.getItem(REFRESH_KEY);
+  const refreshToken = tokenStore.read();
   if (!refreshToken) return false;
 
   const response = await fetch("/api/auth/refresh", {
@@ -166,7 +188,7 @@ export const postForm = <T,>(path: string, form: FormData) =>
 
 /** Restores a session on page load. Every Razor page is a fresh document, so this runs often. */
 export async function restoreSession(): Promise<UserProfile | null> {
-  if (!localStorage.getItem(REFRESH_KEY)) return null;
+  if (!tokenStore.read()) return null;
   if (!(await tryRefresh())) return null;
   return currentUser;
 }

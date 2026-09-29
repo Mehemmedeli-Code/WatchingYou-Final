@@ -5,7 +5,7 @@ VisualStudioVersion = 17.11.35222.181
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{7DF10DE1-F559-5484-90F7-9595E341FF82}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MovieRental.Tests", "tests\MovieRental.Tests\MovieRental.Tests.csproj", "{09D31EE0-FE5E-5B74-8152-9C22E5A897CD}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{7E57F01D-0000-4000-8000-0000000C0DE5}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A1000000-0000-4000-8000-000000000001}"
 	ProjectSection(SolutionItems) = preProject
@@ -42,6 +42,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MovieRental.Modules.Cinema"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MovieRental.Modules.Media", "src\Modules\MovieRental.Modules.Media\MovieRental.Modules.Media.csproj", "{BADC3ACF-A60F-5A0C-AF06-55F32FBEAC71}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MovieRental.Tests", "tests\MovieRental.Tests\MovieRental.Tests.csproj", "{09D31EE0-FE5E-5B74-8152-9C22E5A897CD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -76,6 +78,10 @@ Global
 		{BADC3ACF-A60F-5A0C-AF06-55F32FBEAC71}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BADC3ACF-A60F-5A0C-AF06-55F32FBEAC71}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BADC3ACF-A60F-5A0C-AF06-55F32FBEAC71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09D31EE0-FE5E-5B74-8152-9C22E5A897CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09D31EE0-FE5E-5B74-8152-9C22E5A897CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09D31EE0-FE5E-5B74-8152-9C22E5A897CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09D31EE0-FE5E-5B74-8152-9C22E5A897CD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -89,6 +95,7 @@ Global
 		{998EC240-12C5-5BFC-9306-77BF5DDC9B83} = {B86DCCE5-8639-5C60-908C-5CEA2D59C2AD}
 		{F1A09CB1-0B37-5B61-AA7A-23360AC78CAF} = {B86DCCE5-8639-5C60-908C-5CEA2D59C2AD}
 		{BADC3ACF-A60F-5A0C-AF06-55F32FBEAC71} = {B86DCCE5-8639-5C60-908C-5CEA2D59C2AD}
+		{09D31EE0-FE5E-5B74-8152-9C22E5A897CD} = {7E57F01D-0000-4000-8000-0000000C0DE5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D27E9588-5BE7-5CD1-A035-C2489D023665}

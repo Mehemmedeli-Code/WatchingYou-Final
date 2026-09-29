@@ -330,9 +330,38 @@ A live chat between a customer and the Security desk — the model a bank's chat
 not a ticket queue. One thread per customer that they keep coming back to, rather than a new
 numbered case for every question.
 
-**Customer:** *Help service* in the nav. Type, and the desk answers in the same window.
-**Desk:** *Security → Live conversations*. Who is waiting on the left, the conversation on the
-right, with an unread count and the last thing each person said.
+**Customer:** *Help Service* in the nav. Type, and the desk answers in the same window.
+**Desk:** *Security → Requests*. Who is waiting on the left, the conversation on the right,
+with an unread count and the last thing each person said.
+
+Security and Admin accounts do not get the Help Service link, and the inbox excludes their own
+thread. The desk **is** the Help Service; a link inviting an agent to open a conversation with
+themselves is a link to nowhere.
+
+### Reads do not write
+
+The customer's window polls every four seconds. That poll used to mark the desk's replies as
+seen — a database write on every tick, racing the customer's own send, which is where
+*"Someone else changed this first. Reload and retry."* came from. A support chat that asks you
+to reload is not a support chat.
+
+The customer's read is now pure. The read receipt only ever fed the desk's unread count, so
+the customer's side never needed one. The desk's side marks a thread read with a single
+set-based `ExecuteUpdateAsync`: nothing is tracked, so two agents opening the same conversation
+cannot collide. Sending appends one row instead of loading every message to add to it.
+
+A 409 that does slip through is retried once in the background rather than shown.
+
+### Two accounts in one browser
+
+Testing a support chat means being signed in twice at once — the customer in one window, the
+desk in another. The refresh token used to live under one `localStorage` key, which every tab
+on the origin shares: whoever signed in last owned it, and the other tab silently became that
+account the moment its short-lived access token expired. Replies then appeared to vanish,
+because the page was asking on behalf of the wrong person.
+
+The token is now kept in `sessionStorage`, which is per tab, and mirrored to `localStorage` so
+an ordinary single-tab visit still survives a browser restart.
 
 New messages arrive by polling every five seconds. A socket would be tidier, but polling one
 small thread is cheap, survives a dropped connection with no reconnect logic, and needs
@@ -543,6 +572,12 @@ Append-only. There is no endpoint that edits or deletes an entry, because a log 
 rewrite is not evidence.
 
 ## Reviews
+
+Stars and a comment, on the film's own dialog, under the reviews already there — where
+somebody reading opinions is most likely to have one. A 403 from the server is reported as
+what it is: rent the film first.
+
+
 
 Rating a film requires having rented it. `IRentalApi.HasRentedAsync` is a contract in
 SharedKernel: Catalog asks the question, Rentals answers it, and neither reaches into the
