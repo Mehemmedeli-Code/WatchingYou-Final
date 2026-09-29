@@ -40,24 +40,15 @@ internal sealed class GetMyChatHandler(IdentityDbContext db, ICurrentUser curren
 {
     public async Task<ChatThread?> Handle(GetMyChatQuery query, CancellationToken ct)
     {
-        var userId = currentUser.RequireId();
-
-        var conversation = await db.SupportConversations
+        // A pure read. It used to mark the desk's replies as seen, which made every four-second
+        // poll a database write — and a write racing the customer's own send, which is where
+        // the "someone else changed this first" conflicts came from. The read receipt was only
+        // ever used for the desk's unread count, so the customer's side does not need one at all.
+        var conversation = await db.SupportConversations.AsNoTracking()
             .Include(c => c.Messages)
-            .FirstOrDefaultAsync(c => c.UserId == userId, ct);
+            .FirstOrDefaultAsync(c => c.UserId == currentUser.RequireId(), ct);
 
-        if (conversation is null) return null;
-
-        // Reading the thread marks the desk's replies as seen. Done here rather than on a
-        // separate call, because opening the window is what "read" means.
-        var unseen = conversation.Messages.Where(m => m.FromDesk && m.SeenAtUtc is null).ToList();
-        if (unseen.Count > 0)
-        {
-            foreach (var message in unseen) message.SeenAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
-        }
-
-        return HelpMapper.ToThread(conversation);
+        return conversation is null ? null : HelpMapper.ToThread(conversation);
     }
 }
 
@@ -76,8 +67,9 @@ internal sealed class SendChatMessageHandler(IdentityDbContext db, ICurrentUser 
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.RequireId(), ct);
         if (user is null) return Result.Failure<ChatThread>(Error.NotFound("User"));
 
+        // Only the conversation row is tracked. Loading every message just to append one gives
+        // EF a graph it might try to update, and none of it needs writing.
         var conversation = await db.SupportConversations
-            .Include(c => c.Messages)
             .FirstOrDefaultAsync(c => c.UserId == user.Id, ct);
 
         if (conversation is null)
@@ -91,8 +83,9 @@ internal sealed class SendChatMessageHandler(IdentityDbContext db, ICurrentUser 
             db.SupportConversations.Add(conversation);
         }
 
-        conversation.Messages.Add(new SupportChatMessage
+        db.SupportChatMessages.Add(new SupportChatMessage
         {
+            Conversation = conversation,
             FromDesk = false,
             AuthorUserId = user.Id,
             AuthorName = user.FullName,
@@ -105,7 +98,7 @@ internal sealed class SendChatMessageHandler(IdentityDbContext db, ICurrentUser 
         conversation.LastMessageAtUtc = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
-        return Result.Success(HelpMapper.ToThread(conversation));
+        return Result.Success(await HelpMapper.ReadAsync(db, conversation.Id, ct));
     }
 }
 
@@ -113,12 +106,18 @@ internal sealed class SendChatMessageHandler(IdentityDbContext db, ICurrentUser 
 
 public sealed record GetInboxQuery(bool IncludeClosed) : IQuery<IReadOnlyList<InboxRow>>;
 
-internal sealed class GetInboxHandler(IdentityDbContext db)
+internal sealed class GetInboxHandler(IdentityDbContext db, ICurrentUser currentUser)
     : IQueryHandler<GetInboxQuery, IReadOnlyList<InboxRow>>
 {
     public async Task<IReadOnlyList<InboxRow>> Handle(GetInboxQuery query, CancellationToken ct)
     {
-        var conversations = db.SupportConversations.AsNoTracking().Include(c => c.Messages);
+        var me = currentUser.RequireId();
+
+        // Only other people's conversations. The desk is the Help Service; its own thread is
+        // not a request waiting on it.
+        var conversations = db.SupportConversations.AsNoTracking()
+            .Include(c => c.Messages)
+            .Where(c => c.UserId != me);
 
         var rows = await (query.IncludeClosed
                 ? conversations
@@ -142,20 +141,18 @@ internal sealed class GetChatHandler(IdentityDbContext db) : IQueryHandler<GetCh
 {
     public async Task<ChatThread?> Handle(GetChatQuery query, CancellationToken ct)
     {
-        var conversation = await db.SupportConversations
+        // Opening a conversation clears its unread mark. One set-based UPDATE rather than
+        // loading rows, changing them and saving: nothing is tracked, so two agents opening
+        // the same thread at the same moment cannot collide.
+        await db.SupportChatMessages
+            .Where(m => m.ConversationId == query.ConversationId && !m.FromDesk && m.SeenAtUtc == null)
+            .ExecuteUpdateAsync(set => set.SetProperty(m => m.SeenAtUtc, DateTime.UtcNow), ct);
+
+        var conversation = await db.SupportConversations.AsNoTracking()
             .Include(c => c.Messages)
             .FirstOrDefaultAsync(c => c.Id == query.ConversationId, ct);
 
-        if (conversation is null) return null;
-
-        var unseen = conversation.Messages.Where(m => !m.FromDesk && m.SeenAtUtc is null).ToList();
-        if (unseen.Count > 0)
-        {
-            foreach (var message in unseen) message.SeenAtUtc = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
-        }
-
-        return HelpMapper.ToThread(conversation);
+        return conversation is null ? null : HelpMapper.ToThread(conversation);
     }
 }
 
@@ -170,7 +167,6 @@ internal sealed class DeskReplyHandler(IdentityDbContext db, ICurrentUser curren
             return Result.Failure<ChatThread>(Error.Validation("Write something first."));
 
         var conversation = await db.SupportConversations
-            .Include(c => c.Messages)
             .FirstOrDefaultAsync(c => c.Id == command.ConversationId, ct);
 
         if (conversation is null) return Result.Failure<ChatThread>(Error.NotFound("Conversation"));
@@ -178,8 +174,9 @@ internal sealed class DeskReplyHandler(IdentityDbContext db, ICurrentUser curren
         var deskUserId = currentUser.RequireId();
         var agent = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == deskUserId, ct);
 
-        conversation.Messages.Add(new SupportChatMessage
+        db.SupportChatMessages.Add(new SupportChatMessage
         {
+            Conversation = conversation,
             FromDesk = true,
             AuthorUserId = deskUserId,
             // The agent's own name, so the customer knows they are talking to a person.
@@ -191,7 +188,7 @@ internal sealed class DeskReplyHandler(IdentityDbContext db, ICurrentUser curren
         conversation.LastMessageAtUtc = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
-        return Result.Success(HelpMapper.ToThread(conversation));
+        return Result.Success(await HelpMapper.ReadAsync(db, conversation.Id, ct));
     }
 }
 
@@ -214,6 +211,17 @@ internal sealed class CloseChatHandler(IdentityDbContext db) : ICommandHandler<C
 
 internal static class HelpMapper
 {
+    /// <summary>Re-reads the thread after a write, so the reply carries the full conversation
+    /// without the writing handler having had to load it first.</summary>
+    public static async Task<ChatThread> ReadAsync(IdentityDbContext db, Guid conversationId, CancellationToken ct)
+    {
+        var conversation = await db.SupportConversations.AsNoTracking()
+            .Include(c => c.Messages)
+            .FirstAsync(c => c.Id == conversationId, ct);
+
+        return ToThread(conversation);
+    }
+
     public static ChatThread ToThread(SupportConversation c) => new(
         c.Id, c.UserEmail, c.UserName, c.Status.ToString(), c.LastMessageAtUtc,
         c.Messages.Count(m => !m.FromDesk && m.SeenAtUtc is null),

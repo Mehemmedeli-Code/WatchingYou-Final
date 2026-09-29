@@ -92,6 +92,13 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             e.HasIndex(x => new { x.ConversationId, x.CreatedAtUtc });
         });
 
+        // A token, code or message whose owner has been soft-deleted should disappear with
+        // them. Without a matching filter the parent is hidden and the child is not, which is
+        // the inconsistency EF warns about.
+        b.Entity<RefreshTokenEntity>().HasQueryFilter(t => !t.User!.IsDeleted);
+        b.Entity<VerificationCode>().HasQueryFilter(c => !c.User!.IsDeleted);
+        b.Entity<SupportChatMessage>().HasQueryFilter(m => !m.Conversation!.IsDeleted);
+
         base.OnModelCreating(b);
     }
 }
