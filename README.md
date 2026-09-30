@@ -389,12 +389,16 @@ is typed, and coordinates come from a small gazetteer, so a pin is the city's po
 identical for everyone in it. A map that could point at somebody's street is a different and
 much worse product.
 
-**A pin is a city, not a person.** The original component drew one marker per entry, which is
-fine for thirteen capitals and fatal for a real membership — a million markers is a million
-draw calls and a frozen tab. Cities are aggregated in SQL: three faces and a count, so a city
-of a million costs exactly what a city of three costs, and the payload grows with the number
-of cities rather than the number of people. The member list under a pin is paged, fifty at a
-time.
+**Cities are aggregated in SQL**, not sent one row per member: three faces and a count, so a
+city of a million costs exactly what a city of three costs and the payload grows with the
+number of cities rather than the number of people. The member list under a city is paged,
+fifty at a time.
+
+The globe itself is CSS — one image scrolled behind a circular mask, with inset shadows
+standing in for a sphere. It is a disc, not a projection, so there is nowhere honest to put a
+pin; the cities are a row of buttons beneath it instead. That swap removed
+`@react-three/fiber`, `@react-three/drei` and two Earth textures from the project. `three`
+stays, because the 3D hall preview genuinely needs it.
 
 **Compare movie categories you watched** puts the two genre histograms on one scale and gives a
 match percentage. It is a Jaccard overlap over genres, not titles: two people who have watched

@@ -1,5 +1,5 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from "react";
-import { Globe, MapPin, Users, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { MapPin, Users, X } from "lucide-react";
 import { Section, Panel, Notice, Empty, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Input, Field } from "@/components/ui/input";
@@ -9,10 +9,17 @@ import { get, put, query } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { TasteCompare } from "@/components/TasteCompare";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import type { GlobeCityMarker } from "@/components/ui/globe-3d";
+import { Globe } from "@/components/ui/globe";
 
-// react-three-fiber, drei and the Earth textures are heavy and only this page needs them.
-const Globe3D = lazy(() => import("@/components/ui/globe-3d"));
+/** What the server returns per city. Named here now that the 3D viewer is gone. */
+export interface GlobeCityMarker {
+  city: string;
+  countryCode?: string | null;
+  latitude: number;
+  longitude: number;
+  memberCount: number;
+  faces: { userId: string; displayName: string; avatarUrl?: string | null }[];
+}
 
 interface GlobeMember {
   userId: string;
@@ -83,26 +90,47 @@ export default function GlobePage() {
   return (
     <Section title={t("globe.title")} lede={t("globe.lede")}>
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="rounded-xl border border-line bg-surface-raised">
+        <div className="rounded-xl border border-line bg-surface-raised p-6">
+          <ErrorBoundary label="Globe" fallback={null}>
+            <Globe size={250} className="flex justify-center py-6" />
+          </ErrorBoundary>
+
           {cities === null ? (
-            <div className="flex h-[420px] items-center justify-center"><Spinner label={t("common.loading")} /></div>
+            <Spinner label={t("common.loading")} />
           ) : cities.length === 0 ? (
-            <div className="flex h-[420px] items-center justify-center p-6 text-center text-sm text-ink-mute">
-              {t("globe.empty")}
-            </div>
+            <p className="py-6 text-center text-sm text-ink-mute">{t("globe.empty")}</p>
           ) : (
-            <ErrorBoundary
-              label="Globe"
-              fallback={
-                <div className="flex h-[420px] items-center justify-center p-6 text-center text-sm text-ink-mute sm:h-[540px]">
-                  {t("map.unavailable")}
-                </div>
-              }
-            >
-              <Suspense fallback={<div className="h-[420px] animate-pulse rounded-xl bg-surface sm:h-[540px]" />}>
-                <Globe3D markers={cities} onOpenCity={openCity} />
-              </Suspense>
-            </ErrorBoundary>
+            // The globe is a disc with no projection behind it, so a pin would be decoration
+            // pointing at nowhere. The cities are a list instead — same click, honest position.
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {cities.map((city) => {
+                const active = city.city === open?.city;
+                return (
+                  <button
+                    key={`${city.city}-${city.latitude}`}
+                    onClick={() => openCity(city)}
+                    aria-pressed={active}
+                    className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                      active ? "border-accent bg-accent-dim text-surface" : "border-line text-ink hover:border-accent-dim"
+                    }`}
+                  >
+                    <span className="flex -space-x-1.5">
+                      {city.faces.map((face) =>
+                        face.avatarUrl ? (
+                          <img key={face.userId} src={face.avatarUrl} alt="" className="h-5 w-5 rounded-full border border-surface object-cover" />
+                        ) : (
+                          <span key={face.userId} className="flex h-5 w-5 items-center justify-center rounded-full border border-surface bg-surface text-[10px] text-ink-mute">
+                            {face.displayName.slice(0, 1).toUpperCase()}
+                          </span>
+                        ),
+                      )}
+                    </span>
+                    {city.city}
+                    <span className="text-xs text-ink-mute">{city.memberCount}</span>
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
 

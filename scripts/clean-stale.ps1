@@ -21,7 +21,9 @@ $stale = @(
     'src\MovieRental.Host\Pages\Support.cshtml.cs',
     'client\src\pages\SupportPage.tsx',
     'client\src\components\HelpThread.tsx',                    # ticket-style help, replaced by live chat
-    'src\Modules\MovieRental.Modules.Identity\Infrastructure\ConsoleSenders.cs'
+    'src\Modules\MovieRental.Modules.Identity\Infrastructure\ConsoleSenders.cs',
+    'client\src\components\ui\globe-3d.tsx',                # three-fiber globe, replaced by the CSS one
+    'src\MovieRental.Host\wwwroot\globe'                     # textures only that globe used
 )
 
 $removed = 0
