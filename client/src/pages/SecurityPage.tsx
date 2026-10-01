@@ -3,6 +3,7 @@ import { ShieldCheck } from "lucide-react";
 import { Section, Panel, Notice, Empty, Spinner } from "@/components/Shell";
 import { TicketCheckIn } from "@/components/TicketCheckIn";
 import { HelpInbox } from "@/components/HelpInbox";
+import { ReportQueue } from "@/components/ReportQueue";
 import { Button } from "@/components/ui/button";
 import { Textarea, Field } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -93,6 +94,10 @@ export default function SecurityPage() {
 
       <Section title={t("help.requests")} lede={t("help.fromOthers")}>
         <HelpInbox />
+      </Section>
+
+      <Section title={t("reports.title")} lede={t("reports.lede")}>
+        <ReportQueue />
       </Section>
 
     <Section title={t("security.title")} lede={t("security.lede")}>

@@ -1,0 +1,177 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Ban, Flag, X } from "lucide-react";
+import { Panel, Notice } from "@/components/Shell";
+import { Button } from "@/components/ui/button";
+import { ChatMessages, type ChatMessage } from "@/components/ui/chat-messages";
+import { get, post, put, ApiError } from "@/lib/api";
+import { t } from "@/lib/i18n";
+
+interface DirectLine {
+  id: string;
+  mine: boolean;
+  senderName: string;
+  body: string;
+  createdAtUtc: string;
+}
+
+export interface DirectConversation {
+  otherUserId: string;
+  otherName: string;
+  otherAvatarUrl?: string | null;
+  otherCity?: string | null;
+  blockedByMe: boolean;
+  /** Blocked either way, or the other person left the globe. The reason is not distinguished. */
+  unreachable: boolean;
+  messages: DirectLine[];
+}
+
+/**
+ * A conversation with another member.
+ *
+ * Block and report sit in the header rather than behind a menu: the moment somebody needs
+ * them is not the moment to make them go looking. Reporting also blocks, because nobody
+ * should keep receiving from a person they have just reported while the desk catches up.
+ */
+export function DirectChat({
+  userId,
+  onClose,
+  onChanged,
+}: {
+  userId: string;
+  onClose: () => void;
+  onChanged?: () => void;
+}) {
+  const [thread, setThread] = useState<DirectConversation | null>(null);
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const sending = useRef(false);
+
+  const load = useCallback(async () => {
+    if (sending.current) return;
+    const latest = await get<DirectConversation>(`/api/messages/${userId}`).catch(() => undefined);
+    if (latest !== undefined) setThread(latest);
+  }, [userId]);
+
+  useEffect(() => {
+    void load();
+    const timer = setInterval(() => void load(), 5000);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [load, onClose]);
+
+  async function send(text: string) {
+    sending.current = true;
+    setPending(true);
+    setMessage(null);
+    try {
+      setThread(await post<DirectConversation>(`/api/messages/${userId}`, { body: text }));
+      onChanged?.();
+    } catch (err) {
+      setMessage({
+        tone: "error",
+        text: err instanceof ApiError && err.status === 409 ? t("dm.blocked") : t("error.action"),
+      });
+    } finally {
+      sending.current = false;
+      setPending(false);
+    }
+  }
+
+  async function toggleBlock() {
+    if (!thread) return;
+    await put(`/api/messages/${userId}/block`, { blocked: !thread.blockedByMe }).catch(() => null);
+    await load();
+    onChanged?.();
+  }
+
+  async function report() {
+    if (!thread) return;
+    const last = [...thread.messages].reverse().find((m) => !m.mine);
+    const reason = window.prompt(t("dm.reportReason"));
+    if (reason === null) return;
+
+    await post(`/api/messages/${userId}/report`, { quote: last?.body ?? "(no message)", reason })
+      .catch(() => null);
+    setMessage({ tone: "ok", text: t("dm.reported") });
+    await load();
+    onChanged?.();
+  }
+
+  const bubbles: ChatMessage[] = (thread?.messages ?? []).map((line) => ({
+    id: line.id,
+    sender: line.mine ? "user" : "desk",
+    content: line.body,
+    authorName: line.senderName,
+    at: line.createdAtUtc,
+  }));
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[94] flex items-start justify-center overflow-y-auto bg-black/80 p-4 backdrop-blur-sm sm:p-8"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div className="my-auto w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
+        <Panel>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              {thread?.otherAvatarUrl ? (
+                <img src={thread.otherAvatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
+              ) : (
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-ink-mute">
+                  {(thread?.otherName ?? "?").slice(0, 1).toUpperCase()}
+                </span>
+              )}
+              <div>
+                <p className="font-display text-lg text-ink">{thread?.otherName ?? "…"}</p>
+                {thread?.otherCity ? <p className="text-xs text-ink-mute">{thread.otherCity}</p> : null}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={toggleBlock}>
+                <Ban size={14} aria-hidden />
+                {thread?.blockedByMe ? t("dm.unblock") : t("dm.block")}
+              </Button>
+              <Button size="sm" variant="outline" onClick={report}>
+                <Flag size={14} aria-hidden />
+                {t("dm.report")}
+              </Button>
+              <button onClick={onClose} aria-label={t("common.cancel")} className="text-ink-mute hover:text-ink">
+                <X size={18} aria-hidden />
+              </button>
+            </div>
+          </div>
+
+          {message ? <div className="mt-3"><Notice tone={message.tone}>{message.text}</Notice></div> : null}
+
+          {thread?.blockedByMe ? (
+            <div className="mt-3"><Notice tone="info">{t("dm.blockedByMe")}</Notice></div>
+          ) : thread?.unreachable ? (
+            <div className="mt-3"><Notice tone="info">{t("dm.blocked")}</Notice></div>
+          ) : null}
+
+          <div className="mt-4">
+            <ChatMessages
+              className="h-[420px] w-full"
+              messages={bubbles}
+              pending={pending}
+              onSend={send}
+              onRefresh={load}
+              title={thread?.otherName ?? ""}
+              subtitle={t("dm.safety")}
+              placeholder={t("dm.placeholder")}
+            />
+          </div>
+        </Panel>
+      </div>
+    </div>,
+    document.body,
+  );
+}

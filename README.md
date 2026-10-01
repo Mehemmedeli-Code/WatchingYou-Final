@@ -400,6 +400,27 @@ pin; the cities are a row of buttons beneath it instead. That swap removed
 `@react-three/fiber`, `@react-three/drei` and two Earth textures from the project. `three`
 stays, because the 3D hall preview genuinely needs it.
 
+### Messaging
+
+**Message** beside a member on the globe opens a conversation. Three rules hold it up, and
+none of them are optional in a feature that lets strangers reach strangers:
+
+- **Only people who put themselves on the globe can be written to.** Appearing there is a
+  choice; being reachable follows from that, not from having registered.
+- **Blocking is one-sided and instant.** It is a decision about who may reach you, not a
+  negotiation. A blocked sender is told the person is not accepting messages — never that they
+  were blocked, which would only invite a second account.
+- **Reporting sends the message to the Security desk and blocks at the same time.** Nobody
+  should keep receiving from somebody they have just reported while the desk catches up. The
+  text is copied into the report, so it survives the sender deleting it.
+
+Both controls sit in the conversation header rather than behind a menu: the moment somebody
+needs them is not the moment to make them go looking. The desk reviews them under
+**Security → Reports**, and resolving one leaves the row and its audit entry in place.
+
+The pair of participants is stored sorted, with a unique index on it — otherwise two people
+opening a conversation at the same moment end up talking in separate rooms.
+
 **Compare movie categories you watched** puts the two genre histograms on one scale and gives a
 match percentage. It is a Jaccard overlap over genres, not titles: two people who have watched
 no film in common can still both live on westerns and documentaries, and that is the useful

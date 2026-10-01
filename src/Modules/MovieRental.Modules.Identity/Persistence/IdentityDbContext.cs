@@ -15,6 +15,10 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
     public DbSet<AuditEntryRow> AuditEntries => Set<AuditEntryRow>();
     public DbSet<SupportConversation> SupportConversations => Set<SupportConversation>();
     public DbSet<SupportChatMessage> SupportChatMessages => Set<SupportChatMessage>();
+    public DbSet<DirectThread> DirectThreads => Set<DirectThread>();
+    public DbSet<DirectMessage> DirectMessages => Set<DirectMessage>();
+    public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
+    public DbSet<MessageReport> MessageReports => Set<MessageReport>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -98,6 +102,47 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
         b.Entity<RefreshTokenEntity>().HasQueryFilter(t => !t.User!.IsDeleted);
         b.Entity<VerificationCode>().HasQueryFilter(c => !c.User!.IsDeleted);
         b.Entity<SupportChatMessage>().HasQueryFilter(m => !m.Conversation!.IsDeleted);
+
+        b.Entity<DirectThread>(e =>
+        {
+            e.ToTable("DirectThreads");
+            e.HasKey(x => x.Id);
+            // One thread per pair. The sorted key is what makes this index possible at all.
+            e.HasIndex(x => new { x.LowUserId, x.HighUserId }).IsUnique().HasFilter("[IsDeleted] = 0");
+            e.HasIndex(x => x.LastMessageAtUtc);
+            e.HasMany(x => x.Messages).WithOne(x => x.Thread!)
+             .HasForeignKey(x => x.ThreadId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<DirectMessage>(e =>
+        {
+            e.ToTable("DirectMessages");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.SenderName).HasMaxLength(150).IsRequired();
+            e.Property(x => x.Body).HasMaxLength(2000).IsRequired();
+            e.HasIndex(x => new { x.ThreadId, x.CreatedAtUtc });
+        });
+
+        b.Entity<UserBlock>(e =>
+        {
+            e.ToTable("UserBlocks");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Reason).HasMaxLength(300);
+            e.HasIndex(x => new { x.BlockerId, x.BlockedId }).IsUnique();
+        });
+
+        b.Entity<MessageReport>(e =>
+        {
+            e.ToTable("MessageReports");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.ReporterEmail).HasMaxLength(256).IsRequired();
+            e.Property(x => x.AboutEmail).HasMaxLength(256).IsRequired();
+            e.Property(x => x.Quote).HasMaxLength(2000).IsRequired();
+            e.Property(x => x.Reason).HasMaxLength(300);
+            e.HasIndex(x => new { x.Handled, x.CreatedAtUtc });
+        });
+
+        b.Entity<DirectMessage>().HasQueryFilter(m => !m.Thread!.IsDeleted);
 
         base.OnModelCreating(b);
     }

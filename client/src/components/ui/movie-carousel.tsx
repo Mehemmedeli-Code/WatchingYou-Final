@@ -1,84 +1,27 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  motion,
-  animate,
-  useMotionValue,
-  useMotionValueEvent,
-  useReducedMotion,
-  useTransform,
-  type MotionValue,
-  type PanInfo,
-} from "motion/react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Clapperboard, Info, Play, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { POSTERS } from "@/components/PosterArt";
-import { formatMoney } from "@/lib/format";
-import { t } from "@/lib/i18n";
+import { Badge } from "@/components/ui/badge";
 import type { MovieListItem } from "@/components/MovieCard";
+import { t } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 /**
- * Stacked, draggable carousel adapted from the 21st.dev "carousel-07" component.
+ * A ribbon of posters receding into the distance, turned by moving the pointer across it.
  *
- * What changed from the original, and why:
+ * Every card carries the *same* rotation rather than mirroring around the middle — that is
+ * what makes it read as one long ribbon seen at an angle instead of a symmetric fan. Depth
+ * follows the signed offset, so the left end stands near and the right end falls away.
  *
- *  - `"use client"` removed. That directive is a Next.js App Router marker; this is a Vite
- *    build where every module is already client-side, and leaving it in is dead weight.
- *  - shadcn colour tokens (`bg-background`, `bg-muted`, `text-foreground`) replaced with this
- *    project's role tokens. We never installed the shadcn base stylesheet, so those classes
- *    would have resolved to nothing and the cards would have rendered transparent.
- *  - The original's `<Badge variant="…">` became `<Badge tone="…">`: our Badge exposes a
- *    semantic tone, not shadcn's variant set.
- *  - `h-112` / `h-128` dropped. Neither exists in Tailwind's default scale, so both were
- *    silently doing nothing; replaced with explicit arbitrary heights.
- *  - Hardcoded slide array replaced by real catalogue rows. A carousel of five fixed
- *    holiday photos is a demo; this one shows what is actually on the shelf.
- *  - Remote CDN images replaced by the locally drawn SVG posters already used by the hero,
- *    chosen by genre. No network request, nothing to 404 in six months, and it matches the
- *    brief's "clean vector art". A real `posterUrl` still wins when the film has one.
- *  - Drag-only navigation was the original's one real flaw: it is unusable by keyboard and
- *    invisible to a screen reader. Arrow buttons, arrow keys and proper labels added.
- *  - `prefers-reduced-motion` respected — the spring is replaced by an instant jump.
+ * Moving the pointer steers it; no button is held. A drag still works for touch, where there
+ * is no hover to read, and the arrow keys work for anyone not using either.
  */
 
-interface CarouselConfig {
-  distanceDivisor: number;
-  velocityDivisor: number;
-  sensitivity: number;
-  xMultiplier: number;
-  yMultiplier: number;
-  rotationMultiplier: number;
-  scaleReduction: number;
-}
-
-/** Fan the cards wider as the viewport grows; on a phone they stay nearly stacked. */
-const configFor = (width: number): CarouselConfig => {
-  if (width < 640) {
-    return { distanceDivisor: 120, velocityDivisor: 500, sensitivity: 180,
-             xMultiplier: 90, yMultiplier: 20, rotationMultiplier: 8, scaleReduction: 0.06 };
-  }
-  if (width < 1024) {
-    return { distanceDivisor: 160, velocityDivisor: 650, sensitivity: 220,
-             xMultiplier: 130, yMultiplier: 30, rotationMultiplier: 10, scaleReduction: 0.09 };
-  }
-  return { distanceDivisor: 200, velocityDivisor: 800, sensitivity: 250,
-           xMultiplier: 170, yMultiplier: 40, rotationMultiplier: 12, scaleReduction: 0.12 };
-};
-
-/** Genre names are free text, so match loosely and fall back to a stable per-title choice. */
-function posterFor(movie: MovieListItem) {
-  const genre = movie.genre.toLowerCase();
-  const direct = POSTERS.find((poster) =>
-    genre.includes(poster.key) ||
-    (poster.key === "scifi" && genre.includes("science")) ||
-    (poster.key === "documentary" && genre.includes("doc")));
-
-  if (direct) return direct;
-
-  const hash = [...movie.title].reduce((total, char) => total + char.charCodeAt(0), 0);
-  return POSTERS[hash % POSTERS.length];
-}
+const SPACING = 74;       // px between neighbours — a fraction of a card's width, so they overlap
+const TILT = -34;         // degrees, the same for every card
+const DEPTH = 96;         // px of recession per step, signed
+const VISIBLE = 9;        // cards drawn each way
+const REACH = 3.2;        // how many cards a full sweep of the frame travels
 
 export function MovieCarousel({
   movies,
@@ -91,200 +34,187 @@ export function MovieCarousel({
   onOpen?: (movie: MovieListItem, mode: "details" | "watch") => void;
   busyId?: string | null;
 }) {
-  const progress = useMotionValue(0);
-  const dragStart = useRef(0);
-  const [width, setWidth] = useState(1280);
-  const [active, setActive] = useState(0);
-  const reduceMotion = useReducedMotion();
-
   const total = movies.length;
 
+  // Where the ribbon sits, in cards. Kept in a ref as well as state: the pointer handler needs
+  // to read it every frame without re-subscribing.
+  const [position, setPosition] = useState(0);
+  const [steering, setSteering] = useState(false);
+  const target = useRef(0);
+  const frame = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ startX: number; startPosition: number; moved: boolean } | null>(null);
+
+  // Eased towards the target rather than snapped to it, so the ribbon has weight and a twitchy
+  // mouse does not make it judder.
   useEffect(() => {
-    const onResize = () => setWidth(window.innerWidth);
-    onResize();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    let raf = 0;
+    const tick = () => {
+      setPosition((p) => (Math.abs(target.current - p) < 0.001 ? p : p + (target.current - p) * 0.12));
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, []);
 
-  const config = useMemo(() => configFor(width), [width]);
+  const nudge = useCallback((by: number) => { target.current += by; }, []);
 
-  // Which card is centred, so only that one offers its Rent button.
-  useMotionValueEvent(progress, "change", (value) => {
-    if (total === 0) return;
-    setActive(((Math.round(value) % total) + total) % total);
-  });
-
-  const goTo = useCallback((target: number) => {
-    if (reduceMotion) { progress.set(target); return; }
-    animate(progress, target, { type: "spring", stiffness: 200, damping: 30, mass: 1 });
-  }, [progress, reduceMotion]);
-
-  const step = useCallback((direction: 1 | -1) => {
-    goTo(Math.round(progress.get()) + direction);
-  }, [goTo, progress]);
-
-  function onDragEnd(_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
-    const fromDistance = -info.offset.x / config.distanceDivisor;
-    const fromVelocity = -info.velocity.x / config.velocityDivisor;
-    // Clamped so one violent flick cannot spin past three cards and lose the reader.
-    const shift = Math.max(-3, Math.min(3, Math.round(fromDistance + fromVelocity)));
-    goTo(Math.round(dragStart.current) + shift);
-  }
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!frame.current?.contains(document.activeElement)) return;
+      if (event.key === "ArrowRight") { event.preventDefault(); nudge(1); }
+      if (event.key === "ArrowLeft") { event.preventDefault(); nudge(-1); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [nudge]);
 
   if (total === 0) return null;
 
+  const active = ((Math.round(position) % total) + total) % total;
   const current = movies[active];
 
+  function onPointerMove(event: React.PointerEvent) {
+    if (drag.current) {
+      const delta = event.clientX - drag.current.startX;
+      if (Math.abs(delta) > 4) drag.current.moved = true;
+      target.current = drag.current.startPosition - delta / SPACING;
+      return;
+    }
+
+    // Hover steering. Pointer position across the frame maps straight onto a span of cards, so
+    // the same place always shows the same part of the ribbon — a speed-based spin would drift
+    // and never come back to where you left it.
+    const box = event.currentTarget.getBoundingClientRect();
+    const ratio = (event.clientX - box.left) / box.width;
+    target.current = (ratio - 0.5) * 2 * REACH;
+    setSteering(true);
+  }
+
+  function onPointerDown(event: React.PointerEvent) {
+    drag.current = { startX: event.clientX, startPosition: target.current, moved: false };
+    (event.target as Element).setPointerCapture?.(event.pointerId);
+  }
+
+  function onPointerUp() {
+    drag.current = null;
+  }
+
+  function offsetOf(index: number) {
+    let offset = index - position;
+    while (offset > total / 2) offset -= total;
+    while (offset < -total / 2) offset += total;
+    return offset;
+  }
+
   return (
-    <div className="w-full select-none">
+    <div>
       <div
-        className="relative flex h-80 w-full items-center justify-center overflow-hidden sm:h-[26rem] lg:h-[30rem]"
+        ref={frame}
         role="group"
         aria-roledescription="carousel"
-        aria-label={t("featured.title")}
+        aria-label={t("home.carousel")}
         tabIndex={0}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowRight") { event.preventDefault(); step(1); }
-          if (event.key === "ArrowLeft") { event.preventDefault(); step(-1); }
-        }}
+        onPointerMove={onPointerMove}
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onPointerLeave={() => { setSteering(false); onPointerUp(); }}
+        className={cn(
+          "relative h-[420px] cursor-ew-resize select-none overflow-hidden sm:h-[520px]",
+          "focus:outline-none focus-visible:ring-1 focus-visible:ring-accent",
+        )}
+        style={{ perspective: "1200px", touchAction: "pan-y" }}
       >
-        {/* One transparent surface takes the drag, so the cards themselves stay inert and
-            never swallow a click meant for the button underneath. */}
-        <motion.div
-          drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          onDragStart={() => { dragStart.current = progress.get(); }}
-          onDrag={(_, info) => progress.set(progress.get() - info.delta.x / config.sensitivity)}
-          onDragEnd={onDragEnd}
-          className="absolute inset-0 z-50 cursor-grab active:cursor-grabbing"
-          aria-hidden
-        />
+        <div className="absolute inset-0" style={{ transformStyle: "preserve-3d" }}>
+          {movies.map((movie, index) => {
+            const offset = offsetOf(index);
+            if (Math.abs(offset) > VISIBLE) return null;
 
-        {movies.map((movie, index) => (
-          <PosterCard
-            key={movie.id}
-            movie={movie}
-            index={index}
-            total={total}
-            progress={progress}
-            config={config}
-          />
-        ))}
+            const isCentre = Math.abs(offset) < 0.5;
+
+            return (
+              <button
+                key={movie.id}
+                type="button"
+                aria-hidden={!isCentre}
+                tabIndex={-1}
+                onClick={() => {
+                  if (drag.current?.moved) return;
+                  if (isCentre) onOpen?.(movie, "details");
+                  else nudge(offset);
+                }}
+                // Taller than the frame on purpose: the ribbon runs off the top and bottom
+                // rather than sitting inside a box, which is what gives it scale.
+                className="absolute left-1/2 top-1/2 h-[520px] w-[280px] origin-center overflow-hidden rounded-lg border border-line/60 bg-surface-raised shadow-2xl sm:h-[640px] sm:w-[330px]"
+                style={{
+                  transform: [
+                    "translate(-50%, -50%)",
+                    `translateX(${offset * SPACING}px)`,
+                    // Signed, not absolute: the ribbon recedes in one direction instead of
+                    // folding symmetrically about the middle.
+                    `translateZ(${-offset * DEPTH}px)`,
+                    `rotateY(${TILT}deg)`,
+                  ].join(" "),
+                  zIndex: 200 - Math.round(offset * 10),
+                  opacity: Math.max(0, 1 - Math.abs(offset) / (VISIBLE + 1)),
+                  transition: steering || drag.current ? "none" : "opacity 300ms",
+                }}
+              >
+                {movie.posterUrl ? (
+                  <img src={movie.posterUrl} alt="" className="h-full w-full object-cover" draggable={false} />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center bg-surface text-accent-dim">
+                    <Clapperboard size={44} strokeWidth={1.2} aria-hidden />
+                  </span>
+                )}
+
+                {/* A wash towards the far end, so the ribbon fades into depth instead of
+                    ending on a hard edge. */}
+                <span
+                  className="pointer-events-none absolute inset-0"
+                  style={{ background: `rgba(10,12,10,${Math.min(0.72, Math.max(0, offset) * 0.11)})` }}
+                />
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="mt-5 flex flex-col items-center gap-3">
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => step(-1)} aria-label={t("common.prev")}>
-            <ChevronLeft size={15} aria-hidden />
-          </Button>
-
-          <p className="min-w-[14ch] text-center text-xs text-ink-mute" aria-live="polite">
-            {active + 1} / {total}
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-display text-2xl text-ink">{current.title}</p>
+          <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ink-mute">
+            <Badge>{current.genre}</Badge>
+            <span>{current.releaseYear}</span>
+            <span>·</span>
+            <span>{current.durationMinutes} {t("movie.min")}</span>
           </p>
-
-          <Button size="sm" variant="outline" onClick={() => step(1)} aria-label={t("common.next")}>
-            <ChevronRight size={15} aria-hidden />
-          </Button>
         </div>
 
-        {/* The centred film's details live outside the stack: text that rotates and scales
-            with a card is unreadable, and a button that moves is hard to hit. */}
-        <div className="text-center">
-          <p className="font-display text-xl text-ink">{current.title}</p>
-          <p className="mt-1 text-xs text-ink-mute">
-            {current.genre} · {current.releaseYear} · {formatMoney(current.dailyPrice)}
-          </p>
+        <div className="flex flex-wrap gap-2">
+          {onOpen ? (
+            <Button size="sm" variant="outline" onClick={() => onOpen(current, "details")}>
+              <Info size={14} aria-hidden />
+              {t("movie.details")}
+            </Button>
+          ) : null}
 
-          <div className="mt-3 flex flex-wrap justify-center gap-2">
-            {onOpen ? (
-              <Button size="sm" variant="outline" onClick={() => onOpen(current, "details")}>
-                {t("movie.details")}
-              </Button>
-            ) : null}
+          {onOpen && current.hasVideo ? (
+            <Button size="sm" variant="outline" onClick={() => onOpen(current, "watch")}>
+              <Play size={14} aria-hidden />
+              {t("movie.watch")}
+            </Button>
+          ) : null}
 
-            {onOpen ? (
-              <Button
-                size="sm"
-                disabled={!current.hasVideo}
-                title={current.hasVideo ? undefined : t("movie.noVideo")}
-                onClick={() => onOpen(current, "watch")}
-              >
-                {t("movie.watch")}
-              </Button>
-            ) : null}
-
-            {onRent ? (
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={current.availableCopies === 0 || busyId === current.id}
-                onClick={() => onRent(current)}
-              >
-                {busyId === current.id ? t("movie.renting")
-                  : current.availableCopies === 0 ? t("movie.allOut") : t("movie.rent")}
-              </Button>
-            ) : null}
-          </div>
+          {onRent ? (
+            <Button size="sm" disabled={busyId === current.id || current.availableCopies === 0} onClick={() => onRent(current)}>
+              <Ticket size={14} aria-hidden />
+              {busyId === current.id ? t("common.loading") : t("movie.rent")}
+            </Button>
+          ) : null}
         </div>
       </div>
     </div>
-  );
-}
-
-function PosterCard({
-  movie, index, total, progress, config,
-}: {
-  movie: MovieListItem;
-  index: number;
-  total: number;
-  progress: MotionValue<number>;
-  config: CarouselConfig;
-}) {
-  // Signed distance from centre, wrapped so the stack is a ring rather than a line.
-  const offset = useTransform(progress, (value) => {
-    let diff = (index - value) % total;
-    if (diff > total / 2) diff -= total;
-    if (diff < -total / 2) diff += total;
-    return diff;
-  });
-
-  const x = useTransform(offset, (o) => o * config.xMultiplier);
-  const y = useTransform(offset, (o) => (Math.abs(o) < 0.05 ? 0 : Math.abs(o) * config.yMultiplier));
-  const rotate = useTransform(offset, (o) => (Math.abs(o) < 0.05 ? 0 : o * config.rotationMultiplier));
-  const scale = useTransform(offset, (o) => 1 - Math.abs(o) * config.scaleReduction);
-  const opacity = useTransform(
-    offset,
-    [-total / 2, -total / 2 + 0.5, 0, total / 2 - 0.5, total / 2],
-    [0, 1, 1, 1, 0],
-  );
-  const zIndex = useTransform(offset, (o) => Math.round(100 - Math.abs(o) * 10));
-  // Cards away from centre dim, which is what makes the stack read as depth.
-  const shade = useTransform(offset, [-2, -0.5, 0, 0.5, 2], [0.55, 0.22, 0, 0.22, 0.55]);
-
-  const poster = posterFor(movie);
-
-  return (
-    <motion.div
-      style={{ x, y, rotate, scale, opacity, zIndex }}
-      className={cn(
-        "pointer-events-none absolute overflow-hidden rounded-2xl border border-line bg-surface-raised",
-        "h-56 w-44 sm:h-80 sm:w-56 lg:h-96 lg:w-64",
-      )}
-      aria-hidden={index !== 0}
-    >
-      {movie.posterUrl ? (
-        <img src={movie.posterUrl} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
-      ) : (
-        <div className="absolute inset-0 [&>svg]:h-full [&>svg]:w-full">{poster.render()}</div>
-      )}
-
-      <motion.div style={{ opacity: shade }} className="absolute inset-0 bg-black" />
-      <div className="absolute inset-0 bg-gradient-to-t from-surface/90 via-surface/20 to-transparent" />
-
-      <Badge tone="warn" className="absolute right-3 top-3 uppercase tracking-widest sm:right-4 sm:top-4">
-        {movie.genre}
-      </Badge>
-    </motion.div>
   );
 }
 

@@ -9,6 +9,7 @@ import { get, put, query } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { TasteCompare } from "@/components/TasteCompare";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { DirectChat } from "@/components/DirectChat";
 import { Globe } from "@/components/ui/globe";
 
 /** What the server returns per city. Named here now that the 3D viewer is gone. */
@@ -45,6 +46,7 @@ export default function GlobePage() {
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [compareWith, setCompareWith] = useState<GlobeMember | null>(null);
+  const [writeTo, setWriteTo] = useState<GlobeMember | null>(null);
 
   const loadCities = useCallback(async () => {
     if (!isSignedIn) { setCities([]); return; }
@@ -172,9 +174,14 @@ export default function GlobePage() {
                     {member.userId === user?.id ? (
                       <Badge>{t("globe.you")}</Badge>
                     ) : (
-                      <Button size="sm" variant="outline" onClick={() => setCompareWith(member)}>
-                        {t("globe.match")}
-                      </Button>
+                      <div className="flex shrink-0 gap-1.5">
+                        <Button size="sm" variant="outline" onClick={() => setCompareWith(member)}>
+                          {t("globe.match")}
+                        </Button>
+                        <Button size="sm" onClick={() => setWriteTo(member)}>
+                          {t("dm.message")}
+                        </Button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -202,6 +209,10 @@ export default function GlobePage() {
 
       {compareWith ? (
         <TasteCompare member={compareWith} onClose={() => setCompareWith(null)} />
+      ) : null}
+
+      {writeTo ? (
+        <DirectChat userId={writeTo.userId} onClose={() => setWriteTo(null)} />
       ) : null}
     </Section>
   );
