@@ -73,6 +73,7 @@ public sealed class IdentityModule : IModule
         AuditEndpoints.Map(endpoints);
         GlobeEndpoints.Map(endpoints);
         HelpDeskEndpoints.Map(endpoints);
+        DirectMessageEndpoints.Map(endpoints);
         UpdateProfileEndpoint.Map(endpoints);
         CurrentUserProfileEndpoint.Map(endpoints);
     }
