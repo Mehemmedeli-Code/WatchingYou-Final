@@ -119,3 +119,19 @@
     opacity: 0.45;
   }
 }
+
+
+/* ---- Globe page crowd band --------------------------------------------------------- */
+.rr-crowd-marquee {
+  /* Moves exactly one copy's width, then repeats from where the second copy stood. */
+  animation: rr-crowd-slide 38s linear infinite;
+}
+
+@keyframes rr-crowd-slide {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rr-crowd-marquee { animation: none; }
+}

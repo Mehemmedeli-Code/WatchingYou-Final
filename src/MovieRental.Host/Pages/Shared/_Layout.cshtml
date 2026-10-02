@@ -117,7 +117,11 @@
     }
     else
     {
-        <script type="module" src="@view.Assets.ScriptUrl" asp-append-version="true"></script>
+        @* No asp-append-version here. It adds ?v=hash to this URL, but the lazily loaded chunks
+           import "./app.js" with no query — and to the browser those are two different modules.
+           The entry ran twice, a second React appeared, and every lazy page (the map, the crowd)
+           crashed on its first hook. Freshness comes from Cache-Control on /app instead. *@
+        <script type="module" src="@view.Assets.ScriptUrl"></script>
     }
 </body>
 </html>

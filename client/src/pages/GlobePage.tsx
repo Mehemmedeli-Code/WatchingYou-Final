@@ -10,6 +10,7 @@ import { t } from "@/lib/i18n";
 import { TasteCompare } from "@/components/TasteCompare";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DirectChat } from "@/components/DirectChat";
+import { CrowdBand } from "@/components/CrowdBand";
 import { Globe } from "@/components/ui/globe";
 
 /** What the server returns per city. Named here now that the 3D viewer is gone. */
@@ -79,6 +80,8 @@ export default function GlobePage() {
 
   if (!isSignedIn) {
     return (
+      <>
+      <CrowdBand />
       <Section title={t("globe.title")} lede={t("globe.lede")}>
         <Empty
           title={t("globe.signedOut")}
@@ -86,10 +89,13 @@ export default function GlobePage() {
           action={<a href="/account"><Button>{t("nav.signIn")}</Button></a>}
         />
       </Section>
+      </>
     );
   }
 
   return (
+    <>
+    <CrowdBand />
     <Section title={t("globe.title")} lede={t("globe.lede")}>
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <div className="rounded-xl border border-line bg-surface-raised p-6">
@@ -215,6 +221,7 @@ export default function GlobePage() {
         <DirectChat userId={writeTo.userId} onClose={() => setWriteTo(null)} />
       ) : null}
     </Section>
+    </>
   );
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { Modal } from "@/components/ui/modal";
 import { X } from "lucide-react";
 import { Panel, Spinner, Empty } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
@@ -43,22 +43,10 @@ export function TasteCompare({
       .catch(() => setMissing(true));
   }, [member.userId]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   const peak = Math.max(1, ...(data?.genres.flatMap((g) => [g.mine, g.theirs]) ?? [1]));
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[92] flex items-start justify-center overflow-y-auto bg-black/80 p-4 backdrop-blur-sm sm:p-8"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
-      <div className="my-auto w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+  return (
+    <Modal onClose={onClose} label={member.displayName} layer={92}>
         <Panel>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -140,8 +128,6 @@ export function TasteCompare({
             </>
           )}
         </Panel>
-      </div>
-    </div>,
-    document.body,
+    </Modal>
   );
 }

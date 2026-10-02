@@ -131,7 +131,7 @@ export default function HomePage() {
         subtitle={t("home.hero.subtitle")}
       >
         <a href="#catalogue" className="inline-flex h-11 items-center rounded-full bg-accent px-6 text-sm font-semibold text-surface">
-          Browse the catalogue
+          {t("home.hero.cta")}
         </a>
       </StackSpread>
 

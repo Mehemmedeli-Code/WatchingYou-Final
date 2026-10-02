@@ -136,7 +136,21 @@ builder.Services.AddModules(
 
 **Tokens.** Access tokens are short-lived JWTs built by `JwtSecurityTokenHandler`. Refresh tokens are rows in `identity.RefreshTokens` with rotation: using one revokes it and points it at its replacement. A revoked token coming back means the chain leaked, so every live token for that user is revoked at once.
 
-### Extracting over an old copy
+### Why some code looks repeated
+
+**Endpoints map `Error.Code` to a result by hand** — twenty-four `switch` expressions that look
+alike. They could collapse into one helper returning `IResult`, and that would read shorter.
+It would also erase the return types: each endpoint declares
+`Results<Ok<T>, NotFound<Error>, Conflict<Error>>`, and those typed unions are what tell
+Swagger, and anyone calling the API, exactly which responses are possible. A shared `IResult`
+helper documents every endpoint as "returns something". The repetition is the price of an
+honest contract, and it is paid knowingly.
+
+**Dialogs share one frame**, `components/ui/modal.tsx`: overlay, click-outside, Escape, and
+locking the page scroll. Two dialogs keep their own because they are genuinely different — the
+film dialog animates in, and the 3D hall preview is full-screen with no backdrop to click.
+
+## Extracting over an old copy
 
 A zip overwrites what changed but leaves behind what was **deleted**. A stale `.cs` file still
 compiles into the project and fails against code that has moved on — that is where `CS0101`
@@ -216,6 +230,20 @@ A film reaches a public gallery only when it is **Approved** *and* its author ha
 Craft. Video is served through an authorising endpoint, never as a static file, so a private
 film cannot be reached by guessing its URL.
 
+## Why some code looks repeated
+
+**Endpoints map `Error.Code` to a result by hand** — twenty-four `switch` expressions that look
+alike. They could collapse into one helper returning `IResult`, and that would read shorter.
+It would also erase the return types: each endpoint declares
+`Results<Ok<T>, NotFound<Error>, Conflict<Error>>`, and those typed unions are what tell
+Swagger, and anyone calling the API, exactly which responses are possible. A shared `IResult`
+helper documents every endpoint as "returns something". The repetition is the price of an
+honest contract, and it is paid knowingly.
+
+**Dialogs share one frame**, `components/ui/modal.tsx`: overlay, click-outside, Escape, and
+locking the page scroll. Two dialogs keep their own because they are genuinely different — the
+film dialog animates in, and the 3D hall preview is full-screen with no backdrop to click.
+
 ## Extracting over an old copy
 
 A zip overwrites what changed but leaves behind what was **deleted**. A stale `.cs` file still
@@ -282,6 +310,23 @@ reporting the problem.
 
 The response keeps its real status code. A 404 rendered with a 200 header tells every crawler
 and monitor that the page was fine.
+
+## One URL for the bundle
+
+The layout used to load the entry script with `asp-append-version`, which appends `?v=hash`.
+Every lazily loaded chunk imports the entry back as plain `./app.js`, with no query — and to a
+browser those are two different modules. The entry evaluated twice, a second copy of React
+appeared, and any page that loaded a chunk crashed on its first hook. The map on Movies on
+Display was one of them; its failure was first put down to WebGL, and the error boundary
+added then hid the crash rather than exposing it.
+
+The script is now loaded under one URL, and freshness comes from `Cache-Control: no-cache`
+on `/app` instead: the browser revalidates on each load, which is a cheap 304 when nothing has
+changed and the new build the moment something has.
+
+The smoke test had the same flaw — it imported `app.js?p=<page>` to get a fresh module per
+page — which is how it first reported this. Each page now runs in its own process under the
+real URL, the way a browser loads it.
 
 ## Smoke test
 
@@ -399,6 +444,20 @@ standing in for a sphere. It is a disc, not a projection, so there is nowhere ho
 pin; the cities are a row of buttons beneath it instead. That swap removed
 `@react-three/fiber`, `@react-three/drei` and two Earth textures from the project. `three`
 stays, because the 3D hall preview genuinely needs it.
+
+### The crowd
+
+A band of people walking under the header opens the globe page, with *Meet on WatchingYou*
+sliding across them. It is decoration and nothing more: `pointer-events: none` and
+`aria-hidden` throughout, so clicks pass through and a screen reader is not read a moving line
+on a loop. The Open Peeps artwork is black line on white; inverted, it becomes pale linework on
+the site's dark ground. Figures are scaled to the band — the original drew them at the sprite
+sheet's own size, which suits a full-screen canvas and cuts heads off in a strip a few hundred
+pixels tall. `gsap` loads with this page only.
+
+Adapted from **Skiper UI** (Skiper 39, by @gurvinder-singh02), itself after a CodePen by
+Zadvorsky; illustrations by [Open Peeps](https://www.openpeeps.com/). The free Skiper licence
+asks for attribution, which is kept in the component's header and here.
 
 ### Messaging
 

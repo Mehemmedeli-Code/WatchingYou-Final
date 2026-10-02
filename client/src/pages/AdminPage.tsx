@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
 import { Section, Panel, Notice, Empty, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Input, Field, Textarea, Select } from "@/components/ui/input";
@@ -707,13 +708,7 @@ function EditMovieDialog({
   );
 
   return (
-    <div
-      className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-black/80 p-4 backdrop-blur-sm sm:p-8"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
-      <div className="my-auto w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} width="max-w-lg">
         <Panel>
           <div className="flex items-start justify-between gap-3">
             <p className="font-display text-xl text-ink">{t("admin.editMovie")}</p>
@@ -756,8 +751,7 @@ function EditMovieDialog({
             </div>
           )}
         </Panel>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -811,13 +805,7 @@ function EditScreeningDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-black/80 p-4 backdrop-blur-sm sm:p-8"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
-      <div className="my-auto w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} width="max-w-md">
         <Panel>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -878,8 +866,7 @@ function EditScreeningDialog({
             </div>
           </div>
         </Panel>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

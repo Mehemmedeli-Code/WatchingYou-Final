@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { Modal } from "@/components/ui/modal";
 import { Ban, Flag, X } from "lucide-react";
 import { Panel, Notice } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
@@ -56,13 +56,8 @@ export function DirectChat({
   useEffect(() => {
     void load();
     const timer = setInterval(() => void load(), 5000);
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [load, onClose]);
+    return () => clearInterval(timer);
+  }, [load]);
 
   async function send(text: string) {
     sending.current = true;
@@ -110,14 +105,8 @@ export function DirectChat({
     at: line.createdAtUtc,
   }));
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[94] flex items-start justify-center overflow-y-auto bg-black/80 p-4 backdrop-blur-sm sm:p-8"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
-      <div className="my-auto w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
+  return (
+    <Modal onClose={onClose} label={thread?.otherName} width="max-w-xl" layer={94}>
         <Panel>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -170,8 +159,6 @@ export function DirectChat({
             />
           </div>
         </Panel>
-      </div>
-    </div>,
-    document.body,
+    </Modal>
   );
 }

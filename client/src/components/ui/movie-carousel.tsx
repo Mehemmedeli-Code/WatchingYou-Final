@@ -13,15 +13,17 @@ import { cn } from "@/lib/utils";
  * what makes it read as one long ribbon seen at an angle instead of a symmetric fan. Depth
  * follows the signed offset, so the left end stands near and the right end falls away.
  *
- * Moving the pointer steers it; no button is held. A drag still works for touch, where there
- * is no hover to read, and the arrow keys work for anyone not using either.
+ * It moves only when asked to: a held mouse drag, a two-finger swipe on a trackpad, or a finger
+ * on a phone. It used to follow the pointer on hover, which meant it slid away whenever the
+ * cursor merely crossed it on the way down the page — the carousel reacting to somebody who
+ * was not using it.
  */
 
 const SPACING = 74;       // px between neighbours — a fraction of a card's width, so they overlap
 const TILT = -34;         // degrees, the same for every card
 const DEPTH = 96;         // px of recession per step, signed
 const VISIBLE = 9;        // cards drawn each way
-const REACH = 3.2;        // how many cards a full sweep of the frame travels
+const WHEEL_STEP = 0.012; // cards per pixel of horizontal wheel travel
 
 export function MovieCarousel({
   movies,
@@ -39,7 +41,7 @@ export function MovieCarousel({
   // Where the ribbon sits, in cards. Kept in a ref as well as state: the pointer handler needs
   // to read it every frame without re-subscribing.
   const [position, setPosition] = useState(0);
-  const [steering, setSteering] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const target = useRef(0);
   const frame = useRef<HTMLDivElement>(null);
   const drag = useRef<{ startX: number; startPosition: number; moved: boolean } | null>(null);
@@ -59,6 +61,29 @@ export function MovieCarousel({
   const nudge = useCallback((by: number) => { target.current += by; }, []);
 
   useEffect(() => {
+    const element = frame.current;
+    if (!element) return;
+
+    const onWheel = (event: WheelEvent) => {
+      // Only a sideways gesture turns the ribbon. A vertical one belongs to the page, so
+      // somebody scrolling down past the carousel is never caught by it.
+      if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+      event.preventDefault();
+      target.current += event.deltaX * WHEEL_STEP;
+    };
+
+    element.addEventListener("wheel", onWheel, { passive: false });
+    return () => element.removeEventListener("wheel", onWheel);
+  }, []);
+
+  // A gesture that stops between cards settles onto the nearest one.
+  useEffect(() => {
+    if (dragging) return;
+    const timer = setTimeout(() => { target.current = Math.round(target.current); }, 140);
+    return () => clearTimeout(timer);
+  }, [dragging, position]);
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (!frame.current?.contains(document.activeElement)) return;
       if (event.key === "ArrowRight") { event.preventDefault(); nudge(1); }
@@ -73,30 +98,33 @@ export function MovieCarousel({
   const active = ((Math.round(position) % total) + total) % total;
   const current = movies[active];
 
-  function onPointerMove(event: React.PointerEvent) {
-    if (drag.current) {
-      const delta = event.clientX - drag.current.startX;
-      if (Math.abs(delta) > 4) drag.current.moved = true;
-      target.current = drag.current.startPosition - delta / SPACING;
-      return;
-    }
-
-    // Hover steering. Pointer position across the frame maps straight onto a span of cards, so
-    // the same place always shows the same part of the ribbon — a speed-based spin would drift
-    // and never come back to where you left it.
-    const box = event.currentTarget.getBoundingClientRect();
-    const ratio = (event.clientX - box.left) / box.width;
-    target.current = (ratio - 0.5) * 2 * REACH;
-    setSteering(true);
+  // One handler for mouse and finger alike. Nothing happens until a button or a finger is
+  // down, so passing the cursor over the ribbon leaves it exactly where it was.
+  function onPointerDown(event: React.PointerEvent) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    drag.current = { startX: event.clientX, startPosition: target.current, moved: false };
   }
 
-  function onPointerDown(event: React.PointerEvent) {
-    drag.current = { startX: event.clientX, startPosition: target.current, moved: false };
-    (event.target as Element).setPointerCapture?.(event.pointerId);
+  function onPointerMove(event: React.PointerEvent) {
+    if (!drag.current) return;
+    const delta = event.clientX - drag.current.startX;
+
+    // The pointer is captured only once it has actually travelled. Capturing on press would
+    // redirect the click that follows to the frame, and tapping a card would stop opening it.
+    if (!drag.current.moved && Math.abs(delta) > 4) {
+      drag.current.moved = true;
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      setDragging(true);
+    }
+
+    if (drag.current.moved) target.current = drag.current.startPosition - delta / SPACING;
   }
 
   function onPointerUp() {
-    drag.current = null;
+    setDragging(false);
+    // Cleared on the next tick, not now: the click that ends a drag fires straight after this
+    // and needs to see that the pointer moved, so it is not taken for a tap on a card.
+    setTimeout(() => { drag.current = null; }, 0);
   }
 
   function offsetOf(index: number) {
@@ -114,15 +142,17 @@ export function MovieCarousel({
         aria-roledescription="carousel"
         aria-label={t("home.carousel")}
         tabIndex={0}
-        onPointerMove={onPointerMove}
         onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        onPointerLeave={() => { setSteering(false); onPointerUp(); }}
         className={cn(
-          "relative h-[420px] cursor-ew-resize select-none overflow-hidden sm:h-[520px]",
+          "relative h-[420px] select-none overflow-hidden sm:h-[520px]",
           "focus:outline-none focus-visible:ring-1 focus-visible:ring-accent",
+          dragging ? "cursor-grabbing" : "cursor-grab",
         )}
+        // pan-y leaves vertical swipes to the browser, so a thumb scrolling the page on a phone
+        // is never taken for a turn of the ribbon; sideways swipes come to the handler.
         style={{ perspective: "1200px", touchAction: "pan-y" }}
       >
         <div className="absolute inset-0" style={{ transformStyle: "preserve-3d" }}>
@@ -157,7 +187,7 @@ export function MovieCarousel({
                   ].join(" "),
                   zIndex: 200 - Math.round(offset * 10),
                   opacity: Math.max(0, 1 - Math.abs(offset) / (VISIBLE + 1)),
-                  transition: steering || drag.current ? "none" : "opacity 300ms",
+                  transition: dragging ? "none" : "opacity 300ms",
                 }}
               >
                 {movie.posterUrl ? (

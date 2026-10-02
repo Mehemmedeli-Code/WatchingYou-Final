@@ -221,7 +221,17 @@ app.UseWhen(
     context => !context.Request.Path.StartsWithSegments("/api"),
     branch => branch.UseStatusCodePagesWithReExecute("/error/{0}"));
 
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    // The bundle is served without a version query (see _Layout.cshtml), so the browser is
+    // told to revalidate it on every load. With an ETag that is a 304 and no download when
+    // nothing changed, and the new build the moment something did.
+    OnPrepareResponse = context =>
+    {
+        if (context.Context.Request.Path.StartsWithSegments("/app"))
+            context.Context.Response.Headers.CacheControl = "no-cache";
+    }
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();

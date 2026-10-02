@@ -72,7 +72,7 @@ async function check(page) {
   console.error = (...args) => { failures.push(args.map(String).join(" ")); };
 
   try {
-    await import(pathToFileURL("../src/MovieRental.Host/wwwroot/app/app.js").href + `?p=${page}`);
+    await import(pathToFileURL("../src/MovieRental.Host/wwwroot/app/app.js").href);
     await new Promise((r) => setTimeout(r, 2500));
   } catch (error) {
     failures.push(`threw during module evaluation: ${error?.message ?? error}`);
@@ -88,17 +88,27 @@ async function check(page) {
 }
 
 const only = process.argv[2];
-const pages = only ? [only] : PAGES;
-let bad = 0;
 
-for (const page of pages) {
-  const result = await check(page);
+if (only) {
+  // One page, one process, one copy of the bundle — the way a browser loads it.
+  const result = await check(only);
   const broken = result.blank || result.caught.length > 0;
-  if (broken) bad++;
   console.log(
-    `${broken ? "FAIL" : "ok  "}  ${page.padEnd(12)} ${
+    `${broken ? "FAIL" : "ok  "}  ${only.padEnd(12)} ${
       result.blank ? "rendered nothing" : result.caught[0] ?? result.sample}`,
   );
+  process.exit(broken ? 1 : 0);
+}
+
+const { spawnSync } = await import("node:child_process");
+const { fileURLToPath } = await import("node:url");
+let bad = 0;
+
+for (const page of PAGES) {
+  const run = spawnSync(process.execPath, [fileURLToPath(import.meta.url), page], { encoding: "utf8" });
+  const line = (run.stdout || "").trim().split("\n").pop() || `FAIL  ${page} produced no output`;
+  if (run.status !== 0) bad++;
+  console.log(line);
 }
 
 console.log(bad === 0 ? "\nAll islands mounted." : `\n${bad} island(s) broken.`);
