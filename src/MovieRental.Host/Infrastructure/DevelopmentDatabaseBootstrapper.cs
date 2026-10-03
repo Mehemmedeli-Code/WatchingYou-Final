@@ -1,4 +1,5 @@
 using System.Data.Common;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -61,7 +62,7 @@ public static class DevelopmentDatabaseBootstrapper
         foreach (var context in contexts)
         {
             var creator = (RelationalDatabaseCreator)context.Database.GetService<IDatabaseCreator>();
-            if (!await creator.ExistsAsync(ct)) await creator.CreateAsync(ct);
+            if (!await creator.ExistsAsync(ct)) await CreateCleanAsync(context, creator, logger, ct);
 
             var schema = context.Model.GetDefaultSchema() ?? "dbo";
             if (await SchemaHasTablesAsync(context, schema, ct)) continue;
@@ -126,7 +127,87 @@ public static class DevelopmentDatabaseBootstrapper
             stored ?? "none", SchemaStamp);
 
         await context.Database.EnsureDeletedAsync(ct);
+        await CreateCleanAsync(context, creator, logger, ct);
+    }
+
+    /// <summary>
+    /// Creates the database, first clearing any files a previous LocalDB instance left behind.
+    ///
+    /// When a LocalDB instance is deleted and recreated — the standard fix when it will not
+    /// start — the new instance forgets the database but the .mdf and .ldf stay on disk. EF's
+    /// EnsureDeleted only drops what the instance knows about, so it cannot see them, and the
+    /// next CREATE DATABASE fails because its files already exist. Only files named exactly for
+    /// this database, and only when the instance has no such database registered, are removed:
+    /// in that state they belong to nothing.
+    /// </summary>
+    private static async Task CreateCleanAsync(
+        DbContext context, RelationalDatabaseCreator creator, ILogger logger, CancellationToken ct)
+    {
+        await RemoveOrphanedFilesAsync(context, logger, ct);
         await creator.CreateAsync(ct);
+    }
+
+    private static async Task RemoveOrphanedFilesAsync(DbContext context, ILogger logger, CancellationToken ct)
+    {
+        var target = new SqlConnectionStringBuilder(context.Database.GetConnectionString());
+        var database = target.InitialCatalog;
+        if (string.IsNullOrWhiteSpace(database)) return;
+
+        var master = new SqlConnectionStringBuilder(target.ConnectionString) { InitialCatalog = "master" };
+
+        await using var connection = new SqlConnection(master.ConnectionString);
+        await connection.OpenAsync(ct);
+
+        await using (var registered = connection.CreateCommand())
+        {
+            registered.CommandText = "SELECT COUNT(*) FROM sys.databases WHERE name = @name";
+            registered.Parameters.AddWithValue("@name", database);
+
+            // Registered means live: its files are in use and are not ours to touch.
+            if (Convert.ToInt32(await registered.ExecuteScalarAsync(ct)) > 0) return;
+        }
+
+        string? dataPath = null, logPath = null;
+        await using (var paths = connection.CreateCommand())
+        {
+            // Where this instance puts new database files — the user profile folder for LocalDB.
+            paths.CommandText = """
+                SELECT CAST(SERVERPROPERTY('InstanceDefaultDataPath') AS nvarchar(512)),
+                       CAST(SERVERPROPERTY('InstanceDefaultLogPath')  AS nvarchar(512))
+                """;
+            await using var reader = await paths.ExecuteReaderAsync(ct);
+            if (await reader.ReadAsync(ct))
+            {
+                dataPath = reader.IsDBNull(0) ? null : reader.GetString(0);
+                logPath = reader.IsDBNull(1) ? null : reader.GetString(1);
+            }
+        }
+
+        var candidates = new[]
+        {
+            dataPath is null ? null : Path.Combine(dataPath, $"{database}.mdf"),
+            logPath is null ? null : Path.Combine(logPath, $"{database}_log.ldf"),
+        };
+
+        foreach (var file in candidates)
+        {
+            if (file is null || !File.Exists(file)) continue;
+
+            try
+            {
+                File.Delete(file);
+                logger.LogWarning("Removed a file left over from an earlier LocalDB instance: {File}", file);
+            }
+            catch (IOException ex)
+            {
+                // Name the file and the fix, rather than failing later on a CREATE DATABASE
+                // message that points at neither.
+                throw new InvalidOperationException(
+                    $"'{file}' is left over from an earlier LocalDB instance and is locked. " +
+                    "Close SQL Server Management Studio and anything else connected to LocalDB, " +
+                    "then start the app again.", ex);
+            }
+        }
     }
 
     /// <summary>Recorded only once every schema has been created and seeded, so a failure

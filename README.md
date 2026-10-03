@@ -164,6 +164,18 @@ Delete the folder before extracting. When that is inconvenient:
 
 It removes the files this version no longer has, clears `bin` and `obj`, and says what it did.
 
+## When LocalDB is rebuilt
+
+The standard fix for a LocalDB instance that will not start is to delete and recreate it. The
+new instance forgets the database, but its `.mdf` and `.ldf` stay in the user profile folder.
+EF's `EnsureDeleted` only drops what the instance knows about, so it cannot see them, and the
+next `CREATE DATABASE` fails with *"Cannot create file … because it already exists"*.
+
+The bootstrapper now clears those files itself before creating the database. It removes only
+files named exactly for this database, and only when the instance has no such database
+registered — in that state they belong to nothing. If one is locked, the error names the file
+and says what to close, instead of surfacing later as a message that points at neither.
+
 ## Migrations
 
 The development bootstrapper creates the schemas on first run so you can start with only a connection string. For anything beyond that, each module owns its own migration history:
@@ -257,6 +269,18 @@ Delete the folder before extracting. When that is inconvenient:
 ```
 
 It removes the files this version no longer has, clears `bin` and `obj`, and says what it did.
+
+## When LocalDB is rebuilt
+
+The standard fix for a LocalDB instance that will not start is to delete and recreate it. The
+new instance forgets the database, but its `.mdf` and `.ldf` stay in the user profile folder.
+EF's `EnsureDeleted` only drops what the instance knows about, so it cannot see them, and the
+next `CREATE DATABASE` fails with *"Cannot create file … because it already exists"*.
+
+The bootstrapper now clears those files itself before creating the database. It removes only
+files named exactly for this database, and only when the instance has no such database
+registered — in that state they belong to nothing. If one is locked, the error names the file
+and says what to close, instead of surfacing later as a message that points at neither.
 
 ## Migrations
 
