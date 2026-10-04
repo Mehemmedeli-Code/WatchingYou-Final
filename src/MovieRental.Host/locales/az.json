@@ -393,5 +393,8 @@
   "reports.showHandled": "Baxılanları göstər",
   "home.carousel": "Seçilmiş filmlər",
   "movie.min": "dəq",
-  "globe.meet": "WatchingYou'da tanış olun"
+  "globe.meet": "WatchingYou'da tanış olun",
+  "theme.label": "Tema",
+  "theme.light": "Açıq tema",
+  "theme.dark": "Tünd tema"
 }

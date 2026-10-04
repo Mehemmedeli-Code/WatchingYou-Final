@@ -26,9 +26,9 @@ export function CrowdBand() {
       className="pointer-events-none relative h-[260px] w-auto select-none overflow-hidden border-b border-line max-[520px]:-mx-[0.9rem] sm:h-[340px]"
     >
       <Suspense fallback={null}>
-        {/* The artwork is black line on white. Inverted, it becomes pale linework on this
-            site's dark ground — the same people, drawn in the site's own light. */}
-        <CrowdCanvas src={PEEPS} rows={15} cols={7} className="absolute inset-0 h-full w-full invert opacity-90" />
+        {/* The artwork is black line on white. In the dark theme it is inverted to pale
+            linework on the dark ground; in the light theme it is shown as drawn. */}
+        <CrowdCanvas src={PEEPS} rows={15} cols={7} className="rr-crowd-art absolute inset-0 h-full w-full opacity-90" />
       </Suspense>
 
       {/* Two copies laid end to end, so the loop has no seam when the first slides off. */}

@@ -4,6 +4,7 @@ import "@/styles/app.css";
 
 import { restoreSession } from "@/lib/api";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { ShaderBackground } from "@/components/ui/shader-background";
 import HomePage from "@/pages/HomePage";
 import CinemaPage from "@/pages/CinemaPage";
@@ -44,6 +45,13 @@ async function bootstrap() {
   const shader = document.getElementById("rr-shader");
   if (shader) {
     createRoot(shader).render(<ShaderBackground className="h-full w-full" />);
+  }
+
+  // Its own root, like the shader: the header is Razor, so the switcher mounts into a slot
+  // there rather than inside any page's island.
+  const themeSlot = document.getElementById("rr-theme");
+  if (themeSlot) {
+    createRoot(themeSlot).render(<ThemeSwitcher />);
   }
 
   const container = document.getElementById("root");

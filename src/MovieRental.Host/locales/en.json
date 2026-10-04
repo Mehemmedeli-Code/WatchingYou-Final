@@ -393,5 +393,8 @@
   "reports.showHandled": "Show handled",
   "home.carousel": "Featured films",
   "movie.min": "min",
-  "globe.meet": "Meet on WatchingYou"
+  "globe.meet": "Meet on WatchingYou",
+  "theme.label": "Theme",
+  "theme.light": "Light theme",
+  "theme.dark": "Dark theme"
 }

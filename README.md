@@ -335,6 +335,28 @@ reporting the problem.
 The response keeps its real status code. A 404 rendered with a 200 header tells every crawler
 and monitor that the page was fine.
 
+## Light and dark
+
+A switch in the header, sun and moon; there is no "follow the system" option. Dark is the
+default, because it is the site's identity.
+
+Every component names a colour by its **role** — `surface`, `ink`, `accent` — never by its
+value, so the light theme is two short blocks of values, one in `app.css` for the React islands
+and one in `shell.css` for the Razor header and footer. Nothing else in the codebase changed
+for it. The green is darker in light mode: `#00E676` on white is too faint to read as text,
+while `#007A42` clears WCAG AA (4.5:1) both as text on the page and under white button text.
+
+The theme is `data-theme` on `<html>`, set by a small inline script before the first paint —
+reading it only once React had loaded would flash every light-theme page dark on arrival. It is
+not `next-themes`: that is a React context, and this site mounts several separate React roots
+that would each get a provider of their own and disagree. One attribute and one event serve
+every root and the Razor markup alike, and a change in one tab reaches the others.
+
+Three things do not simply recolour. The moving background is a dark silk field, so light mode
+turns it off. The map swaps Carto's dark basemap for its light one, keeping the camera and the
+pins. The crowd on the globe page is drawn black on white — inverted in dark mode, shown as
+drawn in light.
+
 ## One URL for the bundle
 
 The layout used to load the entry script with `asp-append-version`, which appends `?v=hash`.

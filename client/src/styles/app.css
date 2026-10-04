@@ -30,6 +30,35 @@
   --radius-card: 10px;
 }
 
+/* ---- Light theme ------------------------------------------------------------------
+   The same roles, lighter values. Because every component names a role rather than a colour,
+   this block is the whole light theme — nothing else in the codebase had to change for it.
+
+   The green is darker here than in the dark theme: #00E676 on white is too faint to read as
+   text. #007A42 clears 4.5:1 both as text on a white page and under white button text.
+   ------------------------------------------------------------------------------------ */
+:root[data-theme="light"] {
+  --color-surface: #F5F7F5;
+  --color-surface-raised: #FFFFFF;
+  --color-line: #DCE3DD;
+  --color-accent: #007A42;
+  --color-accent-bright: #00A85A;
+  --color-accent-dim: #16804B;
+  --color-ink: #0B120D;
+  --color-ink-mute: #56645A;
+
+  --color-good: #0A7A43;
+  --color-good-bg: #DDF5E7;
+  --color-warn: #8A6100;
+  --color-warn-bg: #FBEFCF;
+  --color-bad: #B42318;
+  --color-bad-bg: #FDE3E0;
+}
+
+/* The crowd on the globe page is drawn black on white. Dark theme turns it into pale lines
+   on the dark ground; light theme shows it as drawn. */
+:root[data-theme="dark"] .rr-crowd-art { filter: invert(1); }
+
 @layer base {
   #root {
     color: var(--color-ink);

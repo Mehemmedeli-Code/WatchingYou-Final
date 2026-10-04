@@ -15,6 +15,25 @@
   --display: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Mirror of the light block in app.css — the header and the body must switch together. */
+:root[data-theme="light"] {
+  --surface:        #F5F7F5;
+  --surface-raised: #FFFFFF;
+  --line:           #DCE3DD;
+  --accent:         #007A42;
+  --accent-bright:  #00A85A;
+  --accent-dim:     #16804B;
+  --ink:            #0B120D;
+  --ink-mute:       #56645A;
+}
+
+/* The moving background is a dark silk field; behind a light page it reads as a stain.
+   Light theme is flat and quiet instead. */
+:root[data-theme="light"] .rr-shader { display: none; }
+
+/* Reserve the switcher's width before its script loads, so the header does not jump. */
+.rr-theme { display: inline-flex; min-width: 66px; height: 32px; }
+
 * { box-sizing: border-box; }
 
 html.rr { background: var(--surface); }

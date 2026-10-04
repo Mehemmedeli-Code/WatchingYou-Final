@@ -12,6 +12,7 @@ import { Map as MapLibreMap, Marker, NavigationControl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
+import { getTheme, useTheme } from "@/lib/theme";
 
 /**
  * A MapLibre map with React markers, adapted from the mapcn "marker label" component.
@@ -40,6 +41,8 @@ function useMapContext() {
 }
 
 const DARK_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+const LIGHT_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+const styleFor = (theme: "light" | "dark") => (theme === "light" ? LIGHT_STYLE : DARK_STYLE);
 
 export function VenueMap({
   center,
@@ -69,7 +72,7 @@ export function VenueMap({
     try {
       instance = new MapLibreMap({
         container: containerRef.current,
-        style: DARK_STYLE,
+        style: styleFor(getTheme()),
         center,
         zoom,
         renderWorldCopies: false,
@@ -109,6 +112,17 @@ export function VenueMap({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Swapping the style keeps the camera and the markers; only the tiles repaint. Only on a
+  // real change: re-applying the style the map was just built with would reload every tile
+  // while it is still on its first load.
+  const [theme] = useTheme();
+  const appliedTheme = useRef(getTheme());
+  useEffect(() => {
+    if (!map || theme === appliedTheme.current) return;
+    appliedTheme.current = theme;
+    map.setStyle(styleFor(theme));
+  }, [map, theme]);
 
   const value = useMemo(() => ({ map }), [map]);
 

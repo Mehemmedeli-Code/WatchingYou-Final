@@ -393,5 +393,8 @@
   "reports.showHandled": "Показать обработанные",
   "home.carousel": "Избранные фильмы",
   "movie.min": "мин",
-  "globe.meet": "Знакомьтесь на WatchingYou"
+  "globe.meet": "Знакомьтесь на WatchingYou",
+  "theme.label": "Тема",
+  "theme.light": "Светлая тема",
+  "theme.dark": "Тёмная тема"
 }

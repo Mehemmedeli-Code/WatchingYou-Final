@@ -393,5 +393,8 @@
   "reports.showHandled": "İşlenenleri göster",
   "home.carousel": "Öne çıkan filmler",
   "movie.min": "dk",
-  "globe.meet": "WatchingYou'da tanışın"
+  "globe.meet": "WatchingYou'da tanışın",
+  "theme.label": "Tema",
+  "theme.light": "Açık tema",
+  "theme.dark": "Koyu tema"
 }
