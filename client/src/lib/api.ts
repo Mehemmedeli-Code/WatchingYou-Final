@@ -77,11 +77,32 @@ let accessToken: string | null = null;
 let currentUser: UserProfile | null = null;
 const listeners = new Set<(user: UserProfile | null) => void>();
 
+/** Seconds until a JWT's exp claim, or 0 when it cannot be read. */
+function secondsLeft(token: string): number {
+  try {
+    const payload = token.split(".")[1];
+    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/"))) as { exp?: number };
+    return json.exp ? json.exp - Date.now() / 1000 : 0;
+  } catch {
+    return 0;
+  }
+}
+
 function announce() {
   for (const listener of listeners) listener(currentUser);
 }
 
 export const auth = {
+  /** For the real-time connection, which cannot send headers on a WebSocket upgrade. */
+  get accessToken() {
+    return accessToken;
+  },
+  /** A token good for at least another minute, refreshing first when it is not. A socket
+   *  reconnecting an hour after the page loaded would otherwise present an expired one. */
+  async ensureToken(): Promise<string | null> {
+    if (!accessToken || secondsLeft(accessToken) < 60) await tryRefresh();
+    return accessToken;
+  },
   get user() {
     return currentUser;
   },
@@ -185,6 +206,26 @@ export const del = <T,>(path: string) => api<T>(path, { method: "DELETE" });
 
 export const postForm = <T,>(path: string, form: FormData) =>
   api<T>(path, { method: "POST", body: form });
+
+/** Downloads an authenticated file (a PDF ticket, a CSV export) and hands it to the browser
+ *  as a save. A plain link cannot carry the bearer token, so the bytes are fetched first. */
+export async function download(path: string, fallbackName: string): Promise<void> {
+  const response = await send(path, { method: "GET" }, true);
+  if (!response.ok) throw await parseError(response);
+
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+  const name = match ? decodeURIComponent(match[1]) : fallbackName;
+
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
 
 /** Restores a session on page load. Every Razor page is a fresh document, so this runs often. */
 export async function restoreSession(): Promise<UserProfile | null> {

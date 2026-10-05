@@ -6,6 +6,10 @@ public enum PaymentStatus { AwaitingCode = 1, Confirmed = 2, Expired = 3, Cancel
 
 public enum CardBrand { Unknown = 0, Visa = 1, Mastercard = 2 }
 
+/// <summary>How the money was taken. Card is the built-in test checkout with the e-mailed code;
+/// Stripe is Stripe Checkout in test mode, used when a Stripe key is configured.</summary>
+public enum PaymentProvider { Card = 1, Stripe = 2 }
+
 /// <summary>
 /// One checkout. Seats are held from the moment this is created and only become a real
 /// ticket once the code sent by e-mail comes back.
@@ -25,7 +29,23 @@ public sealed class SeatPayment : BaseEntity
     public Guid UserId { get; set; }
     public required string Reference { get; set; }
 
+    /// <summary>What was charged — after the promo code and any points.</summary>
     public decimal Amount { get; set; }
+
+    /// <summary>Seats times price, before any discount.</summary>
+    public decimal Subtotal { get; set; }
+    public string? PromoCode { get; set; }
+    public decimal PromoDiscount { get; set; }
+    public int PointsRedeemed { get; set; }
+    public decimal PointsDiscount { get; set; }
+    /// <summary>Set when the booking is confirmed; taken back again if it is refunded.</summary>
+    public int PointsEarned { get; set; }
+
+    public PaymentProvider Provider { get; set; } = PaymentProvider.Card;
+    /// <summary>Stripe's Checkout Session id, to match the return trip to this booking.</summary>
+    public string? ExternalSessionId { get; set; }
+    /// <summary>Stripe's PaymentIntent id, which a refund has to name.</summary>
+    public string? ExternalPaymentId { get; set; }
     public CardBrand Brand { get; set; }
     public required string Last4 { get; set; }
     public required string CardHolder { get; set; }

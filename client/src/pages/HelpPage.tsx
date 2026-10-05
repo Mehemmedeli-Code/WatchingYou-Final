@@ -8,14 +8,14 @@ import { get, post, ApiError } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import type { ChatThread } from "@/lib/help";
 import { toBubbles } from "@/lib/help";
+import { useRealtime, useRealtimeLive, useTypingIndicator, useTypingSender } from "@/lib/realtime";
 
 /**
  * The customer's side: one window they keep coming back to, the way a bank's chat works.
  *
- * New replies arrive by polling every five seconds. A socket would be tidier, but polling a
- * single small thread is cheap, survives a dropped connection without reconnect logic, and
- * needs nothing added to the host — and nobody notices five seconds in a conversation with a
- * human on the other end.
+ * Replies arrive over the SignalR connection the moment an agent sends them. Polling stays
+ * underneath as a safety net — every four seconds while the socket is down, every thirty
+ * while it is up — so a dropped connection costs a few seconds, never a message.
  */
 export default function HelpPage() {
   const { isSignedIn, user } = useAuth();
@@ -36,10 +36,19 @@ export default function HelpPage() {
     if (latest !== undefined) setThread(latest);
   }, []);
 
+  const live = useRealtimeLive();
+  const [typing, showTyping] = useTypingIndicator();
+  const sendTyping = useTypingSender("HelpTyping", null);
+
+  useRealtime("help", () => void load());
+  useRealtime<{ fromDesk: boolean; name: string }>("helpTyping", (e) => {
+    if (e.fromDesk) showTyping(e.name || t("help.desk"));
+  });
+
   useEffect(() => {
     if (!isSignedIn) return;
     void load();
-    const timer = setInterval(() => void load(), 4000);
+    const timer = setInterval(() => void load(), live ? 30000 : 4000);
 
     // Coming back to the tab should show the answer immediately rather than after the next tick.
     const onFocus = () => void load();
@@ -49,7 +58,7 @@ export default function HelpPage() {
       clearInterval(timer);
       window.removeEventListener("focus", onFocus);
     };
-  }, [isSignedIn, load]);
+  }, [isSignedIn, load, live]);
 
   async function send(text: string) {
     sending.current = true;
@@ -110,6 +119,9 @@ export default function HelpPage() {
           title={t("help.title")}
           subtitle={user?.email ?? ""}
           placeholder={t("help.placeholder")}
+          live={live}
+          otherTyping={typing}
+          onTyping={sendTyping}
         />
 
         {/* Said plainly, because the worry is reasonable: people are used to being asked for

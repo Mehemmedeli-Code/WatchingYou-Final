@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { CreditCard, Ticket } from "lucide-react";
+import { CreditCard, Download, ExternalLink, Sparkles, Ticket } from "lucide-react";
 import { Panel, Notice } from "@/components/Shell";
 import { RefundPanel } from "@/components/RefundPanel";
 import { Button } from "@/components/ui/button";
 import { Input, Field } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { post, ApiError } from "@/lib/api";
+import { download, post, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
 import { t, formatWhen, languageName } from "@/lib/i18n";
 
@@ -19,6 +19,32 @@ export interface CheckoutStarted {
   brand: string;
   last4: string;
   maskedEmail: string;
+  expiresAtUtc: string;
+  subtotal?: number;
+  promoDiscount?: number;
+  pointsRedeemed?: number;
+  pointsDiscount?: number;
+}
+
+/** The server's price for the basket as it stands — the same arithmetic the checkout uses. */
+export interface CheckoutQuote {
+  subtotal: number;
+  promoDiscount: number;
+  promoMessage?: string | null;
+  promoApplied: boolean;
+  pointsBalance: number;
+  pointsUsed: number;
+  pointsDiscount: number;
+  total: number;
+  pointsEarned: number;
+  stripeEnabled: boolean;
+}
+
+interface StripeCheckoutStarted {
+  paymentId: string;
+  reference: string;
+  amount: number;
+  url: string;
   expiresAtUtc: string;
 }
 
@@ -128,7 +154,27 @@ export function BookingFlow({
   const [holder, setHolder] = useState("");
   const [code, setCode] = useState("");
 
-  const total = seatPrice * seats.length;
+  // Discounts. The typed code only counts once "Apply" is pressed, so the price does not
+  // jump about with every keystroke.
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState("");
+  const [usePoints, setUsePoints] = useState(false);
+  const [quote, setQuote] = useState<CheckoutQuote | null>(null);
+
+  const total = quote?.total ?? seatPrice * seats.length;
+
+  useEffect(() => {
+    if (step !== "payment") return;
+    let cancelled = false;
+    post<CheckoutQuote>(`/api/screenings/${screeningId}/quote`, {
+      seats: seats.length, promoCode: promo || null, usePoints,
+    })
+      .then((q) => { if (!cancelled) setQuote(q); })
+      .catch(() => { if (!cancelled) setQuote(null); });
+    return () => { cancelled = true; };
+  }, [screeningId, seats.length, promo, usePoints, step]);
+
+  const promoRejected = !!promo && !!quote && !quote.promoApplied;
 
   const digits = number.replace(/\D/g, "");
   const brand = brandFor(digits);
@@ -180,6 +226,8 @@ export function BookingFlow({
           cvc,
           holderName: holder,
         },
+        promoCode: promo || null,
+        usePoints,
       });
       // Cleared the moment they are no longer needed.
       setNumber(""); setCvc(""); setExpiry("");
@@ -189,6 +237,22 @@ export function BookingFlow({
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("error.booking"));
     } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Stripe hosts the card form; this page only holds the seats and sends the browser there.
+   *  CinemaPage picks the booking up again when Stripe sends the browser back. */
+  async function payWithStripe() {
+    setBusy(true);
+    setError(null);
+    try {
+      const started = await post<StripeCheckoutStarted>(`/api/screenings/${screeningId}/checkout/stripe`, {
+        seats, promoCode: promo || null, usePoints,
+      });
+      window.location.href = started.url;
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("error.booking"));
       setBusy(false);
     }
   }
@@ -262,6 +326,48 @@ export function BookingFlow({
         <Badge tone="good">{t("book.total")}: {formatMoney(total)}</Badge>
       </div>
 
+      {/* Discounts: a promo code and loyalty points, priced by the server as they change. */}
+      <div className="mt-5 max-w-md rounded-xl border border-line p-4">
+        <div className="flex gap-2">
+          <Input
+            value={promoInput}
+            onChange={(e) => setPromoInput(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 32))}
+            placeholder={t("promo.placeholder", "Promo code")}
+            aria-label={t("promo.placeholder", "Promo code")}
+          />
+          {promo ? (
+            <Button variant="outline" onClick={() => { setPromo(""); setPromoInput(""); }}>{t("promo.remove", "Remove")}</Button>
+          ) : (
+            <Button variant="outline" disabled={!promoInput} onClick={() => setPromo(promoInput)}>{t("promo.apply", "Apply")}</Button>
+          )}
+        </div>
+        {promoRejected && quote?.promoMessage ? <p className="mt-2 text-xs text-bad">{quote.promoMessage}</p> : null}
+
+        {quote && quote.pointsBalance > 0 ? (
+          <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-ink">
+            <input type="checkbox" checked={usePoints} onChange={(e) => setUsePoints(e.target.checked)} className="accent-[var(--color-accent)]" />
+            <Sparkles size={14} className="text-accent" aria-hidden />
+            {t("loyalty.use", "Use my points")} ({quote.pointsBalance})
+          </label>
+        ) : null}
+
+        {quote ? (
+          <dl className="mt-3 space-y-1 border-t border-line pt-3 text-sm">
+            <div className="flex justify-between text-ink-mute"><dt>{t("price.subtotal", "Subtotal")}</dt><dd>{formatMoney(quote.subtotal)}</dd></div>
+            {quote.promoDiscount > 0 ? (
+              <div className="flex justify-between text-good"><dt>{t("price.promo", "Promo code")} {promo}</dt><dd>−{formatMoney(quote.promoDiscount)}</dd></div>
+            ) : null}
+            {quote.pointsDiscount > 0 ? (
+              <div className="flex justify-between text-good"><dt>{quote.pointsUsed} {t("price.points", "points")}</dt><dd>−{formatMoney(quote.pointsDiscount)}</dd></div>
+            ) : null}
+            <div className="flex justify-between font-medium text-ink"><dt>{t("book.total")}</dt><dd>{formatMoney(quote.total)}</dd></div>
+            {quote.pointsEarned > 0 ? (
+              <p className="pt-1 text-xs text-ink-mute">{t("loyalty.earns", "You will earn")} {quote.pointsEarned} {t("price.points", "points")}</p>
+            ) : null}
+          </dl>
+        ) : null}
+      </div>
+
       <div className="mt-5 grid max-w-md gap-3">
         <Field label={t("book.cardNumber")} hint={numberHint}>
           <div className="relative">
@@ -314,12 +420,22 @@ export function BookingFlow({
       {error ? <div className="mt-3"><Notice tone="error">{error}</Notice></div> : null}
       <div className="mt-3"><Notice tone="info">{t("book.simulated")}</Notice></div>
 
-      <div className="mt-4 flex gap-2">
-        <Button disabled={busy || !canPay} onClick={pay}>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button disabled={busy || !canPay || promoRejected} onClick={pay}>
           {busy ? t("book.paying") : `${t("book.pay")} ${formatMoney(total)}`}
         </Button>
         <Button variant="outline" onClick={abandon}>{t("book.back")}</Button>
       </div>
+
+      {quote?.stripeEnabled ? (
+        <div className="mt-5 max-w-md border-t border-line pt-4">
+          <p className="mb-2 text-xs text-ink-mute">{t("stripe.or", "Or pay on Stripe's secure page — the card never touches this site.")}</p>
+          <Button variant="outline" disabled={busy || promoRejected} onClick={payWithStripe}>
+            <ExternalLink size={14} aria-hidden />
+            {t("stripe.pay", "Pay with Stripe")} · {formatMoney(total)}
+          </Button>
+        </div>
+      ) : null}
     </Panel>
   );
 }
@@ -334,6 +450,7 @@ export function TicketCard({
   onRefunded?: () => void;
 }) {
   const [codes, setCodes] = useState<Record<string, string>>({});
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     // One code per seat, rendered locally: the payloads are short, and generating them here
@@ -380,7 +497,9 @@ export function TicketCard({
           </div>
           <div className="flex gap-2">
             <dt className="text-ink-mute">{t("book.total")}:</dt>
-            <dd className="text-ink">{formatMoney(ticket.amount)} · {ticket.brand} ···· {ticket.last4}</dd>
+            <dd className="text-ink">
+              {formatMoney(ticket.amount)} · {ticket.last4 ? `${ticket.brand} ···· ${ticket.last4}` : "Stripe"}
+            </dd>
           </div>
         </dl>
       </div>
@@ -404,6 +523,24 @@ export function TicketCard({
       </div>
 
       <p className="mt-3 text-xs text-ink-mute">{t("book.showQr")}</p>
+
+      <Button
+        className="mt-3"
+        size="sm"
+        variant="outline"
+        disabled={downloading}
+        onClick={async () => {
+          setDownloading(true);
+          try {
+            await download(`/api/bookings/${ticket.paymentId}/ticket.pdf`, `WatchingYou-${ticket.reference}.pdf`);
+          } finally {
+            setDownloading(false);
+          }
+        }}
+      >
+        <Download size={14} aria-hidden />
+        {downloading ? t("common.loading") : t("ticket.pdf", "Download PDF ticket")}
+      </Button>
 
       <RefundPanel paymentId={ticket.paymentId} onRefunded={onRefunded} />
 

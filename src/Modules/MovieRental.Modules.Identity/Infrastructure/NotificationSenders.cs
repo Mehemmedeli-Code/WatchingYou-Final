@@ -40,6 +40,8 @@ public sealed class ConsoleEmailSender(ILogger<ConsoleEmailSender> logger) : IEm
     {
         logger.LogWarning("E-MAIL to {To} | {Subject}\n{Body}", request.To, request.Subject,
             request.PlainTextBody ?? request.HtmlBody);
+        foreach (var file in request.Attachments ?? [])
+            logger.LogWarning("  attachment: {Name} ({Type}, {Size:N0} bytes)", file.FileName, file.ContentType, file.Content.Length);
         return Task.CompletedTask;
     }
 }
@@ -71,6 +73,9 @@ public sealed class SmtpEmailSender(IOptions<EmailOptions> options, ILogger<Smtp
             IsBodyHtml = true
         };
         message.To.Add(request.To);
+
+        foreach (var file in request.Attachments ?? [])
+            message.Attachments.Add(new Attachment(new MemoryStream(file.Content), file.FileName, file.ContentType));
 
         using var client = new SmtpClient(_options.Host, _options.Port)
         {

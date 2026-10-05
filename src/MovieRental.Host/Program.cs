@@ -86,6 +86,7 @@ builder.Services
     .AddPolicyScheme(SmartScheme, SmartScheme, options =>
         options.ForwardDefaultSelector = context =>
             context.Request.Headers.Authorization.ToString().StartsWith("Bearer ", StringComparison.Ordinal)
+            || IsHubTokenRequest(context.Request)
                 ? JwtBearerDefaults.AuthenticationScheme
                 : CookieAuthenticationDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -101,6 +102,19 @@ builder.Services
             IssuerSigningKey = TokenService.SigningKey(jwt.SecretKey),
             // Default is five minutes of slack, which quietly extends every token's life.
             ClockSkew = TimeSpan.FromSeconds(30)
+        };
+
+        // A browser cannot set headers on a WebSocket upgrade, so SignalR sends the token as
+        // ?access_token=. It is read only on the hub path: accepting tokens from the query
+        // string everywhere would put them in every server log and browser history entry.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (IsHubTokenRequest(context.Request))
+                    context.Token = context.Request.Query["access_token"];
+                return Task.CompletedTask;
+            }
         };
     })
     .AddCookie(options =>
@@ -118,6 +132,9 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(AppRoles.Admin, policy => policy.RequireRole(AppRoles.Admin))
     .AddPolicy(AppPolicies.SecurityDesk, policy => policy.RequireRole(AppRoles.Security, AppRoles.Admin))
     .AddPolicy(AppRoles.Customer, policy => policy.RequireAuthenticatedUser());
+
+static bool IsHubTokenRequest(HttpRequest request) =>
+    request.Path.StartsWithSegments("/hubs") && !string.IsNullOrEmpty(request.Query["access_token"]);
 
 // ---------------------------------------------------------------------------
 // Rate limiting
@@ -163,6 +180,7 @@ builder.Services.AddRateLimiter(options =>
 // ---------------------------------------------------------------------------
 // Presentation
 // ---------------------------------------------------------------------------
+builder.Services.AddPublicApiCaching();
 builder.Services.AddRazorPages();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -221,8 +239,13 @@ app.UseWhen(
     context => !context.Request.Path.StartsWithSegments("/api"),
     branch => branch.UseStatusCodePagesWithReExecute("/error/{0}"));
 
+// The web-app manifest is served with its proper type, which install prompts check for.
+var staticTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+staticTypes.Mappings[".webmanifest"] = "application/manifest+json";
+
 app.UseStaticFiles(new StaticFileOptions
 {
+    ContentTypeProvider = staticTypes,
     // The bundle is served without a version query (see _Layout.cshtml), so the browser is
     // told to revalidate it on every load. With an ETag that is a 304 and no download when
     // nothing changed, and the new build the moment something did.
@@ -230,11 +253,21 @@ app.UseStaticFiles(new StaticFileOptions
     {
         if (context.Context.Request.Path.StartsWithSegments("/app"))
             context.Context.Response.Headers.CacheControl = "no-cache";
+
+        // The service worker must always be checked for updates, or a fix to it could take a
+        // day to reach people who already have the old one.
+        if (context.Context.Request.Path.Equals("/sw.js"))
+        {
+            context.Context.Response.Headers.CacheControl = "no-cache";
+            context.Context.Response.Headers["Service-Worker-Allowed"] = "/";
+        }
     }
 });
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
+app.UseOutputCache();
+app.EvictOnWrite();
 
 ApiReference.Map(app);
 

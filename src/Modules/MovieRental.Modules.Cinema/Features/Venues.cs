@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Cinema.Persistence;
 using MovieRental.SharedKernel.Cqrs;
+using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Cinema.Features;
 
@@ -61,13 +63,13 @@ public static class VenueEndpoints
     {
         app.MapGet("/api/venues", async (IDispatcher dispatcher, CancellationToken ct) =>
                 Results.Ok(await dispatcher.Ask(new GetVenuesQuery(), ct)))
-            .WithName("GetVenues").WithTags("Cinema").AllowAnonymous();
+            .WithName("GetVenues").WithTags("Cinema").AllowAnonymous().CacheOutput(AppPolicies.VenueCache);
 
         app.MapGet("/api/halls/{id:guid}", async (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var hall = await dispatcher.Ask(new GetHallQuery(id), ct);
                 return hall is null ? Results.NotFound() : Results.Ok(hall);
             })
-            .WithName("GetHallGeometryWithId").WithTags("Cinema").AllowAnonymous();
+            .WithName("GetHallGeometryWithId").WithTags("Cinema").AllowAnonymous().CacheOutput(AppPolicies.VenueCache);
     }
 }

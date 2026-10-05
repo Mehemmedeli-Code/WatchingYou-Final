@@ -150,19 +150,23 @@ honest contract, and it is paid knowingly.
 locking the page scroll. Two dialogs keep their own because they are genuinely different — the
 film dialog animates in, and the 3D hall preview is full-screen with no backdrop to click.
 
-## Extracting over an old copy
+## Nothing is ever deleted
 
-A zip overwrites what changed but leaves behind what was **deleted**. A stale `.cs` file still
-compiles into the project and fails against code that has moved on — that is where `CS0101`
-(duplicate definition) and `CS0117` (missing member) come from after an update.
+The repository keeps every file it has ever had. New code arrives as additions and
+modifications only; a problem is fixed with a file, never by removing one.
 
-Delete the folder before extracting. When that is inconvenient:
+When a file must stop taking part in the build — because its classes moved elsewhere and
+compiling both would declare them twice — it stays where it is and is excluded from its project:
 
-```powershell
-.\scripts\clean-stale.ps1
+```xml
+<Compile Remove="Infrastructure\ConsoleSenders.cs" />
 ```
 
-It removes the files this version no longer has, clears `bin` and `obj`, and says what it did.
+That is how `ConsoleSenders.cs` lives on in the Identity module. `scripts/clean-stale.ps1`
+lists files the current version no longer uses and deletes none of them.
+
+Module branches are brought up to date with `git checkout development -- <module path>`, which
+adds and updates files but never removes them, rather than `git restore`, which would.
 
 ## When LocalDB is rebuilt
 
@@ -211,7 +215,18 @@ Repeat per context: `IdentityDbContext`, `CatalogDbContext`, `RentalsDbContext`,
 | Security review pipeline | `Modules.Media/Features/SecurityReview.cs`, `Domain/SecurityReport.cs` |
 | Admin decision and verdict e-mail | `Modules.Media/Features/ReviewShortFilm.cs` |
 | Four-language interface | `Host/Infrastructure/Localization/`, `Host/locales/*.json` |
-| Dashboard analytics | `Modules.{Catalog,Rentals}/Infrastructure/*Analytics.cs` |
+| Dashboard analytics | `Modules.{Catalog,Rentals,Cinema}/Infrastructure/*Analytics.cs`, `Host/Infrastructure/AnalyticsEndpoints.cs` |
+| Watchlist ("watch later") | `Modules.Catalog/Features/Watchlist.cs`, `Domain/WatchlistItem.cs`, `client/src/lib/watchlist.ts` |
+| Recommendations | `Modules.Catalog/Features/Recommendations.cs`, `Domain/RecommendationEngine.cs` |
+| Real-time chat (SignalR) | `Modules.Identity/Infrastructure/ChatHub.cs`, `client/src/lib/realtime.ts` |
+| Messages inbox, live pop-ups | `client/src/components/{MessagesInbox,LiveNotifications}.tsx` |
+| Promo codes | `Modules.Cinema/Domain/PromoCode.cs` (`Pricing`), `Features/Payments.cs` |
+| Loyalty points | `Modules.Cinema/Domain/LoyaltyEntry.cs`, `Infrastructure/BookingFinalizer.cs` |
+| Stripe Checkout (test mode) | `Modules.Cinema/Infrastructure/StripeGateway.cs`, `Features/Payments.cs` |
+| PDF ticket, e-mailed on confirm | `Modules.Cinema/Infrastructure/{TicketPdf,QrCode}.cs` |
+| Bulk scheduling, CSV exports | `Modules.Cinema/Features/AdminTools.cs`, `Modules.Rentals/Features/ExportRentals.cs`, `SharedKernel/Documents/Csv.cs` |
+| Output caching | `Host/Infrastructure/OutputCaching.cs` |
+| Installable app (PWA) | `Host/wwwroot/{manifest.webmanifest,sw.js,offline.html}`, `client/src/lib/offlineTickets.ts` |
 
 ## Roles
 
@@ -406,6 +421,10 @@ dotnet test --filter Category!=Integration   # unit tests only, no database need
 | `SlugFactoryTests` | Azerbaijani diacritics fold to ASCII, punctuation collapses, the year keeps remakes apart |
 | `ValidationBehaviorTests` | An invalid message never reaches its handler, and every failure is reported at once |
 | `SeatConcurrencyTests` | Two simultaneous checkouts for one seat: exactly one wins |
+| `PricingTests` | Promo codes (percent, fixed, every rejection reason), the half-price cap on points, points earned on what was paid, money rounded half away from zero |
+| `RecommendationEngineTests` | A liked genre beats a better-reviewed film elsewhere, seen films never come back, no history falls back to quality order |
+| `TicketDocumentTests` | QR version choice and finder patterns, one PDF page per seat, text escaping, CSV formula injection and the Excel byte-order mark |
+| `BulkScheduleTests` | Baku time to UTC, weekday filters, duplicate times counted once |
 
 `SeatConcurrencyTests` needs LocalDB and creates a throwaway database per run. It has to hit
 real SQL Server, because the guarantee under test *is* the filtered unique index — an
@@ -414,6 +433,56 @@ is on the database row count, not on what the handler returned.
 
 The rest run anywhere, in well under a second, because the logic they cover was written as
 pure functions with no clock and no database of their own.
+
+## New in this version
+
+**Watchlist.** A heart on every film card. The list lives on the account page; renting a film
+takes it off. `PUT/DELETE /api/watchlist/{movieId}`.
+
+**Recommendations.** "Picked for you" on the home page, scored from what you rented, saved and
+reviewed (rented 3, saved 2, a 4–5★ review +2, a 1–2★ review −2 per genre; then 60% genre,
+30% rating, 10% review count). With no history it says so and shows the best-reviewed films.
+
+**Real-time chat.** Direct messages and the Help desk push over SignalR (`/hubs/chat`): a new
+message reloads the thread at once, "is typing…" shows under the last message, and a pop-up
+appears on any page. Sending still goes through the HTTP endpoints, so a dropped socket only
+means the old polling takes over. The account page now lists every conversation with unread
+counts — before, a reply could only be found by reopening the sender's globe card.
+
+**Promo codes and loyalty points.** Admins create codes (percent or fixed, minimum spend,
+end date, use limit) under *Promo codes*. Customers type one at checkout and see the price
+change before they pay. Every manat paid earns a point; 20 points take 1 manat off, up to half
+a booking. Refunds give spent points back and take earned ones away. Demo codes seeded in
+development: `WELCOME10` (10%) and `KINO5` (5 AZN off 15+).
+
+**Stripe (optional).** With a test secret key the checkout also offers *Pay with Stripe*:
+
+```bash
+cd src/MovieRental.Host
+dotnet user-secrets set "Payments:Stripe:SecretKey" "sk_test_..."
+```
+
+Stripe hosts the card form; on return the server asks Stripe whether the session was paid and
+only then confirms the seats. Refunds of Stripe bookings go back through Stripe. Test card
+`4242 4242 4242 4242`, any future date, any CVC. Without a key nothing changes.
+
+**PDF tickets.** Confirming a booking e-mails a PDF — one page per seat, each with its own QR
+code — and every ticket has a *Download PDF* button. The QR encoder and the PDF writer are
+small hand-written files with no package behind them.
+
+**Admin.** Ticket revenue per day, how full the next screenings are and best-selling films sit
+next to the rental charts. *Schedule a run* creates a week of screenings in one go and skips
+anything that clashes with the hall. Bookings and rentals export as CSV (safe to open in Excel).
+
+**Catalogue.** Numbered pages, year range and minimum rating filters, and the filters live in the
+address bar so a filtered catalogue can be bookmarked. `includeDeleted` is now admin-only.
+
+**Speed.** The catalogue, schedule and cinemas are cached on the server (60 s / 15 s / 5 min)
+and dropped the moment a write could change them.
+
+**Installable.** The site has a manifest and a service worker: it can be added to a phone's
+home screen, opens offline, and upcoming tickets (with their QR codes) stay visible on the
+Cinema page without a connection. Signing out clears them.
 
 ## Help service
 

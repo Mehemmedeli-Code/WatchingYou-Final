@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { Download, X } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Section, Panel, Notice, Empty, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,9 @@ import { Input, Field, Textarea, Select } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { VectorBarChart, type ChartSeries } from "@/components/VectorChart";
 import { useAuth } from "@/components/useAuth";
-import { get, post, put, patch, del, query, ApiError, type Paged } from "@/lib/api";
+import { get, post, put, patch, del, query, download, ApiError, type Paged } from "@/lib/api";
+import { BulkScheduleForm } from "@/components/admin/BulkScheduleForm";
+import { PromoAdmin } from "@/components/admin/PromoAdmin";
 import { formatDate, formatMoney } from "@/lib/format";
 import { t, languageName } from "@/lib/i18n";
 import { VideoPlayer } from "@/components/VideoPlayer";
@@ -16,6 +18,13 @@ import { AuditTrail } from "@/components/AuditTrail";
 import { statusTone, type ShortFilmDetail } from "@/lib/shorts";
 import type { MovieListItem } from "@/components/MovieCard";
 import type { MovieDetail } from "@/components/MovieDialog";
+
+interface CinemaTotals {
+  revenueThisMonth: number;
+  ticketsThisMonth: number;
+  upcomingScreenings: number;
+  activePromoCodes: number;
+}
 
 interface RentalStats {
   activeCount: number;
@@ -79,6 +88,7 @@ const BLANK = {
 export default function AdminPage() {
   const { isAdmin, isSignedIn } = useAuth();
   const [stats, setStats] = useState<RentalStats | null>(null);
+  const [cinemaTotals, setCinemaTotals] = useState<CinemaTotals | null>(null);
   const [charts, setCharts] = useState<ChartSeries[]>([]);
   const [movies, setMovies] = useState<Paged<MovieListItem> | null>(null);
   const [shorts, setShorts] = useState<ShortFilmDetail[]>([]);
@@ -105,6 +115,7 @@ export default function AdminPage() {
         get<Venue[]>("/api/venues"),
         get<OverdueRental[]>("/api/admin/rentals/overdue").catch(() => []),
       ]);
+      setCinemaTotals(await get<CinemaTotals>("/api/admin/analytics/cinema-totals").catch(() => null));
       setStats(statsData);
       setCharts(chartData);
       setMovies(movieData);
@@ -146,18 +157,46 @@ export default function AdminPage() {
 
   return (
     <>
-      <Section title={t("admin.whereTitle")} lede={t("admin.whereLede")}>
+      <Section
+        title={t("admin.whereTitle")}
+        lede={t("admin.whereLede")}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => run(() => download("/api/admin/export/bookings.csv", "watchingyou-bookings.csv"), t("export.done", "Download started."))}
+            >
+              <Download size={14} aria-hidden />
+              {t("export.bookings", "Bookings CSV")}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => run(() => download("/api/admin/export/rentals.csv", "watchingyou-rentals.csv"), t("export.done", "Download started."))}
+            >
+              <Download size={14} aria-hidden />
+              {t("export.rentals", "Rentals CSV")}
+            </Button>
+          </div>
+        }
+      >
         {loading ? <Spinner label={t("common.loading")} /> : null}
         {message ? <div className="mb-4"><Notice tone={message.tone}>{message.text}</Notice></div> : null}
 
         {stats ? (
-          <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { label: t("admin.tile.active"), value: String(stats.activeCount) },
               { label: t("admin.tile.overdue"), value: String(stats.overdueCount) },
               { label: t("admin.tile.returned"), value: String(stats.returnedCount) },
               { label: t("admin.tile.lateFees"), value: formatMoney(stats.outstandingLateFees) },
               { label: t("admin.tile.revenue"), value: formatMoney(stats.revenueThisMonth) },
+              ...(cinemaTotals ? [
+                { label: t("admin.tile.ticketRevenue", "Ticket revenue this month"), value: formatMoney(cinemaTotals.revenueThisMonth) },
+                { label: t("admin.tile.tickets", "Tickets sold this month"), value: String(cinemaTotals.ticketsThisMonth) },
+                { label: t("admin.tile.upcoming", "Upcoming screenings"), value: String(cinemaTotals.upcomingScreenings) },
+              ] : []),
             ].map((tile) => (
               <Panel key={tile.label} className="py-4">
                 <p className="font-display text-2xl text-accent">{tile.value}</p>
@@ -393,12 +432,19 @@ export default function AdminPage() {
             </table>
           </div>
 
-          <NewScreeningForm
-            movies={movies?.items ?? []}
-            venues={venues}
-            onSaved={() => run(async () => undefined, "Screening scheduled.")}
-          />
+          <div className="space-y-6">
+            <NewScreeningForm
+              movies={movies?.items ?? []}
+              venues={venues}
+              onSaved={() => run(async () => undefined, "Screening scheduled.")}
+            />
+            <BulkScheduleForm movies={movies?.items ?? []} venues={venues} onSaved={load} />
+          </div>
         </div>
+      </Section>
+
+      <Section title={t("promo.title", "Promo codes")} lede={t("promo.lede", "Discounts for cinema bookings. Each use is counted when a booking is confirmed.")}>
+        <PromoAdmin />
       </Section>
 
     </>

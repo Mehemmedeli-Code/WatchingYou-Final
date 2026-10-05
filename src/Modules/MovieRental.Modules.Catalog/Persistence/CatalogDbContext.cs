@@ -11,6 +11,7 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
 
     public DbSet<Movie> Movies => Set<Movie>();
     public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<WatchlistItem> Watchlist => Set<WatchlistItem>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -47,6 +48,15 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
             e.Property(x => x.Comment).HasMaxLength(2000);
             e.ToTable(t => t.HasCheckConstraint("CK_Review_Stars", "[Stars] BETWEEN 1 AND 5"));
             e.HasIndex(x => new { x.MovieId, x.UserId }).IsUnique().HasFilter("[IsDeleted] = 0");
+        });
+
+        b.Entity<WatchlistItem>(e =>
+        {
+            e.ToTable("WatchlistItems");
+            e.HasKey(x => x.Id);
+            // One entry per customer per film; also the index the "is it saved?" lookup uses.
+            e.HasIndex(x => new { x.UserId, x.MovieId }).IsUnique();
+            e.HasOne(x => x.Movie).WithMany().HasForeignKey(x => x.MovieId).OnDelete(DeleteBehavior.Cascade);
         });
 
         base.OnModelCreating(b);

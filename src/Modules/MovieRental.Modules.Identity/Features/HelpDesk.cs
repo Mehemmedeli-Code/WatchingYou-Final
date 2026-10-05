@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Identity.Domain;
+using MovieRental.Modules.Identity.Infrastructure;
 using MovieRental.Modules.Identity.Persistence;
 using MovieRental.SharedKernel.Cqrs;
 using MovieRental.SharedKernel.Results;
@@ -59,7 +60,7 @@ internal sealed class SendChatMessageValidator : AbstractValidator<SendChatMessa
     public SendChatMessageValidator() => RuleFor(x => x.Body).NotEmpty().MaximumLength(4000);
 }
 
-internal sealed class SendChatMessageHandler(IdentityDbContext db, ICurrentUser currentUser)
+internal sealed class SendChatMessageHandler(IdentityDbContext db, ICurrentUser currentUser, IRealtimeNotifier realtime)
     : ICommandHandler<SendChatMessageCommand, Result<ChatThread>>
 {
     public async Task<Result<ChatThread>> Handle(SendChatMessageCommand command, CancellationToken ct)
@@ -98,6 +99,7 @@ internal sealed class SendChatMessageHandler(IdentityDbContext db, ICurrentUser 
         conversation.LastMessageAtUtc = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
+        await realtime.HelpForDeskAsync(conversation.Id, ct);
         return Result.Success(await HelpMapper.ReadAsync(db, conversation.Id, ct));
     }
 }
@@ -158,7 +160,7 @@ internal sealed class GetChatHandler(IdentityDbContext db) : IQueryHandler<GetCh
 
 public sealed record DeskReplyCommand(Guid ConversationId, string Body) : ICommand<Result<ChatThread>>;
 
-internal sealed class DeskReplyHandler(IdentityDbContext db, ICurrentUser currentUser)
+internal sealed class DeskReplyHandler(IdentityDbContext db, ICurrentUser currentUser, IRealtimeNotifier realtime)
     : ICommandHandler<DeskReplyCommand, Result<ChatThread>>
 {
     public async Task<Result<ChatThread>> Handle(DeskReplyCommand command, CancellationToken ct)
@@ -188,13 +190,17 @@ internal sealed class DeskReplyHandler(IdentityDbContext db, ICurrentUser curren
         conversation.LastMessageAtUtc = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
+        await realtime.HelpForCustomerAsync(conversation.UserId, conversation.Id, ct);
+        // Other agents watching the same inbox see the reply too, so two people do not answer
+        // the same question.
+        await realtime.HelpForDeskAsync(conversation.Id, ct);
         return Result.Success(await HelpMapper.ReadAsync(db, conversation.Id, ct));
     }
 }
 
 public sealed record CloseChatCommand(Guid ConversationId) : ICommand<Result>;
 
-internal sealed class CloseChatHandler(IdentityDbContext db) : ICommandHandler<CloseChatCommand, Result>
+internal sealed class CloseChatHandler(IdentityDbContext db, IRealtimeNotifier realtime) : ICommandHandler<CloseChatCommand, Result>
 {
     public async Task<Result> Handle(CloseChatCommand command, CancellationToken ct)
     {
@@ -205,6 +211,8 @@ internal sealed class CloseChatHandler(IdentityDbContext db) : ICommandHandler<C
 
         conversation.Status = SupportStatus.Closed;
         await db.SaveChangesAsync(ct);
+        await realtime.HelpForCustomerAsync(conversation.UserId, conversation.Id, ct);
+        await realtime.HelpForDeskAsync(conversation.Id, ct);
         return Result.Success();
     }
 }

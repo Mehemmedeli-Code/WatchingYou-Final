@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Cinema.Domain;
+using MovieRental.Modules.Cinema.Infrastructure;
 using MovieRental.Modules.Cinema.Persistence;
 using MovieRental.SharedKernel.Contracts;
 using MovieRental.SharedKernel.Cqrs;
@@ -52,7 +53,7 @@ public sealed record RefundBookingCommand(Guid PaymentId, string? Reason) : ICom
 
 internal sealed class RefundBookingHandler(
     CinemaDbContext db, ICurrentUser currentUser, RefundPolicy policy, IUserDirectory users,
-    IEmailSender email, IAuditLog audit)
+    IEmailSender email, IAuditLog audit, BookingFinalizer finalizer, IStripeGateway stripe)
     : ICommandHandler<RefundBookingCommand, Result<RefundTerms>>
 {
     public async Task<Result<RefundTerms>> Handle(RefundBookingCommand command, CancellationToken ct)
@@ -77,6 +78,22 @@ internal sealed class RefundBookingHandler(
         if (!quote.Allowed)
             return Result.Failure<RefundTerms>(Error.Conflict(Explain(quote, screening)));
 
+        // Money paid through Stripe has to go back through Stripe, and before anything here
+        // changes: if Stripe refuses, the booking must stay exactly as it was.
+        if (payment.Provider == PaymentProvider.Stripe && quote.Refund > 0)
+        {
+            if (string.IsNullOrEmpty(payment.ExternalPaymentId))
+                return Result.Failure<RefundTerms>(Error.Conflict("This Stripe payment has no payment reference; ask the help desk."));
+            try
+            {
+                await stripe.RefundAsync(payment.ExternalPaymentId, quote.Refund, ct);
+            }
+            catch (Exception ex) when (ex is StripeException or HttpRequestException or TaskCanceledException)
+            {
+                return Result.Failure<RefundTerms>(Error.Conflict($"Stripe could not refund the payment: {ex.Message}"));
+            }
+        }
+
         payment.Status = PaymentStatus.Refunded;
         payment.RefundedAtUtc = DateTime.UtcNow;
         payment.RefundedAmount = quote.Refund;
@@ -85,6 +102,7 @@ internal sealed class RefundBookingHandler(
         // Seats go back on sale. Soft-deleted, so the unique index releases them while the
         // booking itself stays on record.
         db.SeatBookings.RemoveRange(payment.Seats);
+        await finalizer.ReverseLoyaltyAsync(payment, ct);
         await db.SaveChangesAsync(ct);
 
         await audit.RecordAsync(new AuditEntry("booking.refunded",
@@ -124,7 +142,7 @@ internal sealed class RefundBookingHandler(
             $"""
              <p>Hi {contact.FullName},</p>
              <p>Your booking for <strong>{screening.MovieTitle}</strong> has been cancelled.</p>
-             <p><strong>{quote.Refund:0.00}</strong> is on its way back to the card ending {payment.Last4}.</p>
+             <p><strong>{quote.Refund:0.00}</strong> is on its way back to {(payment.Provider == PaymentProvider.Stripe ? "the card you paid with through Stripe" : $"the card ending {payment.Last4}")}.</p>
              {feeLine}
              <p>Reference {payment.Reference}. The seats are back on sale.</p>
              """), ct);

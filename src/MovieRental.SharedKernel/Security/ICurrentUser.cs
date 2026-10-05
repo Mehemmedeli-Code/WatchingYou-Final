@@ -31,4 +31,16 @@ public static class AppPolicies
     /// the slices that need them — guessing attacks are aimed at endpoints, not at modules.</summary>
     public const string AuthRateLimit = "auth";
     public const string CodeRateLimit = "codes";
+
+    /// <summary>Output-cache policies for public reads. Named here so modules can mark an
+    /// endpoint cacheable without knowing how the host caches it.</summary>
+    public const string CatalogueCache = "cache-catalogue";
+    public const string CinemaCache = "cache-cinema";
+    public const string VenueCache = "cache-venues";
+}
+
+public static class CacheTags
+{
+    public const string Catalogue = "catalogue";
+    public const string Cinema = "cinema";
 }

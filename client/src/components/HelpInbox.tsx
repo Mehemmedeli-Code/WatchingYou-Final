@@ -7,6 +7,7 @@ import { ChatMessages } from "@/components/ui/chat-messages";
 import { get, post, query } from "@/lib/api";
 import { t, formatWhen } from "@/lib/i18n";
 import { toBubbles, type ChatThread, type InboxRow } from "@/lib/help";
+import { useRealtime, useRealtimeLive, useTypingIndicator, useTypingSender } from "@/lib/realtime";
 
 /**
  * The Security desk's side: who is waiting on the left, the conversation on the right.
@@ -34,20 +35,33 @@ export function HelpInbox() {
     if (latest !== undefined) setThread(latest);
   }, []);
 
-  // The list and the open conversation both refresh on a timer, so an agent sees a new
-  // message arrive without touching anything.
+  const live = useRealtimeLive();
+  const [typing, showTyping] = useTypingIndicator();
+  const sendTyping = useTypingSender("HelpTyping", openId);
+
+  // A customer's message pushes "helpDesk" to the desk group: the list refreshes, and so does
+  // the open conversation when it is the one that changed.
+  useRealtime<{ conversationId: string }>("helpDesk", (e) => {
+    void loadInbox();
+    if (openId && e.conversationId === openId) void loadThread(openId);
+  });
+  useRealtime<{ conversationId: string; fromDesk: boolean; name: string }>("helpTyping", (e) => {
+    if (!e.fromDesk && e.conversationId === openId) showTyping(e.name || thread?.userName || "");
+  });
+
+  // Timers stay as the fallback, much slower while the socket is connected.
   useEffect(() => {
     void loadInbox();
-    const timer = setInterval(() => void loadInbox(), 6000);
+    const timer = setInterval(() => void loadInbox(), live ? 30000 : 6000);
     return () => clearInterval(timer);
-  }, [loadInbox]);
+  }, [loadInbox, live]);
 
   useEffect(() => {
     if (!openId) return;
     void loadThread(openId);
-    const timer = setInterval(() => void loadThread(openId), 5000);
+    const timer = setInterval(() => void loadThread(openId), live ? 30000 : 5000);
     return () => clearInterval(timer);
-  }, [openId, loadThread]);
+  }, [openId, loadThread, live]);
 
   async function reply(text: string) {
     if (!openId) return;
@@ -121,6 +135,9 @@ export function HelpInbox() {
             title={thread.userName}
             subtitle={thread.userEmail}
             placeholder={t("help.placeholder")}
+            live={live}
+            otherTyping={typing}
+            onTyping={sendTyping}
           />
 
           {thread.status !== "Closed" ? (

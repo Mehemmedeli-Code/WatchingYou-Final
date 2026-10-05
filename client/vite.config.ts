@@ -22,6 +22,13 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // The SignalR hub: negotiate over HTTP, then upgrade to a WebSocket.
+      "/hubs": {
+        target: "https://localhost:7139",
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+      },
     },
   },
   build: {

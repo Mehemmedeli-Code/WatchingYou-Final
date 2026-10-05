@@ -14,6 +14,8 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
     public DbSet<SeatPayment> SeatPayments => Set<SeatPayment>();
     public DbSet<Venue> Venues => Set<Venue>();
     public DbSet<Hall> Halls => Set<Hall>();
+    public DbSet<PromoCode> PromoCodes => Set<PromoCode>();
+    public DbSet<LoyaltyEntry> LoyaltyEntries => Set<LoyaltyEntry>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -66,6 +68,13 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
             e.Property(x => x.Salt).HasMaxLength(64).IsRequired();
             e.Property(x => x.Brand).HasConversion<int>();
             e.Property(x => x.Status).HasConversion<int>();
+            e.Property(x => x.Provider).HasConversion<int>();
+            e.Property(x => x.Subtotal).HasPrecision(10, 2);
+            e.Property(x => x.PromoCode).HasMaxLength(32);
+            e.Property(x => x.PromoDiscount).HasPrecision(10, 2);
+            e.Property(x => x.PointsDiscount).HasPrecision(10, 2);
+            e.Property(x => x.ExternalSessionId).HasMaxLength(200);
+            e.Property(x => x.ExternalPaymentId).HasMaxLength(200);
             e.HasIndex(x => x.Reference).IsUnique();
             e.HasIndex(x => new { x.ScreeningId, x.Status, x.ExpiresAtUtc });
 
@@ -100,6 +109,32 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
             e.Property(x => x.Format).HasMaxLength(80);
             // One "A100" per cinema; the same name in another cinema is a different room.
             e.HasIndex(x => new { x.VenueId, x.Name }).IsUnique().HasFilter("[IsDeleted] = 0");
+        });
+
+        b.Entity<PromoCode>(e =>
+        {
+            e.ToTable("PromoCodes");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(200);
+            e.Property(x => x.PercentOff).HasPrecision(5, 2);
+            e.Property(x => x.AmountOff).HasPrecision(10, 2);
+            e.Property(x => x.MinSubtotal).HasPrecision(10, 2);
+            e.HasIndex(x => x.Code).IsUnique();
+            // The redemption counter is bumped with a conditional UPDATE; the check keeps a
+            // hand-edited row from ever claiming more uses than it allows.
+            e.ToTable(t => t.HasCheckConstraint("CK_Promo_Redemptions",
+                "[MaxRedemptions] IS NULL OR [Redemptions] <= [MaxRedemptions]"));
+        });
+
+        b.Entity<LoyaltyEntry>(e =>
+        {
+            e.ToTable("LoyaltyEntries");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Reason).HasConversion<int>();
+            e.Property(x => x.Reference).HasMaxLength(16);
+            e.Property(x => x.Note).HasMaxLength(200);
+            e.HasIndex(x => new { x.UserId, x.CreatedAtUtc });
         });
 
         // Payments follow their screening out of sight.

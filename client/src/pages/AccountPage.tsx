@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input, Field } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/useAuth";
+import { WatchlistShelf } from "@/components/WatchlistShelf";
+import { MessagesInbox } from "@/components/MessagesInbox";
+import { LoyaltyPanel } from "@/components/LoyaltyPanel";
 import { auth, post, put, ApiError, type AuthResponse, type RegistrationResponse, type UserProfile } from "@/lib/api";
 import { t } from "@/lib/i18n";
 
@@ -127,6 +130,7 @@ export default function AccountPage() {
 
   if (isSignedIn && user) {
     return (
+      <>
       <Section title={t("nav.account")}>
         <Panel className="max-w-xl">
           <p className="font-display text-2xl text-ink">{user.fullName}</p>
@@ -222,6 +226,10 @@ export default function AccountPage() {
           </Button>
         </Panel>
       </Section>
+      <LoyaltyPanel />
+      <MessagesInbox />
+      <WatchlistShelf />
+      </>
     );
   }
 

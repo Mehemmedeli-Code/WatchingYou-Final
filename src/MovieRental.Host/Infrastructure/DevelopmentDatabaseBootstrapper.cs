@@ -30,7 +30,7 @@ public static class DevelopmentDatabaseBootstrapper
     /// a schema that is present but out of date — which fails later, at query time, with a
     /// far less obvious error. Production uses real migrations and never reads this.
     /// </summary>
-    private const string SchemaStamp = "2026-09-20-direct-messages";
+    private const string SchemaStamp = "2026-09-26-watchlist-loyalty-promo";
 
     public static async Task InitialiseAsync(IServiceProvider services, CancellationToken ct = default)
     {
@@ -393,6 +393,15 @@ public static class DevelopmentDatabaseBootstrapper
                 }
             }
 
+            await cinema.SaveChangesAsync(ct);
+        }
+
+        // Two codes to try the checkout with. Real ones are made on the admin page.
+        if (!await cinema.PromoCodes.AnyAsync(ct))
+        {
+            cinema.PromoCodes.AddRange(
+                new PromoCode { Code = "WELCOME10", Description = "10% off — demo code", PercentOff = 10m },
+                new PromoCode { Code = "KINO5", Description = "5 AZN off bookings of 15 AZN or more", AmountOff = 5m, MinSubtotal = 15m, MaxRedemptions = 100 });
             await cinema.SaveChangesAsync(ct);
         }
     }

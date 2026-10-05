@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Catalog.Domain;
 using MovieRental.Modules.Catalog.Persistence;
 using MovieRental.SharedKernel.Cqrs;
+using MovieRental.SharedKernel.Security;
 using MovieRental.SharedKernel.Results;
 
 namespace MovieRental.Modules.Catalog.Features;
@@ -89,12 +91,17 @@ public static class GetMoviesEndpoints
     public static void Map(IEndpointRouteBuilder app)
     {
         app.MapGet("/api/movies", async (
-                [AsParameters] MovieFilterRequest filter, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetMoviesQuery(filter), ct)))
-            .WithName("GetMovies").WithTags("Catalog").AllowAnonymous();
+                [AsParameters] MovieFilterRequest filter, IDispatcher dispatcher, ICurrentUser user, CancellationToken ct) =>
+            {
+                // Withdrawn titles are for the admin's restore screen only. The flag used to be
+                // honoured for anyone who added it to the query string.
+                var safe = filter with { IncludeDeleted = filter.IncludeDeleted == true && user.IsInRole(AppRoles.Admin) };
+                return Results.Ok(await dispatcher.Ask(new GetMoviesQuery(safe), ct));
+            })
+            .WithName("GetMovies").WithTags("Catalog").AllowAnonymous().CacheOutput(AppPolicies.CatalogueCache);
 
         app.MapGet("/api/movies/genres", async (IDispatcher dispatcher, CancellationToken ct) =>
                 Results.Ok(await dispatcher.Ask(new GetGenresQuery(), ct)))
-            .WithName("GetGenres").WithTags("Catalog").AllowAnonymous();
+            .WithName("GetGenres").WithTags("Catalog").AllowAnonymous().CacheOutput(AppPolicies.CatalogueCache);
     }
 }

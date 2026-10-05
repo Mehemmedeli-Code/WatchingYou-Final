@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0A0C0A" />
+  <title>Offline · WatchingYou</title>
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0A0C0A; color: #E8F0EA;
+           font: 16px/1.5 Inter, system-ui, sans-serif; padding: 24px; box-sizing: border-box; text-align: center; }
+    img { width: 72px; height: 72px; }
+    h1 { font: 700 24px Poppins, system-ui, sans-serif; margin: 16px 0 8px; }
+    p { color: #9AA89E; max-width: 34ch; margin: 0 auto 20px; }
+    a, button { display: inline-block; border: 1px solid #00E676; color: #00E676; background: none; border-radius: 999px;
+                padding: 10px 20px; font: 500 14px Inter, system-ui, sans-serif; text-decoration: none; cursor: pointer; margin: 4px; }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="/icons/icon.svg" alt="" />
+    <h1>İnternet yoxdur · You're offline</h1>
+    <p>Biletlərin Kino səhifəsində internetsiz də görünür. · Your saved tickets still open on the Cinema page.</p>
+    <a href="/cinema">Kino / Cinema</a>
+    <button onclick="location.reload()">Yenidən yoxla / Retry</button>
+  </main>
+</body>
+</html>

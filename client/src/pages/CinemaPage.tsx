@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { Section, Panel, Notice, Spinner, Empty } from "@/components/Shell";
 import { BookingFlow, TicketCard, type SeatSelection, type TicketResponse, type CheckoutStarted } from "@/components/BookingFlow";
-import { post } from "@/lib/api";
+import { post, ApiError } from "@/lib/api";
 import { HallPreview, type PreviewSeat } from "@/components/HallPreview";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/useAuth";
 import { get } from "@/lib/api";
+import { loadOfflineTickets, saveOfflineTickets } from "@/lib/offlineTickets";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { t, languageName } from "@/lib/i18n";
 
@@ -34,6 +35,8 @@ interface PendingCheckout {
   last4: string;
   seats: SeatSelection[];
   expiresAtUtc: string;
+  /** "Card" or "Stripe". A Stripe hold is finished on Stripe's page, not with a code. */
+  provider?: string;
 }
 
 interface SeatState {
@@ -125,17 +128,65 @@ export default function CinemaPage() {
     }
   }, []);
 
+  const [offlineSince, setOfflineSince] = useState<string | null>(null);
+
   const loadTickets = useCallback(async () => {
-    if (!isSignedIn) { setTickets([]); setPending([]); return; }
+    // No network, so no session either: show the tickets this browser saved last time.
+    if (!isSignedIn) {
+      const saved = !navigator.onLine ? loadOfflineTickets() : null;
+      setTickets(saved?.tickets ?? []);
+      setOfflineSince(saved ? saved.savedAt : null);
+      setPending([]);
+      return;
+    }
     const [mine, unfinished] = await Promise.all([
-      get<TicketResponse[]>("/api/bookings/mine").catch(() => []),
+      get<TicketResponse[] | null>("/api/bookings/mine").catch(() => null),
       get<PendingCheckout[]>("/api/bookings/pending").catch(() => []),
     ]);
-    setTickets(mine);
+    if (mine) {
+      setTickets(mine);
+      saveOfflineTickets(mine);
+      setOfflineSince(null);
+    } else {
+      const saved = loadOfflineTickets();
+      setTickets(saved?.tickets ?? []);
+      setOfflineSince(saved ? saved.savedAt : null);
+    }
     setPending(unfinished);
   }, [isSignedIn]);
 
   useEffect(() => { void loadTickets(); }, [loadTickets]);
+
+  // Back from Stripe. The URL only says which booking it was; whether it was paid is asked
+  // of Stripe by the server, never taken from the address bar.
+  const [stripeTicket, setStripeTicket] = useState<TicketResponse | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const outcome = params.get("stripe");
+    const paymentId = params.get("payment");
+    const sessionId = params.get("session_id");
+    if (!outcome || !paymentId || !isSignedIn) return;
+
+    // Tidy the address first, so a reload does not repeat any of this.
+    params.delete("stripe"); params.delete("payment"); params.delete("session_id");
+    const rest = params.toString();
+    window.history.replaceState(null, "", window.location.pathname + (rest ? `?${rest}` : ""));
+
+    if (outcome === "cancel") {
+      void post(`/api/bookings/${paymentId}/cancel`).catch(() => null).then(() => loadTickets());
+      setMessage({ tone: "info", text: t("stripe.cancelled", "Payment cancelled. The seats are back on sale.") });
+      return;
+    }
+
+    setMessage({ tone: "info", text: t("stripe.checking", "Checking the payment with Stripe…") });
+    post<TicketResponse>(`/api/bookings/${paymentId}/stripe/confirm`, { sessionId })
+      .then((ticket) => {
+        setStripeTicket(ticket);
+        setMessage({ tone: "ok", text: t("stripe.paid", "Paid. Your tickets are below and on their way by e-mail.") });
+        void loadTickets();
+      })
+      .catch((err) => setMessage({ tone: "error", text: err instanceof ApiError ? err.message : t("error.booking") }));
+  }, [isSignedIn, loadTickets]);
 
   useEffect(() => {
     if (activeId) void loadMap(activeId);
@@ -197,9 +248,25 @@ export default function CinemaPage() {
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => { setActiveId(checkout.screeningId); setResuming(checkout); }}>
-                  {t("book.resume")}
-                </Button>
+                {checkout.provider === "Stripe" ? (
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        setStripeTicket(await post<TicketResponse>(`/api/bookings/${checkout.paymentId}/stripe/confirm`, { sessionId: null }));
+                        await loadTickets();
+                      } catch (err) {
+                        setMessage({ tone: "error", text: err instanceof ApiError ? err.message : t("error.booking") });
+                      }
+                    }}
+                  >
+                    {t("stripe.check", "Check payment")}
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={() => { setActiveId(checkout.screeningId); setResuming(checkout); }}>
+                    {t("book.resume")}
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="danger"
@@ -216,6 +283,12 @@ export default function CinemaPage() {
           ))}
         </div>
       ) : null}
+
+      {stripeTicket ? (
+        <div className="mb-6"><TicketCard ticket={stripeTicket} onDone={() => setStripeTicket(null)} /></div>
+      ) : null}
+
+      {message && !map ? <div className="mb-4"><Notice tone={message.tone}>{message.text}</Notice></div> : null}
 
       {loading ? <Spinner label={t("cinema.loading")} /> : null}
 
@@ -396,6 +469,11 @@ export default function CinemaPage() {
       {tickets.length > 0 ? (
         <div className="mt-10">
           <h3 className="mb-4 font-display text-2xl text-ink">{t("book.myTickets")}</h3>
+          {offlineSince ? (
+            <div className="mb-4">
+              <Notice tone="info">{t("offline.tickets", "You are offline. These are the tickets saved on this device.")}</Notice>
+            </div>
+          ) : null}
           <div className="space-y-4">
             {tickets.map((ticket) => (
               <TicketCard
