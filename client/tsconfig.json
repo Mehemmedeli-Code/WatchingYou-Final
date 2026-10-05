@@ -20,5 +20,5 @@
     "paths": { "@/*": ["./src/*"] }
   },
   "include": ["src"],
-  "exclude": ["src/components/ui/globe-3d.tsx"]
+  "exclude": ["src/components/ui/globe-3d.tsx", "src/pages/SupportPage.tsx"]
 }
