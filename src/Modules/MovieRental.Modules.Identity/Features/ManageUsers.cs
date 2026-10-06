@@ -49,7 +49,7 @@ public sealed record SetUserRolesCommand(Guid UserId, string[] Roles) : ICommand
 internal sealed class SetUserRolesHandler(IdentityDbContext db, ICurrentUser currentUser, IAuditLog audit)
     : ICommandHandler<SetUserRolesCommand, Result>
 {
-    private static readonly string[] Known = [AppRoles.Admin, AppRoles.Security, AppRoles.Customer];
+    private static readonly string[] Known = [AppRoles.Admin, AppRoles.Security, AppRoles.Cashier, AppRoles.Customer];
 
     public async Task<Result> Handle(SetUserRolesCommand command, CancellationToken ct)
     {

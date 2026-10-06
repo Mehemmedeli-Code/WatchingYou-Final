@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Identity.Domain;
+using MovieRental.Modules.Identity.Infrastructure;
 using MovieRental.Modules.Identity.Persistence;
 using MovieRental.SharedKernel.Contracts;
 using MovieRental.SharedKernel.Cqrs;
@@ -126,7 +127,8 @@ internal sealed class SendDirectMessageValidator : AbstractValidator<SendDirectM
     public SendDirectMessageValidator() => RuleFor(x => x.Body).NotEmpty().MaximumLength(2000);
 }
 
-internal sealed class SendDirectMessageHandler(IdentityDbContext db, ICurrentUser currentUser, IDispatcher dispatcher)
+internal sealed class SendDirectMessageHandler(
+    IdentityDbContext db, ICurrentUser currentUser, IDispatcher dispatcher, IRealtimeNotifier realtime)
     : ICommandHandler<SendDirectMessageCommand, Result<DirectConversation>>
 {
     public async Task<Result<DirectConversation>> Handle(SendDirectMessageCommand command, CancellationToken ct)
@@ -170,6 +172,10 @@ internal sealed class SendDirectMessageHandler(IdentityDbContext db, ICurrentUse
 
         thread.LastMessageAtUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
+
+        // After the save, never before: the other side reloads on this nudge and must find
+        // the message already there.
+        await realtime.DirectMessageAsync(command.OtherUserId, me, sender.FullName, ct);
 
         return Result.Success((await dispatcher.Ask(new GetConversationQuery(command.OtherUserId), ct))!);
     }

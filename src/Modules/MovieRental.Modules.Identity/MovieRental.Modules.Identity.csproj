@@ -19,6 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Kept in the repository, left out of the build. Its two classes, ConsoleEmailSender and
+         ConsoleSmsSender, now live in NotificationSenders.cs; compiling both would declare each
+         class twice (CS0101). The repository keeps every file it has ever had, so the old copy
+         stays and is simply not compiled. -->
     <Compile Remove="Infrastructure\ConsoleSenders.cs" />
   </ItemGroup>
+
 </Project>
