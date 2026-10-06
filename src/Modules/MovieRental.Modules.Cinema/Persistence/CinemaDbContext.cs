@@ -14,6 +14,16 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
     public DbSet<SeatPayment> SeatPayments => Set<SeatPayment>();
     public DbSet<Venue> Venues => Set<Venue>();
     public DbSet<Hall> Halls => Set<Hall>();
+    public DbSet<PromoCode> PromoCodes => Set<PromoCode>();
+    public DbSet<LoyaltyEntry> LoyaltyEntries => Set<LoyaltyEntry>();
+
+    // Back office
+    public DbSet<TicketType> TicketTypes => Set<TicketType>();
+    public DbSet<ConcessionItem> ConcessionItems => Set<ConcessionItem>();
+    public DbSet<ConcessionSale> ConcessionSales => Set<ConcessionSale>();
+    public DbSet<ConcessionSaleLine> ConcessionSaleLines => Set<ConcessionSaleLine>();
+    public DbSet<CashShift> CashShifts => Set<CashShift>();
+    public DbSet<FilmDeal> FilmDeals => Set<FilmDeal>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -43,6 +53,7 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
             e.ToTable("SeatBookings");
             e.HasKey(x => x.Id);
             e.Property(x => x.PricePaid).HasPrecision(10, 2);
+            e.Property(x => x.TicketType).HasMaxLength(40);
 
             // Feature 9's real guarantee. Two people clicking the same seat at the same
             // instant both pass the availability read; only one survives this index, and
@@ -66,6 +77,15 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
             e.Property(x => x.Salt).HasMaxLength(64).IsRequired();
             e.Property(x => x.Brand).HasConversion<int>();
             e.Property(x => x.Status).HasConversion<int>();
+            e.Property(x => x.Provider).HasConversion<int>();
+            e.Property(x => x.Tender).HasConversion<int>();
+            e.HasIndex(x => x.ShiftId);
+            e.Property(x => x.Subtotal).HasPrecision(10, 2);
+            e.Property(x => x.PromoCode).HasMaxLength(32);
+            e.Property(x => x.PromoDiscount).HasPrecision(10, 2);
+            e.Property(x => x.PointsDiscount).HasPrecision(10, 2);
+            e.Property(x => x.ExternalSessionId).HasMaxLength(200);
+            e.Property(x => x.ExternalPaymentId).HasMaxLength(200);
             e.HasIndex(x => x.Reference).IsUnique();
             e.HasIndex(x => new { x.ScreeningId, x.Status, x.ExpiresAtUtc });
 
@@ -100,6 +120,108 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
             e.Property(x => x.Format).HasMaxLength(80);
             // One "A100" per cinema; the same name in another cinema is a different room.
             e.HasIndex(x => new { x.VenueId, x.Name }).IsUnique().HasFilter("[IsDeleted] = 0");
+        });
+
+        b.Entity<PromoCode>(e =>
+        {
+            e.ToTable("PromoCodes");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(200);
+            e.Property(x => x.PercentOff).HasPrecision(5, 2);
+            e.Property(x => x.AmountOff).HasPrecision(10, 2);
+            e.Property(x => x.MinSubtotal).HasPrecision(10, 2);
+            e.HasIndex(x => x.Code).IsUnique();
+            // The redemption counter is bumped with a conditional UPDATE; the check keeps a
+            // hand-edited row from ever claiming more uses than it allows.
+            e.ToTable(t => t.HasCheckConstraint("CK_Promo_Redemptions",
+                "[MaxRedemptions] IS NULL OR [Redemptions] <= [MaxRedemptions]"));
+        });
+
+        b.Entity<LoyaltyEntry>(e =>
+        {
+            e.ToTable("LoyaltyEntries");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Reason).HasConversion<int>();
+            e.Property(x => x.Reference).HasMaxLength(16);
+            e.Property(x => x.Note).HasMaxLength(200);
+            e.HasIndex(x => new { x.UserId, x.CreatedAtUtc });
+        });
+
+        // ---------------------------------------------------------------- back office
+        b.Entity<TicketType>(e =>
+        {
+            e.ToTable("TicketTypes");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(40).IsRequired();
+            e.Property(x => x.NameAz).HasMaxLength(40);
+            e.Property(x => x.NameRu).HasMaxLength(40);
+            e.Property(x => x.NameTr).HasMaxLength(40);
+            e.Property(x => x.PercentOfBase).HasPrecision(5, 2);
+            e.HasIndex(x => x.Name).IsUnique().HasFilter("[IsDeleted] = 0");
+        });
+
+        b.Entity<ConcessionItem>(e =>
+        {
+            e.ToTable("ConcessionItems");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(80).IsRequired();
+            e.Property(x => x.Category).HasConversion<int>();
+            e.Property(x => x.Price).HasPrecision(10, 2);
+            e.Property(x => x.CostPrice).HasPrecision(10, 2);
+            // A stock count below zero is a sale that should have been refused.
+            e.ToTable(t => t.HasCheckConstraint("CK_Concession_Stock", "[Stock] >= 0"));
+        });
+
+        b.Entity<ConcessionSale>(e =>
+        {
+            e.ToTable("ConcessionSales");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Reference).HasMaxLength(16).IsRequired();
+            e.Property(x => x.Tender).HasConversion<int>();
+            e.Property(x => x.Total).HasPrecision(10, 2);
+            e.Property(x => x.Cost).HasPrecision(10, 2);
+            e.HasIndex(x => x.ShiftId);
+            e.HasIndex(x => x.CreatedAtUtc);
+            e.HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.SaleId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<ConcessionSaleLine>(e =>
+        {
+            e.ToTable("ConcessionSaleLines");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(80).IsRequired();
+            e.Property(x => x.Category).HasConversion<int>();
+            e.Property(x => x.UnitPrice).HasPrecision(10, 2);
+            e.Property(x => x.UnitCost).HasPrecision(10, 2);
+            e.Ignore(x => x.LineTotal);
+        });
+
+        b.Entity<CashShift>(e =>
+        {
+            e.ToTable("CashShifts");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.CashierName).HasMaxLength(120).IsRequired();
+            e.Property(x => x.OpeningFloat).HasPrecision(10, 2);
+            e.Property(x => x.ExpectedCash).HasPrecision(10, 2);
+            e.Property(x => x.CountedCash).HasPrecision(10, 2);
+            e.Property(x => x.Variance).HasPrecision(10, 2);
+            e.Property(x => x.Note).HasMaxLength(300);
+            e.Ignore(x => x.IsOpen);
+            // The "one open shift per cashier" rule, held by the database rather than by a
+            // read-then-write that two quick clicks could both pass.
+            e.HasIndex(x => x.CashierId).IsUnique().HasFilter("[ClosedAtUtc] IS NULL");
+        });
+
+        b.Entity<FilmDeal>(e =>
+        {
+            e.ToTable("FilmDeals");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.MovieTitle).HasMaxLength(250).IsRequired();
+            e.Property(x => x.Distributor).HasMaxLength(120).IsRequired();
+            e.Property(x => x.SharePercent).HasPrecision(5, 2);
+            e.Property(x => x.Note).HasMaxLength(300);
+            e.HasIndex(x => x.MovieId).IsUnique().HasFilter("[IsDeleted] = 0");
         });
 
         // Payments follow their screening out of sight.

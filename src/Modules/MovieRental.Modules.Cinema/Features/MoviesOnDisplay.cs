@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Cinema.Persistence;
 using MovieRental.SharedKernel.Cqrs;
+using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Cinema.Features;
 
@@ -81,5 +83,5 @@ public static class MoviesOnDisplayEndpoint
         app.MapGet("/api/on-display",
             async ([AsParameters] OnDisplayFilter filter, IDispatcher dispatcher, CancellationToken ct) =>
                 Results.Ok(await dispatcher.Ask(new GetOnDisplayQuery(filter), ct)))
-        .WithName("GetMoviesOnDisplay").WithTags("Cinema").AllowAnonymous();
+        .WithName("GetMoviesOnDisplay").WithTags("Cinema").AllowAnonymous().CacheOutput(AppPolicies.CinemaCache);
 }
