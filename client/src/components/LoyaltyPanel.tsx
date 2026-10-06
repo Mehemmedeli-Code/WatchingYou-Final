@@ -36,7 +36,7 @@ export function LoyaltyPanel() {
 
   return (
     <Section title={t("loyalty.title", "Loyalty points")} lede={t("loyalty.lede", "Every manat you spend on cinema tickets earns a point. Spend them at checkout.")}>
-      <div className="grid gap-4 md:grid-cols-[280px_1fr]">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[280px_1fr]">
         <Panel>
           <p className="flex items-center gap-2 text-sm text-ink-mute"><Sparkles size={14} className="text-accent" aria-hidden />{t("loyalty.balance", "Balance")}</p>
           <p className="mt-1 font-display text-4xl text-ink">{data.balance}</p>

@@ -97,7 +97,7 @@ export function MovieCard({
               {movie.averageRating.toFixed(1)} from {movie.reviewCount} review{movie.reviewCount === 1 ? "" : "s"}
             </span>
           ) : (
-            <span>No reviews yet</span>
+            <span>{t("movie.noReviews", "No reviews yet")}</span>
           )}
         </div>
 

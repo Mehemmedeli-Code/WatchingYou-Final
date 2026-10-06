@@ -12,7 +12,7 @@ interface WatchlistEntry {
   movie: MovieListItem;
 }
 
-/** The customer's "watch later" list, on their account page. */
+/** The customer's "watch later" list, on the Favourites page (/favourites). */
 export function WatchlistShelf() {
   const [entries, setEntries] = useState<WatchlistEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);

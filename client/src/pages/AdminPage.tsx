@@ -206,7 +206,7 @@ export default function AdminPage() {
           </div>
         ) : null}
 
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {charts.map((series) => (
             <VectorBarChart key={series.key} series={series} />
           ))}
@@ -222,7 +222,7 @@ export default function AdminPage() {
           </Button>
         }
       >
-        <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
           <div className="-mx-1 overflow-x-auto rounded-xl border border-line">
             <table className="w-full min-w-[34rem] text-left text-sm">
               <thead className="bg-surface-raised text-xs text-ink-mute">
@@ -360,7 +360,7 @@ export default function AdminPage() {
         title={t("admin.screenings")}
         lede={t("admin.screeningsLede")}
       >
-        <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
           <div className="-mx-1 overflow-x-auto rounded-xl border border-line">
             <table className="w-full min-w-[34rem] text-left text-sm">
               <thead className="bg-surface-raised text-xs text-ink-mute">
@@ -490,7 +490,7 @@ function ShortDecisionCard({
 
   return (
     <Panel>
-      <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
         <div>
           <VideoPlayer src={film.streamUrl} title={film.title} />
           <p className="mt-3 font-display text-lg text-ink">{film.title}</p>

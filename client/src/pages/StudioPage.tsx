@@ -31,7 +31,7 @@ export default function StudioPage() {
   return (
     <>
       <Section title={t("studio.title")} lede={t("studio.lede")}>
-        <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.3fr_1fr]">
           {isSignedIn
             ? <UploadForm onDone={(text) => { setMessage({ tone: "ok", text }); void load(); }} />
             : <Panel><Notice tone="info">{t("common.signInFirst")}</Notice></Panel>}
@@ -173,7 +173,7 @@ function SubmissionCard({ entry, onChanged }: { entry: ShortFilmDetail; onChange
 
   return (
     <Panel>
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr_1fr]">
         <div>
           <VideoPlayer src={film.streamUrl} title={film.title} />
           <h3 className="mt-4 font-display text-xl text-ink">{film.title}</h3>

@@ -19,6 +19,11 @@ public static class AppRoles
     public const string Security = "Security";
 
     public const string Customer = "Customer";
+
+    /// <summary>Works the box office and the bar: sells tickets and concessions inside an
+    /// open cash shift. Sees the back office's point-of-sale screens and nothing else of it —
+    /// prices, menus and reports belong to the manager.</summary>
+    public const string Cashier = "Cashier";
 }
 
 public static class AppPolicies
@@ -26,6 +31,9 @@ public static class AppPolicies
     /// <summary>Security reviewers plus admins. Named separately from the roles so the
     /// "admin can see everything" rule lives in one place instead of every endpoint.</summary>
     public const string SecurityDesk = "SecurityDesk";
+
+    /// <summary>Cashiers plus admins: whoever may stand at a till in the back office.</summary>
+    public const string BackOffice = "BackOffice";
 
     /// <summary>Rate-limit policy names. Declared here, configured by the host, requested by
     /// the slices that need them — guessing attacks are aimed at endpoints, not at modules.</summary>

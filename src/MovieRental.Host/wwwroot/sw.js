@@ -10,7 +10,7 @@
  *
  * Bump VERSION when this file changes so old caches are cleared on activation.
  */
-const VERSION = "wy-v1";
+const VERSION = "wy-v2";
 const SHELL = `${VERSION}-shell`;
 const PAGES = `${VERSION}-pages`;
 
@@ -75,19 +75,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static files: answer from cache at once, refresh it in the background.
+  // Static files: network first, cache only when the network is gone. Cache-first used to hand
+  // out the previous bundle after every deploy — the new one only arrived on the load after
+  // that, so a fix looked as if it had not worked. The host sends Cache-Control: no-cache with
+  // an ETag for /app, so asking the network costs a 304 when nothing changed.
   if (/^\/(app|css|icons|img|seed)\//.test(url.pathname) || url.pathname === "/manifest.webmanifest") {
     event.respondWith(
-      caches.open(SHELL).then(async (cache) => {
-        const cached = await cache.match(request);
-        const network = fetch(request)
+      caches.open(SHELL).then((cache) =>
+        fetch(request)
           .then((response) => {
             if (response.ok) cache.put(request, response.clone());
             return response;
           })
-          .catch(() => cached);
-        return cached ?? network;
-      }),
+          .catch(async () => (await cache.match(request)) ?? Response.error())),
     );
   }
 });

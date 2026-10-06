@@ -80,7 +80,7 @@ export function HelpInbox() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_1fr]">
       <div>
         <Button
           className="mb-3 w-full"

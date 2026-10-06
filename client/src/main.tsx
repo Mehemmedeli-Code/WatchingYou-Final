@@ -22,6 +22,8 @@ import HumanCraftPage from "@/pages/HumanCraftPage";
 import SecurityPage from "@/pages/SecurityPage";
 import GlobePage from "@/pages/GlobePage";
 import HelpPage from "@/pages/HelpPage";
+import BackOfficeApp from "@/backoffice/BackOfficeApp";
+import FavouritesPage from "@/pages/FavouritesPage";
 
 /**
  * Island mounting. Razor owns routing and the page shell; each page declares which React
@@ -41,6 +43,8 @@ const ISLANDS: Record<string, () => JSX.Element> = {
   security: SecurityPage,
   globe: GlobePage,
   help: HelpPage,
+  backoffice: BackOfficeApp,
+  favourites: FavouritesPage,
 };
 
 async function bootstrap() {

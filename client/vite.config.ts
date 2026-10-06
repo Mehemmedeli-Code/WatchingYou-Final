@@ -6,8 +6,13 @@ import { fileURLToPath, URL } from "node:url";
 // The Razor host is the page; Vite only produces the island bundle.
 // Fixed output filenames mean _Layout.cshtml can hard-code the script tag instead of
 // reading a manifest at request time.
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react(), tailwindcss()],
+  // The built bundle is served from /app/. Without this Vite assumed the site root: lazily
+  // loaded chunks still worked (they are imported by relative path), but their stylesheets
+  // were preloaded from "/CinemaMapInner.css" — a 404 that made the cinema map fail with
+  // "Unable to preload CSS". The dev server keeps the root, where Razor looks for it.
+  base: command === "build" ? "/app/" : "/",
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
@@ -50,4 +55,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

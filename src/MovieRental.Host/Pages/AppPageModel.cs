@@ -79,11 +79,14 @@ internal sealed class PageShellFactory(
             // reason to open a conversation with themselves, so they do not get the link.
             if (!isSecurity) nav.Add(new NavItem("help", "/help", language["nav.help"]));
             nav.Add(new NavItem("globe", "/globe", language["nav.globe"]));
+            nav.Add(new NavItem("favourites", "/favourites", language["nav.favourites"]));
             nav.Add(new NavItem("rentals", "/rentals", language["nav.rentals"]));
             nav.Add(new NavItem("studio", "/studio", language["nav.studio"]));
         }
 
         if (isSecurity) nav.Add(new NavItem("security", "/security", language["nav.security"]));
+        if (isAdmin || currentUser.IsInRole(AppRoles.Cashier))
+            nav.Add(new NavItem("backoffice", "/backoffice", language["nav.backoffice"]));
         if (isAdmin)
         {
             nav.Add(new NavItem("admin", "/admin", language["nav.admin"]));
@@ -107,7 +110,7 @@ internal sealed class PageShellFactory(
             // Admin and Security are dense, data-heavy screens read for minutes at a time.
             // A moving field behind a table of numbers is a distraction, not decoration, so
             // those two keep the flat background. Swagger never comes through here at all.
-            UseShaderBackground: activeNav is not ("admin" or "security"),
+            UseShaderBackground: activeNav is not ("admin" or "security" or "backoffice"),
             UserName: isSignedIn ? currentUser.Email : null,
             // Inlined rather than fetched: a separate request would show untranslated text
             // for the moment it takes to arrive.

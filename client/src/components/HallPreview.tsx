@@ -301,22 +301,10 @@ export function HallPreview({
         pitch = Math.atan2(toScreen.y, Math.hypot(toScreen.x, toScreen.z));
         applyLook();
 
-        // Angle subtended by the screen is what "too close" and "too far" actually mean;
-        // sideways offset is what makes a corner seat uncomfortable even at a good distance.
-        const dz = z - screenCentre.z;
-        const dist = Math.hypot(x, dz);
-        const deg = (2 * Math.atan((SW / 2) / dist) * 180) / Math.PI;
-        const off = (Math.abs(Math.atan2(x, dz)) * 180) / Math.PI;
-
-        const verdict =
-          deg > 56 ? t("view.tooClose")
-          : deg > 52 ? t("view.close")
-          : deg >= 40 ? t("view.ideal")
-          : deg >= 32 ? t("view.good")
-          : t("view.far");
-        const sideNote = off > 28 ? ` · ${t("view.sharpAngle")}` : off > 20 ? ` · ${t("view.slightAngle")}` : "";
-
-        setReadout(`${ROW_LABELS[r0]}${n0} · ${dist.toFixed(1)} m · ${deg.toFixed(0)}° · ${off.toFixed(0)}° — ${verdict}${sideNote}`);
+        // Only the seat is named. This used to grade it — "too close", "sharp angle" — and a
+        // customer told their seat is a bad one tends not to buy any seat at all. The view
+        // itself shows them what the seat is like; that is the honest part, and it is enough.
+        setReadout(`${ROW_LABELS[r0]}${n0}`);
       };
 
       sitRef.current = sitAt;
@@ -379,6 +367,7 @@ export function HallPreview({
 
   return createPortal(
     <div
+      data-force-dark
       className="fixed inset-0 z-[95] flex flex-col bg-black/90 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"

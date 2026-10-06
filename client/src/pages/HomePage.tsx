@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import StackSpread from "@/components/ui/stack-spread";
+import { HeroEye } from "@/components/ui/hero-eye";
 import { MovieCarousel } from "@/components/ui/movie-carousel";
 import { MovieCard, type MovieListItem } from "@/components/MovieCard";
 import { SearchField } from "@/components/SearchField";
@@ -225,16 +226,10 @@ export default function HomePage() {
         />
       ) : null}
 
-      <StackSpread
-        headline={t("home.hero.a")}
-        headlineMuted={t("home.hero.b")}
-        headlineTail={t("home.hero.c")}
-        subtitle={t("home.hero.subtitle")}
-      >
-        <a href="#catalogue" className="inline-flex h-11 items-center rounded-full bg-accent px-6 text-sm font-semibold text-surface">
-          {t("home.hero.cta")}
-        </a>
-      </StackSpread>
+      {/* The eye, not a headline: the posters used to scatter across the words and leave
+          half a sentence showing. The eye says the name without text to cover. */}
+      <StackSpread centerpiece={<HeroEye label={t("home.hero.cta")} />} />
+      <h1 className="sr-only">WatchingYou</h1>
 
       {featured.length > 0 ? (
         <Section title={t("featured.title")} lede={t("featured.lede")}>

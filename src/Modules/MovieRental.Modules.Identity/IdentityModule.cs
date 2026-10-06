@@ -81,6 +81,7 @@ public sealed class IdentityModule : IModule
         DirectMessageEndpoints.Map(endpoints);
         UpdateProfileEndpoint.Map(endpoints);
         CurrentUserProfileEndpoint.Map(endpoints);
+        DeleteAccountEndpoint.Map(endpoints);
 
         endpoints.MapHub<ChatHub>(ChatHub.Path).RequireAuthorization();
     }

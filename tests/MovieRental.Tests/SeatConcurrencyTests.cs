@@ -31,12 +31,18 @@ public sealed class SeatConcurrencyTests : IAsyncLifetime
         await using var db = NewContext();
         await db.Database.EnsureCreatedAsync();
 
+        // A screening belongs to a real room — the foreign key insists — so the test builds
+        // one, the same way the seeder does, rather than pointing at a hall that isn't there.
+        var hall = new Hall { Name = "Hall B", Rows = 8, SeatsPerRow = 12 };
+        db.Venues.Add(new Venue { Name = "Test Cinema", Halls = [hall] });
+
         db.Screenings.Add(new Screening
         {
             Id = _screeningId,
             MovieId = Guid.NewGuid(),
             MovieTitle = "Blue Hour",
-            Hall = "Hall B",
+            HallId = hall.Id,
+            Hall = hall.Name,
             StartsAtUtc = DateTime.UtcNow.AddDays(1),
             Rows = 8,
             SeatsPerRow = 12,

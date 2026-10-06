@@ -54,6 +54,10 @@ The first run creates the database, the schemas and two accounts:
 | Admin | `admin@reelandrow.test` | `Admin1234` |
 | Security | `security@reelandrow.test` | `Security1234` |
 | Customer | `customer@reelandrow.test` | `Customer1234` |
+| Cashier | `kassa@reelandrow.test` | `Kassa1234` |
+
+Admin and Cashier land in the **back office** (`/backoffice`) after signing in, not on the
+public catalogue — see **Back office** below.
 
 Verification codes and e-mails are printed to the API console until you configure a real
 transport — see **Verification and delivery** below.
@@ -234,10 +238,38 @@ Repeat per context: `IdentityDbContext`, `CatalogDbContext`, `RentalsDbContext`,
 |---|---|
 | Customer | Rent, review, book seats, upload shorts, run their own Studio |
 | Security | Everything a customer can, plus inspect submissions and file reports |
+| Cashier | The back office tills only: box office, bar, and their own cash shift |
 | Admin | Everything, plus inventory, screenings, final approval and the API reference |
 
 Nav items a role may not use are never rendered, and every route is independently
 protected server-side — hiding a link is presentation, not security.
+
+## Back office
+
+Restaurants run on R-Keeper; cinemas run on a theatre management system — Vista, Veezi,
+UCS Premiera. `/backoffice` is this project's version: a separate page with its own layout
+(sidebar, no public nav) where the cinema is operated rather than browsed.
+
+| Screen | Who | What it does |
+|---|---|---|
+| Box office | Cashier, Admin | Sell seats at the counter from the live seat map, per-seat ticket type, cash (with change) or card, PDF tickets and a till receipt |
+| Bar | Cashier, Admin | Concessions POS — popcorn, drinks, combos — with stock taken atomically |
+| Cash shift | Cashier, Admin | Open with a float, X report mid-shift, close with the counted drawer (Z report, variance stored) |
+| Dashboard | Admin | Today's box office (online vs counter), bar, spend per head, occupancy, open tills, low stock |
+| Schedule | Admin | Upcoming screenings, cancel, bulk-schedule a run |
+| Prices & tariffs | Admin | Ticket types as % of the screening price (Adult, Student, Child, Senior), promo codes |
+| Bar menu & stock | Admin | Items, prices, cost prices, margins, restock |
+| Distributors | Admin | Film deals (distributor, share %) and the settlement report with CSV |
+| Reports | Admin | Revenue by day, film, hall, ticket type; bar best sellers and margin |
+| Shift history | Admin | Every shift with its Z figures |
+
+Counter sales write the same `SeatPayment`/`SeatBooking` rows as the website
+(`Provider = BoxOffice`, walk-in customer = `Guid.Empty`), so the online seat map, the door
+scanner, the PDF ticket and every chart see them with no extra code, and the same unique
+index stops the counter and the website selling one seat twice.
+
+Code: `Modules.Cinema/Domain/BackOffice.cs`, `Modules.Cinema/Features/BackOffice/*.cs`,
+`Host/Pages/BackOffice.cshtml`, `Host/Pages/Shared/_BackOfficeLayout.cshtml`, `client/src/backoffice/`.
 
 ## Review pipeline
 
@@ -868,3 +900,17 @@ Motion elsewhere is deliberate and sparse: one staggered entrance for the catalo
 - Uploaded films land on the local disk under `src/MovieRental.Host/uploads/`. Point that at blob storage before any real traffic.
 - Add rate limiting on `/api/auth/login`.
 - The benchmark numbers on the admin dashboard are sample data for the charts, not measured results.
+
+## Image credits
+
+The home page's scattered cards are photographs from [Unsplash](https://unsplash.com), used
+under the [Unsplash License](https://unsplash.com/license) and loaded straight from
+`images.unsplash.com`. They are toned black and green in the browser
+(`client/src/components/PosterArt.tsx`); the drawn vector posters in the same file sit
+underneath as the fallback when the photos cannot load.
+
+## Phone app
+
+`client/` also builds an iOS and Android app with Capacitor — cinema tickets only, sharing the
+website's React code. Setup, cloud builds (Codemagic, no Mac needed) and store submission are
+in [docs/MOBILE.md](docs/MOBILE.md).

@@ -8,7 +8,7 @@ public enum CardBrand { Unknown = 0, Visa = 1, Mastercard = 2 }
 
 /// <summary>How the money was taken. Card is the built-in test checkout with the e-mailed code;
 /// Stripe is Stripe Checkout in test mode, used when a Stripe key is configured.</summary>
-public enum PaymentProvider { Card = 1, Stripe = 2 }
+public enum PaymentProvider { Card = 1, Stripe = 2, BoxOffice = 3 }
 
 /// <summary>
 /// One checkout. Seats are held from the moment this is created and only become a real
@@ -42,6 +42,11 @@ public sealed class SeatPayment : BaseEntity
     public int PointsEarned { get; set; }
 
     public PaymentProvider Provider { get; set; } = PaymentProvider.Card;
+
+    /// <summary>Box office only: cash or card at the counter, and the till shift that took
+    /// it. Online sales have neither — they never pass through a drawer.</summary>
+    public TenderType? Tender { get; set; }
+    public Guid? ShiftId { get; set; }
     /// <summary>Stripe's Checkout Session id, to match the return trip to this booking.</summary>
     public string? ExternalSessionId { get; set; }
     /// <summary>Stripe's PaymentIntent id, which a refund has to name.</summary>

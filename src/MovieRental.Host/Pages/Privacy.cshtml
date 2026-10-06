@@ -1,0 +1,25 @@
+@page
+@model PrivacyModel
+@* Plain server-rendered text: store reviewers and search engines read it without JavaScript. *@
+<article class="rr-legal">
+    <h1>@Model.Text.Title</h1>
+    <p class="rr-legal-meta">@Model.Text.UpdatedLabel: @Model.Updated · @Model.Company</p>
+
+    @foreach (var part in Model.Text.Sections)
+    {
+        <h2>@part.Heading</h2>
+        @foreach (var paragraph in part.Paragraphs)
+        {
+            <p>@paragraph</p>
+        }
+    }
+
+    <h2>@Model.Text.ContactLabel</h2>
+    <p>
+        @Model.Company
+        @if (!string.IsNullOrWhiteSpace(Model.ContactEmail))
+        {
+            <br /><a href="mailto:@Model.ContactEmail">@Model.ContactEmail</a>
+        }
+    </p>
+</article>

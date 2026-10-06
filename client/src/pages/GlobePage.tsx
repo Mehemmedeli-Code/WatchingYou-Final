@@ -97,7 +97,7 @@ export default function GlobePage() {
     <>
     <CrowdBand />
     <Section title={t("globe.title")} lede={t("globe.lede")}>
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
         <div className="rounded-xl border border-line bg-surface-raised p-6">
           <ErrorBoundary label="Globe" fallback={null}>
             <Globe size={250} className="flex justify-center py-6" />

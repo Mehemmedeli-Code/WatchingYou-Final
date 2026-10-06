@@ -8,9 +8,23 @@
     "build": "tsc -b && vite build",
     "watch": "vite build --watch",
     "typecheck": "tsc -b --noEmit",
-    "smoke": "node smoke.mjs"
+    "smoke": "node smoke.mjs",
+    "dev:mobile": "vite -c vite.mobile.config.ts",
+    "build:mobile": "tsc -b && vite build -c vite.mobile.config.ts",
+    "cap:sync": "npm run build:mobile && cap sync",
+    "cap:android": "npm run cap:sync && cap open android",
+    "cap:assets": "capacitor-assets generate --iconBackgroundColor #0A0C0A --iconBackgroundColorDark #0A0C0A --splashBackgroundColor #0A0C0A --splashBackgroundColorDark #0A0C0A"
   },
   "dependencies": {
+    "@capacitor-mlkit/barcode-scanning": "^7.5.0",
+    "@capacitor/android": "^7.6.9",
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/browser": "^7.0.5",
+    "@capacitor/core": "^7.6.9",
+    "@capacitor/ios": "^7.6.9",
+    "@capacitor/local-notifications": "^7.0.7",
+    "@capacitor/splash-screen": "^7.0.5",
+    "@capacitor/status-bar": "^7.0.6",
     "@microsoft/signalr": "^10.0.11",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -25,6 +39,8 @@
     "three": "^0.186.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.6.9",
     "@tailwindcss/vite": "^4.0.0",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^18.3.17",

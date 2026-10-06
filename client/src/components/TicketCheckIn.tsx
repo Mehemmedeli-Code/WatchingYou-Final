@@ -65,7 +65,7 @@ export function TicketCheckIn() {
   const tone = (outcome: Outcome) => (outcome === "Admitted" ? "good" : outcome === "AlreadyUsed" ? "warn" : "bad");
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr]">
       <Panel>
         <h3 className="flex items-center gap-2 font-display text-xl text-ink">
           <ScanLine size={18} aria-hidden />
@@ -144,7 +144,7 @@ export function TicketCheckIn() {
           </div>
         )}
         <div className="mt-4">
-          <Notice tone="info">{t("view.hint")}</Notice>
+          <Notice tone="info">{t("checkin.hint", "A handheld scanner types the code and presses Enter by itself — the field is ready for the next ticket straight away.")}</Notice>
         </div>
       </Panel>
     </div>

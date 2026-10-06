@@ -57,6 +57,10 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
             // One entry per customer per film; also the index the "is it saved?" lookup uses.
             e.HasIndex(x => new { x.UserId, x.MovieId }).IsUnique();
             e.HasOne(x => x.Movie).WithMany().HasForeignKey(x => x.MovieId).OnDelete(DeleteBehavior.Cascade);
+            // A film taken off the catalogue (soft-deleted) leaves the watchlist with it. Without
+            // this, its entry was hidden from the list but still counted — towards the 100-film
+            // limit, and in the "saved" hearts the catalogue lights up.
+            e.HasQueryFilter(x => !x.Movie!.IsDeleted);
         });
 
         base.OnModelCreating(b);

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { download, post, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
 import { t, formatWhen, languageName } from "@/lib/i18n";
+import { openExternal } from "@/lib/platform";
 
 export interface SeatSelection { row: number; number: number }
 
@@ -250,7 +251,8 @@ export function BookingFlow({
       const started = await post<StripeCheckoutStarted>(`/api/screenings/${screeningId}/checkout/stripe`, {
         seats, promoCode: promo || null, usePoints,
       });
-      window.location.href = started.url;
+      await openExternal(started.url);
+      setBusy(false);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("error.booking"));
       setBusy(false);

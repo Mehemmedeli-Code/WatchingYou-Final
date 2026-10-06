@@ -86,7 +86,8 @@ public static class OutputCaching
 
             // Every seat sold or released changes "seats left" on the schedule.
             if (path.StartsWithSegments("/api/screenings") || path.StartsWithSegments("/api/admin/screenings") ||
-                path.StartsWithSegments("/api/bookings") || path.StartsWithSegments("/api/admin/venues"))
+                path.StartsWithSegments("/api/bookings") || path.StartsWithSegments("/api/admin/venues") ||
+                path.StartsWithSegments("/api/backoffice/box-office"))
                 await store.EvictByTagAsync(CacheTags.Cinema, default);
         });
 }

@@ -29,7 +29,7 @@ export function Gallery({ origin }: { origin: ShortFilmOrigin }) {
 
       {films?.length === 0 ? <Empty title={t("gallery.empty")} hint="" /> : null}
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {films?.map((film) => (
           <Panel key={film.id}>
             <VideoPlayer src={film.streamUrl} title={film.title} />

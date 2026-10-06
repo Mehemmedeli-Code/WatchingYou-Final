@@ -28,6 +28,11 @@
   --font-display: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
 
   --radius-card: 10px;
+
+  /* Two-series chart hues for the back office (box office vs bar). Validated for CVD and
+     contrast against surface-raised in both themes; the light values sit in the light block. */
+  --color-series-1: #1FA463;
+  --color-series-2: #6A84F5;
 }
 
 /* ---- Light theme ------------------------------------------------------------------
@@ -53,6 +58,9 @@
   --color-warn-bg: #FBEFCF;
   --color-bad: #B42318;
   --color-bad-bg: #FDE3E0;
+
+  --color-series-1: #007A42;
+  --color-series-2: #3B5BDB;
 }
 
 /* The crowd on the globe page is drawn black on white. Dark theme turns it into pale lines
@@ -163,4 +171,29 @@
 
 @media (prefers-reduced-motion: reduce) {
   .rr-crowd-marquee { animation: none; }
+}
+
+/* ---- Always-dark surfaces --------------------------------------------------------------
+   Some overlays sit on a dark backdrop whatever the page theme is — the 3D hall preview draws
+   over black. In the light theme their text took the light theme's dark ink and vanished into
+   that backdrop. Inside [data-force-dark] the tokens are the dark theme's, always.
+   ------------------------------------------------------------------------------------ */
+[data-force-dark] {
+  color-scheme: dark;
+  --color-surface: #0A0C0A;
+  --color-surface-raised: #121612;
+  --color-line: #1F271F;
+  --color-accent: #00E676;
+  --color-accent-bright: #5BFFAB;
+  --color-accent-dim: #00A85A;
+  --color-ink: #FFFFFF;
+  --color-ink-mute: #9AA69A;
+  --color-good: #5BFFAB;
+  --color-good-bg: #0E3A24;
+  --color-warn: #F0C868;
+  --color-warn-bg: #3A3014;
+  --color-bad: #FF8A80;
+  --color-bad-bg: #3F1A16;
+  --color-series-1: #1FA463;
+  --color-series-2: #6A84F5;
 }

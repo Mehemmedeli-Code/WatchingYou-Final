@@ -131,6 +131,7 @@ builder.Services
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(AppRoles.Admin, policy => policy.RequireRole(AppRoles.Admin))
     .AddPolicy(AppPolicies.SecurityDesk, policy => policy.RequireRole(AppRoles.Security, AppRoles.Admin))
+    .AddPolicy(AppPolicies.BackOffice, policy => policy.RequireRole(AppRoles.Cashier, AppRoles.Admin))
     .AddPolicy(AppRoles.Customer, policy => policy.RequireAuthenticatedUser());
 
 static bool IsHubTokenRequest(HttpRequest request) =>
@@ -202,11 +203,22 @@ builder.Services.AddSwaggerGen(options =>
     options.AddSecurityRequirement(new OpenApiSecurityRequirement { [scheme] = [] });
 });
 
-// The Vite dev server runs on its own origin while you develop; in production the React
-// bundle is served by this host, so no cross-origin request exists at all.
-const string DevCors = "vite-dev";
-builder.Services.AddCors(options => options.AddPolicy(DevCors, policy => policy
-    .WithOrigins(builder.Configuration["Frontend:DevServerUrl"] ?? "http://localhost:5173")
+// Cross-origin callers. The website itself is served by this host and needs none of this.
+//  - The phone app (Capacitor) loads its screens from the device: capacitor://localhost on iOS,
+//    https://localhost on Android. It calls this API by full URL, in every environment.
+//  - The Vite dev servers (website 5173, app 5174) run on their own origins, in Development only.
+// Named origins only, never "any": the API accepts credentials, and a wildcard would let any
+// site make signed-in calls on a visitor's behalf.
+const string ClientCors = "clients";
+var corsOrigins = (builder.Configuration.GetSection("Mobile:AllowedOrigins").Get<string[]>()
+                   ?? ["capacitor://localhost", "https://localhost", "http://localhost"]).ToList();
+if (builder.Environment.IsDevelopment())
+{
+    corsOrigins.Add(builder.Configuration["Frontend:DevServerUrl"] ?? "http://localhost:5173");
+    corsOrigins.Add("http://localhost:5174");
+}
+builder.Services.AddCors(options => options.AddPolicy(ClientCors, policy => policy
+    .WithOrigins([.. corsOrigins])
     .AllowAnyHeader()
     .AllowAnyMethod()
     .AllowCredentials()));
@@ -218,10 +230,10 @@ var app = builder.Build();
 // authentication before the Swagger gate so it has an identity to check.
 // ---------------------------------------------------------------------------
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseCors(ClientCors);
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseCors(DevCors);
     await DevelopmentDatabaseBootstrapper.InitialiseAsync(app.Services);
 }
 else

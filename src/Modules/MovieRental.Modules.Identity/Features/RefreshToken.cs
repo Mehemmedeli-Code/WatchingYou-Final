@@ -27,11 +27,23 @@ internal sealed class RefreshTokenHandler(
 
         // Replay detection: a token that was already rotated should never come back.
         // When it does, the chain is compromised, so every live token for the user dies.
+        //
+        // With one exception, a few seconds long. The browser can lose the answer to a refresh
+        // it sent: the user clicks a link while the page is loading, the tab navigates, and the
+        // new token never gets stored. The next page then presents the old one — not theft, just
+        // a navigation — and treating it as theft signed people out of every device for clicking
+        // too fast. A token rotated moments ago whose replacement is still unused is therefore
+        // honoured by rotating that replacement instead. Anything older is still a replay.
         if (stored.IsRevoked)
         {
-            await RevokeDescendantsAsync(stored, ct);
-            await db.SaveChangesAsync(ct);
-            return Result.Failure<AuthResponse>(Error.Unauthorized("This session was ended. Sign in again."));
+            var successor = await RecentSuccessorAsync(stored, ct);
+            if (successor is null)
+            {
+                await RevokeDescendantsAsync(stored, ct);
+                await db.SaveChangesAsync(ct);
+                return Result.Failure<AuthResponse>(Error.Unauthorized("This session was ended. Sign in again."));
+            }
+            stored = successor;
         }
 
         if (!stored.IsActive)
@@ -48,6 +60,21 @@ internal sealed class RefreshTokenHandler(
 
         var access = tokens.CreateAccessToken(stored.User);
         return Result.Success(new AuthResponse(access.Value, access.ExpiresAtUtc, replacement.Token, stored.User.ToProfile()));
+    }
+
+    /// <summary>How long a just-rotated token stays usable, to cover an answer the browser lost.</summary>
+    private static readonly TimeSpan ReuseGrace = TimeSpan.FromSeconds(30);
+
+    private async Task<Domain.RefreshTokenEntity?> RecentSuccessorAsync(Domain.RefreshTokenEntity revoked, CancellationToken ct)
+    {
+        if (revoked.RevokedReason != "rotated" || revoked.ReplacedByToken is null) return null;
+        if (revoked.RevokedAtUtc is not { } at || DateTime.UtcNow - at > ReuseGrace) return null;
+
+        var successor = await db.RefreshTokens
+            .Include(t => t.User)
+            .FirstOrDefaultAsync(t => t.Token == revoked.ReplacedByToken, ct);
+
+        return successor is { IsActive: true, User: not null } ? successor : null;
     }
 
     private async Task RevokeDescendantsAsync(Domain.RefreshTokenEntity compromised, CancellationToken ct)

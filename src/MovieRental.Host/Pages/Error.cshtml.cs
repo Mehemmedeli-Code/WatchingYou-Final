@@ -12,7 +12,7 @@ namespace MovieRental.Host.Pages;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class ErrorModel(IPageShellFactory shell, ILanguageContext language) : AppPageModel
 {
-    public int StatusCode { get; private set; } = 500;
+    public int ErrorCode { get; private set; } = 500;
 
     /// <summary>Exposed by the model rather than reached for in the markup: a view should be
     /// handed what it renders, not go looking for it.</summary>
@@ -22,11 +22,11 @@ public sealed class ErrorModel(IPageShellFactory shell, ILanguageContext languag
 
     public void OnGet(int? code)
     {
-        StatusCode = code is >= 400 and < 600 ? code.Value : 500;
+        ErrorCode = code is >= 400 and < 600 ? code.Value : 500;
 
         // Only the codes a visitor can actually provoke are given their own words. Anything
         // else falls back to the generic message rather than inventing an explanation.
-        var key = StatusCode switch
+        var key = ErrorCode switch
         {
             404 => "error.notFound",
             403 => "error.forbidden",
@@ -40,7 +40,7 @@ public sealed class ErrorModel(IPageShellFactory shell, ILanguageContext languag
 
         // Keep the real status on the response. A 404 rendered with a 200 header tells every
         // crawler and monitor that the page was fine.
-        Response.StatusCode = StatusCode;
+        Response.StatusCode = ErrorCode;
         TraceId = HttpContext.TraceIdentifier;
 
         View = shell.Create($"{key}.title", $"{key}.body", "", "error");

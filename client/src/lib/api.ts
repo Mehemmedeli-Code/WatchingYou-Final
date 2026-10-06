@@ -3,6 +3,7 @@
  * and the refresh token in localStorage, then transparently refreshes once on a 401.
  * Storing the short-lived access token outside localStorage limits what an XSS bug reaches.
  */
+import { apiUrl } from "@/lib/platform";
 
 export interface UserProfile {
   id: string;
@@ -109,6 +110,12 @@ export const auth = {
   get isSignedIn() {
     return currentUser !== null;
   },
+  /** A sign-in is saved on this device, whether or not it could be confirmed just now. With
+   *  no signal the session cannot be refreshed, but the person has not signed out — the app
+   *  should say "offline", not "sign in". */
+  hasSavedSession() {
+    return tokenStore.read() !== null;
+  },
   isAdmin() {
     return currentUser?.roles.includes("Admin") ?? false;
   },
@@ -160,7 +167,7 @@ async function send(path: string, init: RequestInit, retry: boolean): Promise<Re
   if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
   if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
 
-  const response = await fetch(path, { ...init, headers, credentials: "include" });
+  const response = await fetch(apiUrl(path), { ...init, headers, credentials: "include" });
 
   if (response.status === 401 && retry && (await tryRefresh())) {
     return send(path, init, false);
@@ -168,11 +175,32 @@ async function send(path: string, init: RequestInit, retry: boolean): Promise<Re
   return response;
 }
 
-async function tryRefresh(): Promise<boolean> {
+let refreshing: Promise<boolean> | null = null;
+
+/**
+ * Refresh tokens rotate, and the server treats a token used twice as stolen: it revokes every
+ * session the account has. Two tabs opening at once both read the same token from
+ * localStorage and both refreshed with it — the second looked like theft, and the user was
+ * signed out everywhere. So refreshes are serialised: one at a time within a tab (a shared
+ * promise) and across tabs (a Web Lock). The token is read only once the lock is held, so the
+ * second tab picks up the one the first has just written.
+ */
+function tryRefresh(): Promise<boolean> {
+  refreshing ??= withRefreshLock(refreshOnce).finally(() => { refreshing = null; });
+  return refreshing;
+}
+
+function withRefreshLock<T>(work: () => Promise<T>): Promise<T> {
+  // Web Locks are in every current browser; without them a single tab still works as before.
+  if (!("locks" in navigator)) return work();
+  return navigator.locks.request("rr.refresh", work) as Promise<T>;
+}
+
+async function refreshOnce(): Promise<boolean> {
   const refreshToken = tokenStore.read();
   if (!refreshToken) return false;
 
-  const response = await fetch("/api/auth/refresh", {
+  const response = await fetch(apiUrl("/api/auth/refresh"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refreshToken }),

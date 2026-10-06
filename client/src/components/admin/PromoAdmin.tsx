@@ -71,7 +71,7 @@ export function PromoAdmin() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
       <div>
         {rows && rows.length === 0 ? (
           <Empty title={t("promo.emptyTitle", "No promo codes yet")} hint={t("promo.emptyHint", "Create one on the right; customers type it at checkout.")} />
