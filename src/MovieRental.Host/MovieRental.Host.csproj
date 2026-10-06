@@ -44,4 +44,8 @@
           StandardOutputImportance="low" />
   </Target>
 
+  <ItemGroup>
+    <!-- Old AI assistant, replaced by the Help Service. Kept in the repo, left out of the build. -->
+    <Compile Remove="Infrastructure\Assistant\**" />
+  </ItemGroup>
 </Project>

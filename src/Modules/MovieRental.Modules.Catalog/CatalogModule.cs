@@ -32,5 +32,7 @@ public sealed class CatalogModule : IModule
         AddReviewEndpoint.Map(endpoints);
         CompareTasteEndpoint.Map(endpoints);
         SeedMoviesEndpoint.Map(endpoints);
+        WatchlistEndpoints.Map(endpoints);
+        RecommendationsEndpoint.Map(endpoints);
     }
 }

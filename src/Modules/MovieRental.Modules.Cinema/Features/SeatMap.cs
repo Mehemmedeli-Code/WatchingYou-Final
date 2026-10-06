@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Cinema.Domain;
 using MovieRental.Modules.Cinema.Persistence;
@@ -96,7 +97,7 @@ public static class SeatMapEndpoints
     {
         app.MapGet("/api/screenings", async (IDispatcher dispatcher, CancellationToken ct) =>
                 Results.Ok(await dispatcher.Ask(new GetScreeningsQuery(), ct)))
-            .WithName("GetScreenings").WithTags("Cinema").AllowAnonymous();
+            .WithName("GetScreenings").WithTags("Cinema").AllowAnonymous().CacheOutput(AppPolicies.CinemaCache);
 
         app.MapGet("/api/screenings/{id:guid}/seats",
             async Task<Results<Ok<SeatMapResponse>, NotFound>> (Guid id, IDispatcher dispatcher, CancellationToken ct) =>

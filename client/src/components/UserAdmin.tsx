@@ -22,7 +22,7 @@ interface AdminUser {
   lastLoginAtUtc?: string | null;
 }
 
-const GRANTABLE = ["Admin", "Security"] as const;
+const GRANTABLE = ["Admin", "Security", "Cashier"] as const;
 
 /**
  * Roles existed from the start but could only be handed out by the seeder, so a second

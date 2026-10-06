@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="az" class="rr" data-theme="dark" style="color-scheme: dark">
+<head>
+  <meta charset="utf-8" />
+  <!-- viewport-fit=cover lets the app draw under the notch; the header and tab bar pad
+       themselves with the safe-area insets. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0A0C0A" />
+  <title>WatchingYou</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    html, body { margin: 0; background: #0A0C0A; -webkit-tap-highlight-color: transparent; }
+    /* The header and the tab bar are fixed over the page. Without this, anything scrolled
+       into view — the chosen screening, a button — could stop right under one of them. */
+    html { scroll-padding-top: calc(env(safe-area-inset-top) + 64px); scroll-padding-bottom: calc(env(safe-area-inset-bottom) + 84px); }
+    html[data-theme="light"], html[data-theme="light"] body { background: #F5F7F5; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/mobile/main.tsx"></script>
+</body>
+</html>

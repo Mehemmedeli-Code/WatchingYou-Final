@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ChatMessages, type ChatMessage } from "@/components/ui/chat-messages";
 import { get, post, put, ApiError } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { openDirectChats, useRealtime, useRealtimeLive, useTypingIndicator, useTypingSender } from "@/lib/realtime";
 
 interface DirectLine {
   id: string;
@@ -54,10 +55,26 @@ export function DirectChat({
   }, [userId]);
 
   useEffect(() => {
+    openDirectChats.add(userId);
+    return () => { openDirectChats.delete(userId); };
+  }, [userId]);
+
+  const live = useRealtimeLive();
+  const [typing, showTyping] = useTypingIndicator();
+  const sendTyping = useTypingSender("Typing", userId);
+
+  // A new message from this person reloads the thread at once; the poll stays as a safety
+  // net, just much slower while the socket is up.
+  useRealtime<{ fromUserId: string }>("dm", (e) => { if (e.fromUserId === userId) void load(); });
+  useRealtime<{ fromUserId: string; fromName: string }>("typing", (e) => {
+    if (e.fromUserId === userId) showTyping(e.fromName || thread?.otherName || "");
+  });
+
+  useEffect(() => {
     void load();
-    const timer = setInterval(() => void load(), 5000);
+    const timer = setInterval(() => void load(), live ? 30000 : 5000);
     return () => clearInterval(timer);
-  }, [load]);
+  }, [load, live]);
 
   async function send(text: string) {
     sending.current = true;
@@ -156,6 +173,9 @@ export function DirectChat({
               title={thread?.otherName ?? ""}
               subtitle={t("dm.safety")}
               placeholder={t("dm.placeholder")}
+              live={live}
+              otherTyping={typing}
+              onTyping={thread?.unreachable || thread?.blockedByMe ? undefined : sendTyping}
             />
           </div>
         </Panel>

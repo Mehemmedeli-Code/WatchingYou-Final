@@ -53,6 +53,10 @@ public sealed class SeatBooking : BaseEntity, ISoftDeletable
     public int Number { get; set; }
     public decimal PricePaid { get; set; }
 
+    /// <summary>Snapshot of the ticket type sold at the counter — "Adult", "Child". Null for
+    /// online sales, which sell at the screening's single price.</summary>
+    public string? TicketType { get; set; }
+
     /// <summary>The checkout this seat belongs to. Rows are written at payment time, not at
     /// confirmation, so the unique index on (screening, row, number) holds the seat against
     /// everyone else for as long as the code is valid.</summary>

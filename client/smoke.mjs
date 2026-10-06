@@ -23,11 +23,35 @@ const VENUES = [{
 
 // Response shapes matter: /api/movies is paged, /api/movies/genres is a list. Getting these
 // wrong makes the harness report bugs the app does not have.
+// SMOKE_USER=admin mounts every page signed in as an admin, which is where most of the
+// screens (tickets, loyalty, watchlist, admin tools) actually render.
+const SIGNED_IN = process.env.SMOKE_USER === "admin";
+const fakeJwt = () => {
+  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+  return `${b64({ alg: "none" })}.${b64({ exp: Math.floor(Date.now() / 1000) + 3600 })}.x`;
+};
+const AUTH = {
+  accessToken: fakeJwt(), accessTokenExpiresAtUtc: new Date(Date.now() + 3600_000).toISOString(), refreshToken: "r",
+  user: { id: "33333333-3333-3333-3333-333333333333", fullName: "Smoke Admin", email: "admin@test",
+          isEmailConfirmed: true, isPhoneConfirmed: false, roles: ["Admin", "Security"] },
+};
+
 const respond = (path) =>
-    /\/api\/venues/.test(path) ? VENUES
+    /\/api\/auth\/refresh/.test(path) ? AUTH
+  : /\/api\/admin\/analytics\/cinema-totals/.test(path) ? { revenueThisMonth: 120, ticketsThisMonth: 14, upcomingScreenings: 9, activePromoCodes: 2 }
+  : /\/api\/admin\/rentals\/stats/.test(path) ? { activeCount: 1, overdueCount: 0, returnedCount: 3, outstandingLateFees: 0, revenueThisMonth: 12 }
+  : /\/api\/admin\/analytics\/overview/.test(path) ? [{ key: "cinema-revenue", title: "Ticket revenue", unit: "AZN", caption: "", points: [{ label: "25.09", value: 12.5 }] }]
+  : /\/api\/screenings\/[^/]+\/quote/.test(path) ? { subtotal: 17, promoDiscount: 0, promoApplied: false, pointsBalance: 40, pointsUsed: 0, pointsDiscount: 0, total: 17, pointsEarned: 17, stripeEnabled: true }
+  : /\/api\/rentals\/mine/.test(path) ? { items: [], page: 1, pageSize: 20, totalCount: 0, totalPages: 0 }
+  : /\/api\/help\/chat/.test(path) ? null
+  : /\/api\/(reports|admin\/rentals\/overdue|help\/inbox)/.test(path) ? []
+  : /\/api\/venues/.test(path) ? VENUES
   : /\/api\/movies\/genres/.test(path) ? ["Drama", "Thriller"]
   : /\/api\/movies(\?|$)/.test(path) ? { items: [], page: 1, pageSize: 12, total: 0, totalPages: 0 }
   : /\/api\/bookings\/(mine|pending)/.test(path) ? []
+  : /\/api\/recommendations/.test(path) ? { personal: false, items: [] }
+  : /\/api\/(watchlist|messages|admin\/promos)/.test(path) ? []
+  : /\/api\/loyalty/.test(path) ? { balance: 0, held: 0, spendable: 0, manatPerPoint: 0.05, pointsPerManat: 1, maxShare: 0.5, history: [] }
   : /\/api\/globe\/members/.test(path) ? { city: "Baku", total: 0, page: 1, pageSize: 24, items: [] }
   : /\/(screenings|shorts|cities|audit|users|on-display|gallery|analytics|queue|help)/.test(path) ? []
   : {};
@@ -51,6 +75,7 @@ async function check(page) {
   window.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
   window.IntersectionObserver = class { observe() {} unobserve() {} disconnect() {} };
   window.scrollTo = () => {};
+  if (SIGNED_IN) window.localStorage.setItem("rr.refresh", "r");
 
   for (const key of ["window", "document", "navigator", "location", "HTMLElement", "Element",
                      "Node", "customElements", "getComputedStyle", "requestAnimationFrame",

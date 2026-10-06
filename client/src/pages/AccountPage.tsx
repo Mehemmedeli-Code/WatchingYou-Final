@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input, Field } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/useAuth";
+import { MessagesInbox } from "@/components/MessagesInbox";
+import { LoyaltyPanel } from "@/components/LoyaltyPanel";
 import { auth, post, put, ApiError, type AuthResponse, type RegistrationResponse, type UserProfile } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { afterSignIn, afterSignOut, openServerPage } from "@/lib/platform";
 
 type Mode = "signin" | "register" | "verify" | "forgot" | "reset";
 
@@ -24,7 +27,13 @@ export default function AccountPage() {
   function fail(err: unknown, fallback: string) {
     if (err instanceof ApiError) {
       setFieldErrors(err.fieldErrors ?? {});
-      setMessage({ tone: "error", text: err.message });
+      // A failed sign-in is a bare 401 on purpose — the server will not say which half of the
+      // pair was wrong — so there is no message in it, and "Request failed (401)" is what
+      // people used to see. Say the plain thing instead, and a network failure likewise.
+      const text = err.status === 401 && !err.code
+        ? t("account.badLogin", "E-mail or password is incorrect.")
+        : err.status === 0 || err.status >= 500 ? fallback : err.message;
+      setMessage({ tone: "error", text });
       return err;
     }
     setMessage({ tone: "error", text: fallback });
@@ -34,16 +43,24 @@ export default function AccountPage() {
   async function signIn() {
     setBusy(true); setMessage(null); setFieldErrors({});
     try {
-      auth.apply(await post<AuthResponse>("/api/auth/login", { email, password }));
+      const session = await post<AuthResponse>("/api/auth/login", { email, password });
+      auth.apply(session);
 
       // A full reload, not a client-side redirect: the session cookie has just been set and
       // the Razor shell needs to re-render its nav with the new role. Only same-site paths
       // are followed — an open redirect here would be handed out by every sign-in link.
-      const requested = new URLSearchParams(window.location.search).get("returnUrl");
-      const safe = requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
-      window.location.href = safe;
+      // ASP.NET's cookie challenge spells it "ReturnUrl"; the site's own links, "returnUrl".
+      const search = new URLSearchParams(window.location.search);
+      const requested = search.get("returnUrl") ?? search.get("ReturnUrl");
+      const safe = requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : null;
+
+      // Staff accounts land in the back office, not the public catalogue: the manager and the
+      // cashier sign in to work, and the site is one click away from there if they want it.
+      const roles = session.user.roles;
+      const isStaff = roles.includes("Admin") || roles.includes("Cashier");
+      afterSignIn(safe ?? (isStaff ? "/backoffice" : "/"));
     } catch (err) {
-      const api = fail(err, "Could not sign in.");
+      const api = fail(err, t("account.signInFailed", "Could not sign in. Check your connection and try again."));
       if (api?.code === "email_unconfirmed") {
         setMode("verify");
         setMessage({ tone: "info", text: t("account.verifyLede") });
@@ -64,7 +81,7 @@ export default function AccountPage() {
       setMode("verify");
       setMessage({ tone: result.verificationSent ? "ok" : "error", text: result.message });
     } catch (err) {
-      fail(err, "Could not create the account.");
+      fail(err, t("account.registerFailed", "Could not create the account."));
     } finally {
       setBusy(false);
     }
@@ -76,9 +93,9 @@ export default function AccountPage() {
       await post("/api/auth/verification/confirm", { email, channel: "Email", code });
       setMode("signin");
       setCode("");
-      setMessage({ tone: "ok", text: "E-mail confirmed. You can sign in now." });
+      setMessage({ tone: "ok", text: t("account.emailConfirmed", "E-mail confirmed. You can sign in now.") });
     } catch (err) {
-      fail(err, "That code was not accepted.");
+      fail(err, t("account.codeRejected", "That code was not accepted."));
     } finally {
       setBusy(false);
     }
@@ -93,7 +110,7 @@ export default function AccountPage() {
       // of discovering who has one.
       setMessage({ tone: "ok", text: t("account.resetSent") });
     } catch (err) {
-      fail(err, "The code could not be sent.");
+      fail(err, t("account.codeNotSent", "The code could not be sent."));
     } finally {
       setBusy(false);
     }
@@ -107,7 +124,7 @@ export default function AccountPage() {
       setCode(""); setPassword("");
       setMessage({ tone: "ok", text: t("account.resetDone") });
     } catch (err) {
-      fail(err, "That code was not accepted.");
+      fail(err, t("account.codeRejected", "That code was not accepted."));
     } finally {
       setBusy(false);
     }
@@ -119,7 +136,7 @@ export default function AccountPage() {
       await post("/api/auth/verification/send", { email: email || user?.email, channel });
       setMessage({ tone: "ok", text: t("account.verifyLede") });
     } catch (err) {
-      fail(err, "The code could not be sent.");
+      fail(err, t("account.codeNotSent", "The code could not be sent."));
     } finally {
       setBusy(false);
     }
@@ -127,6 +144,7 @@ export default function AccountPage() {
 
   if (isSignedIn && user) {
     return (
+      <>
       <Section title={t("nav.account")}>
         <Panel className="max-w-xl">
           <p className="font-display text-2xl text-ink">{user.fullName}</p>
@@ -174,7 +192,7 @@ export default function AccountPage() {
                     });
                     auth.patchUser(updated);
                     setMessage({ tone: "ok", text: t("account.saved") });
-                  } catch (err) { fail(err, "Could not save."); }
+                  } catch (err) { fail(err, t("account.saveFailed", "Could not save.")); }
                   finally { setBusy(false); }
                 }}
               >
@@ -198,8 +216,8 @@ export default function AccountPage() {
                     setBusy(true);
                     try {
                       await post("/api/auth/verification/confirm", { email: user.email, channel: "Sms", code });
-                      setMessage({ tone: "ok", text: "Phone confirmed." });
-                    } catch (err) { fail(err, "That code was not accepted."); }
+                      setMessage({ tone: "ok", text: t("account.phoneConfirmed", "Phone confirmed.") });
+                    } catch (err) { fail(err, t("account.codeRejected", "That code was not accepted.")); }
                     finally { setBusy(false); setCode(""); }
                   }}
                 >
@@ -215,13 +233,19 @@ export default function AccountPage() {
             onClick={async () => {
               await post("/api/auth/logout", { refreshToken: localStorage.getItem("rr.refresh") }).catch(() => null);
               signOut();
-              window.location.href = "/";
+              afterSignOut();
             }}
           >
-            Sign out
+            {t("account.signOut", "Sign out")}
           </Button>
         </Panel>
       </Section>
+      <LoyaltyPanel />
+      <MessagesInbox />
+      {/* The watchlist moved to its own page, /favourites, linked from the header. */}
+      <DeleteAccountPanel isAdmin={user.roles.includes("Admin")} />
+      <div className="mx-auto w-full max-w-6xl px-4 pb-12 sm:px-6"><PrivacyLink /></div>
+      </>
     );
   }
 
@@ -366,6 +390,75 @@ export default function AccountPage() {
           </div>
         )}
       </Panel>
+      <PrivacyLink />
     </Section>
+  );
+}
+
+/**
+ * Closing the account. Both app stores require it of any app with sign-up, and it belongs on
+ * the website for the same reason. Two deliberate steps — open the panel, then type the
+ * password — because it cannot be undone. Admin accounts are closed by another admin instead,
+ * so the panel only explains that to them.
+ */
+function DeleteAccountPanel({ isAdmin }: { isAdmin: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function remove() {
+    setBusy(true); setError(null);
+    try {
+      await post("/api/auth/account/delete", { password });
+      auth.clear();
+      afterSignOut();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("account.deleteFailed", "The account could not be deleted."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Section title={t("account.deleteTitle", "Delete account")}>
+      <Panel className="max-w-xl border-bad-bg">
+        {isAdmin ? (
+          <p className="text-sm text-ink-mute">{t("account.deleteAdmin", "Administrator accounts are closed by another administrator on the admin page.")}</p>
+        ) : !open ? (
+          <div className="space-y-3">
+            <p className="text-sm text-ink-mute">
+              {t("account.deleteLede", "Your name, e-mail, phone and profile are erased and you are signed out everywhere. Tickets you bought stop showing in the app. This cannot be undone.")}
+            </p>
+            <Button variant="danger" onClick={() => setOpen(true)}>{t("account.deleteStart", "Delete my account")}</Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <Field label={t("account.deleteConfirm", "Type your password to confirm")}>
+              <Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </Field>
+            {error ? <Notice tone="error">{error}</Notice> : null}
+            <div className="flex flex-wrap gap-2">
+              <Button variant="danger" disabled={busy || !password} onClick={() => void remove()}>
+                {t("account.deleteFinal", "Delete permanently")}
+              </Button>
+              <Button variant="ghost" onClick={() => { setOpen(false); setPassword(""); setError(null); }}>
+                {t("common.cancel", "Cancel")}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Panel>
+    </Section>
+  );
+}
+
+/** The privacy policy, one tap from sign-up and from the account — where both stores expect it. */
+function PrivacyLink() {
+  return (
+    <button type="button" onClick={() => openServerPage("/privacy")}
+      className="mt-4 text-sm text-ink-mute underline-offset-2 hover:text-accent hover:underline">
+      {t("privacy.title", "Privacy policy")}
+    </button>
   );
 }

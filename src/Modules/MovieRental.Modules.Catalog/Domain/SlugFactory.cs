@@ -8,7 +8,23 @@ public static partial class SlugFactory
 {
     public static string Create(string title, int year)
     {
-        var normalized = title.Normalize(NormalizationForm.FormD);
+        // Letters Unicode does not decompose into "base + accent", so the fold below would
+        // drop them entirely: "Şəki" came out as "s-ki". Mapped by hand first. The ampersand is
+        // spelled out, because "dust-copper" reads as a different title from "Dust & Copper".
+        var spelled = new StringBuilder(title.Length + 8);
+        foreach (var ch in title)
+        {
+            spelled.Append(ch switch
+            {
+                'ə' or 'Ə' => "e",
+                'ı' => "i",
+                'İ' => "I",
+                '&' => " and ",
+                _ => ch.ToString()
+            });
+        }
+
+        var normalized = spelled.ToString().Normalize(NormalizationForm.FormD);
         var builder = new StringBuilder(normalized.Length);
 
         foreach (var ch in normalized)

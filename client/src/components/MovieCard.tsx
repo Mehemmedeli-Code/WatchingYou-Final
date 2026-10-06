@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Clapperboard, Info, Play, Star } from "lucide-react";
+import { Clapperboard, Heart, Info, Play, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatMoney, formatRuntime } from "@/lib/format";
@@ -28,9 +28,18 @@ export function MovieCard({
   onRent,
   onOpen,
   busy,
+  saved,
+  onToggleSave,
+  note,
 }: {
   movie: MovieListItem;
   index: number;
+  /** Whether the film is on the customer's watch-later list. */
+  saved?: boolean;
+  /** Present only when someone is signed in — an anonymous heart would have nowhere to go. */
+  onToggleSave?: (movie: MovieListItem) => void;
+  /** A short line above the title, used by recommendations to say why a film is there. */
+  note?: string | null;
   onRent?: (movie: MovieListItem) => void;
   /** Opens the dialog, either on the description or straight into the player. */
   onOpen?: (movie: MovieListItem, mode: "details" | "watch") => void;
@@ -58,10 +67,23 @@ export function MovieCard({
         <span className="absolute left-3 top-3 rounded-full bg-surface/85 px-2.5 py-1 text-xs text-ink-mute">
           {movie.genre}
         </span>
+        {onToggleSave ? (
+          <button
+            type="button"
+            onClick={() => onToggleSave(movie)}
+            aria-pressed={saved ?? false}
+            aria-label={saved ? t("watchlist.remove", "Remove from watchlist") : t("watchlist.add", "Add to watchlist")}
+            title={saved ? t("watchlist.remove", "Remove from watchlist") : t("watchlist.add", "Add to watchlist")}
+            className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-surface/85 text-ink transition hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            <Heart size={16} className={saved ? "text-bad" : "text-ink-mute"} fill={saved ? "currentColor" : "none"} aria-hidden />
+          </button>
+        ) : null}
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div>
+          {note ? <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-accent">{note}</p> : null}
           <h3 className="font-display text-lg leading-snug text-ink">{movie.title}</h3>
           <p className="mt-1 text-xs text-ink-mute">
             {movie.releaseYear} · {formatRuntime(movie.durationMinutes)}
@@ -75,7 +97,7 @@ export function MovieCard({
               {movie.averageRating.toFixed(1)} from {movie.reviewCount} review{movie.reviewCount === 1 ? "" : "s"}
             </span>
           ) : (
-            <span>No reviews yet</span>
+            <span>{t("movie.noReviews", "No reviews yet")}</span>
           )}
         </div>
 

@@ -25,12 +25,16 @@ public sealed record SeatSelection(int Row, int Number);
 
 public sealed record CardDetails(string Number, int ExpiryMonth, int ExpiryYear, string Cvc, string HolderName);
 
+/// <param name="PromoCode">Optional discount code.</param>
+/// <param name="UsePoints">Spend loyalty points on this booking, up to half its price.</param>
 public sealed record CheckoutCommand(
-    Guid ScreeningId, IReadOnlyList<SeatSelection> Seats, CardDetails Card) : ICommand<Result<CheckoutStarted>>;
+    Guid ScreeningId, IReadOnlyList<SeatSelection> Seats, CardDetails Card,
+    string? PromoCode = null, bool UsePoints = false) : ICommand<Result<CheckoutStarted>>;
 
 public sealed record CheckoutStarted(
     Guid PaymentId, string Reference, decimal Amount, string Brand, string Last4,
-    string MaskedEmail, DateTime ExpiresAtUtc);
+    string MaskedEmail, DateTime ExpiresAtUtc,
+    decimal Subtotal = 0, decimal PromoDiscount = 0, int PointsRedeemed = 0, decimal PointsDiscount = 0);
 
 public sealed record TicketSeat(int Row, int Number, string Label, string QrPayload);
 
@@ -51,7 +55,7 @@ internal sealed class CheckoutValidator : AbstractValidator<CheckoutCommand>
 }
 
 internal sealed class CheckoutHandler(
-    CinemaDbContext db, ICurrentUser currentUser, IUserDirectory users, IEmailSender email)
+    CinemaDbContext db, ICurrentUser currentUser, IUserDirectory users, IEmailSender email, CheckoutPricing pricing)
     : ICommandHandler<CheckoutCommand, Result<CheckoutStarted>>
 {
     public async Task<Result<CheckoutStarted>> Handle(CheckoutCommand command, CancellationToken ct)
@@ -82,7 +86,10 @@ internal sealed class CheckoutHandler(
         if (screening.StartsAtUtc <= DateTime.UtcNow)
             return Result.Failure<CheckoutStarted>(Error.Conflict("This screening has already started."));
 
-        await ReleaseExpiredHoldsAsync(screening.Id, ct);
+        if (screening.IsCancelled)
+            return Result.Failure<CheckoutStarted>(Error.Conflict("This screening has been cancelled."));
+
+        await ReleaseExpiredHoldsAsync(db, screening.Id, ct);
 
         foreach (var seat in command.Seats)
         {
@@ -93,6 +100,9 @@ internal sealed class CheckoutHandler(
         var contact = await users.GetContactAsync(userId, ct);
         if (contact is null) return Result.Failure<CheckoutStarted>(Error.Validation("Your account has no e-mail address."));
 
+        var (price, priceError) = await pricing.PriceAsync(screening, command.Seats.Count, command.PromoCode, command.UsePoints, userId, ct);
+        if (priceError is not null) return Result.Failure<CheckoutStarted>(priceError);
+
         var code = Random.Shared.Next(0, 1_000_000).ToString("D6");
         var (hash, salt) = CodeHasher.Create(code);
 
@@ -101,7 +111,13 @@ internal sealed class CheckoutHandler(
             ScreeningId = screening.Id,
             UserId = userId,
             Reference = NewReference(),
-            Amount = Math.Round(screening.SeatPrice * command.Seats.Count, 2),
+            Amount = price.Total,
+            Subtotal = price.Subtotal,
+            PromoCode = price.PromoDiscount > 0 ? Domain.PromoCode.Normalise(command.PromoCode) : null,
+            PromoDiscount = price.PromoDiscount,
+            PointsRedeemed = price.PointsUsed,
+            PointsDiscount = price.PointsDiscount,
+            Provider = PaymentProvider.Card,
             Brand = brand,
             Last4 = last4,
             CardHolder = command.Card.HolderName.Trim(),
@@ -144,13 +160,14 @@ internal sealed class CheckoutHandler(
 
         return Result.Success(new CheckoutStarted(
             payment.Id, payment.Reference, payment.Amount, brand.ToString(), last4,
-            Mask(contact.Email), payment.ExpiresAtUtc));
+            Mask(contact.Email), payment.ExpiresAtUtc,
+            price.Subtotal, price.PromoDiscount, price.PointsUsed, price.PointsDiscount));
     }
 
     /// <summary>Holds that were never confirmed are released. The removal is a soft delete —
     /// the unique index is filtered to [IsDeleted] = 0, so the seat leaves the constraint and
     /// can be sold again, while the abandoned attempt stays on record.</summary>
-    private async Task ReleaseExpiredHoldsAsync(Guid screeningId, CancellationToken ct)
+    internal static async Task ReleaseExpiredHoldsAsync(CinemaDbContext db, Guid screeningId, CancellationToken ct)
     {
         var stale = await db.SeatPayments
             .Include(p => p.Seats)
@@ -171,7 +188,7 @@ internal sealed class CheckoutHandler(
     }
 
     /// <summary>Short, unambiguous, and safe to read aloud at a counter.</summary>
-    private static string NewReference()
+    internal static string NewReference()
     {
         const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   // no I, O, 0 or 1
         var chars = new char[6];
@@ -179,7 +196,7 @@ internal sealed class CheckoutHandler(
         return $"WY-{new string(chars)}";
     }
 
-    private static string Mask(string address)
+    internal static string Mask(string address)
     {
         var at = address.IndexOf('@');
         if (at <= 1) return address;
@@ -189,19 +206,23 @@ internal sealed class CheckoutHandler(
 
 public sealed record ConfirmBookingCommand(Guid PaymentId, string Code) : ICommand<Result<TicketResponse>>;
 
-internal sealed class ConfirmBookingHandler(CinemaDbContext db, ICurrentUser currentUser)
+internal sealed class ConfirmBookingHandler(CinemaDbContext db, ICurrentUser currentUser, BookingFinalizer finalizer)
     : ICommandHandler<ConfirmBookingCommand, Result<TicketResponse>>
 {
     public async Task<Result<TicketResponse>> Handle(ConfirmBookingCommand command, CancellationToken ct)
     {
         var payment = await db.SeatPayments
             .Include(p => p.Seats)
-            .Include(p => p.Screening)
+            .Include(p => p.Screening!).ThenInclude(s => s.HallRoom!).ThenInclude(h => h.Venue)
             .FirstOrDefaultAsync(p => p.Id == command.PaymentId, ct);
 
         if (payment is null) return Result.Failure<TicketResponse>(Error.NotFound("Booking"));
         if (payment.UserId != currentUser.RequireId())
             return Result.Failure<TicketResponse>(Error.Forbidden("This booking belongs to someone else."));
+
+        // A Stripe booking is confirmed by Stripe's answer, not by a code.
+        if (payment.Provider != PaymentProvider.Card && payment.Status != PaymentStatus.Confirmed)
+            return Result.Failure<TicketResponse>(Error.Validation("This booking is paid through Stripe."));
 
         if (payment.Status == PaymentStatus.Confirmed)
             return Result.Success(TicketMapper.ToTicket(payment));
@@ -229,13 +250,7 @@ internal sealed class ConfirmBookingHandler(CinemaDbContext db, ICurrentUser cur
                 : Error.Validation($"Incorrect code. {payment.AttemptsLeft} attempts left."));
         }
 
-        var now = DateTime.UtcNow;
-        payment.Status = PaymentStatus.Confirmed;
-        payment.ConfirmedAtUtc = now;
-        foreach (var seat in payment.Seats) seat.ConfirmedAtUtc = now;
-
-        await db.SaveChangesAsync(ct);
-        return Result.Success(TicketMapper.ToTicket(payment));
+        return Result.Success(await finalizer.ConfirmAsync(payment, ct));
     }
 }
 
@@ -316,7 +331,8 @@ internal static class TicketMapper
 
 public sealed record PendingCheckout(
     Guid PaymentId, Guid ScreeningId, string MovieTitle, string Reference, decimal Amount,
-    string Brand, string Last4, IReadOnlyList<SeatSelection> Seats, DateTime ExpiresAtUtc);
+    string Brand, string Last4, IReadOnlyList<SeatSelection> Seats, DateTime ExpiresAtUtc,
+    string Provider = "Card");
 
 public sealed record GetPendingCheckoutsQuery : IQuery<IReadOnlyList<PendingCheckout>>;
 
@@ -342,7 +358,7 @@ internal sealed class GetPendingCheckoutsHandler(CinemaDbContext db, ICurrentUse
             p.Id, p.ScreeningId, p.Screening?.MovieTitle ?? "", p.Reference, p.Amount,
             p.Brand.ToString(), p.Last4,
             [.. p.Seats.OrderBy(x => x.Row).ThenBy(x => x.Number).Select(x => new SeatSelection(x.Row, x.Number))],
-            p.ExpiresAtUtc))];
+            p.ExpiresAtUtc, p.Provider.ToString()))];
     }
 }
 

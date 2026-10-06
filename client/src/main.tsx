@@ -6,6 +6,10 @@ import { restoreSession } from "@/lib/api";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { ShaderBackground } from "@/components/ui/shader-background";
+import { LiveNotifications } from "@/components/LiveNotifications";
+import { stopRealtime } from "@/lib/realtime";
+import { clearOfflineTickets } from "@/lib/offlineTickets";
+import { auth } from "@/lib/api";
 import HomePage from "@/pages/HomePage";
 import CinemaPage from "@/pages/CinemaPage";
 import RentalsPage from "@/pages/RentalsPage";
@@ -18,6 +22,8 @@ import HumanCraftPage from "@/pages/HumanCraftPage";
 import SecurityPage from "@/pages/SecurityPage";
 import GlobePage from "@/pages/GlobePage";
 import HelpPage from "@/pages/HelpPage";
+import BackOfficeApp from "@/backoffice/BackOfficeApp";
+import FavouritesPage from "@/pages/FavouritesPage";
 
 /**
  * Island mounting. Razor owns routing and the page shell; each page declares which React
@@ -37,6 +43,8 @@ const ISLANDS: Record<string, () => JSX.Element> = {
   security: SecurityPage,
   globe: GlobePage,
   help: HelpPage,
+  backoffice: BackOfficeApp,
+  favourites: FavouritesPage,
 };
 
 async function bootstrap() {
@@ -68,6 +76,20 @@ async function bootstrap() {
   // Refresh first: the page then renders once, already knowing who is signed in.
   await restoreSession().catch(() => null);
 
+  // Site-wide message pop-ups: their own root, appended to <body>, so no Razor page has to
+  // make room for them. Mounted after the session refresh so the socket starts signed in.
+  const liveSlot = document.createElement("div");
+  liveSlot.id = "rr-live";
+  document.body.appendChild(liveSlot);
+  createRoot(liveSlot).render(<ErrorBoundary label="live"><LiveNotifications /></ErrorBoundary>);
+  auth.subscribe((user) => {
+    if (user) return;
+    // Signed out: close the socket and forget anything this device kept for that account.
+    stopRealtime();
+    clearOfflineTickets();
+    navigator.serviceWorker?.controller?.postMessage("clear-pages");
+  });
+
   createRoot(container).render(
     <StrictMode>
       <ErrorBoundary label={name}>
@@ -78,3 +100,11 @@ async function bootstrap() {
 }
 
 void bootstrap();
+
+// Installable app + offline shell. Skipped on the Vite dev server, where a worker caching the
+// bundle would only hide the change you just made.
+if ("serviceWorker" in navigator && window.location.port !== "5173") {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => undefined);
+  });
+}

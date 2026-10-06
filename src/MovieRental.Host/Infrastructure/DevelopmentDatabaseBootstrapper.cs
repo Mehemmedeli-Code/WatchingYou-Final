@@ -30,7 +30,7 @@ public static class DevelopmentDatabaseBootstrapper
     /// a schema that is present but out of date — which fails later, at query time, with a
     /// far less obvious error. Production uses real migrations and never reads this.
     /// </summary>
-    private const string SchemaStamp = "2026-09-20-direct-messages";
+    private const string SchemaStamp = "2026-09-27-backoffice";
 
     public static async Task InitialiseAsync(IServiceProvider services, CancellationToken ct = default)
     {
@@ -71,8 +71,25 @@ public static class DevelopmentDatabaseBootstrapper
             logger.LogInformation("Created tables for schema {Schema}.", schema);
         }
 
+        await AddColumnsInPlaceAsync(scope.ServiceProvider, ct);
         await SeedAsync(scope.ServiceProvider, ct);
         await WriteStampAsync(scope.ServiceProvider, ct);
+    }
+
+    /// <summary>
+    /// Nullable columns added after the last stamp. Bumping the stamp would drop the database
+    /// and every sale, shift and account in it for the sake of a column that can simply be
+    /// added, so purely additive nullable changes go here instead. Idempotent: each ALTER runs
+    /// only when its column is missing, so a fresh database (already built with them) skips it.
+    /// </summary>
+    private static async Task AddColumnsInPlaceAsync(IServiceProvider services, CancellationToken ct)
+    {
+        var cinema = services.GetRequiredService<CinemaDbContext>();
+        await cinema.Database.ExecuteSqlRawAsync("""
+            IF COL_LENGTH('cinema.TicketTypes', 'NameAz') IS NULL ALTER TABLE cinema.TicketTypes ADD NameAz nvarchar(40) NULL;
+            IF COL_LENGTH('cinema.TicketTypes', 'NameRu') IS NULL ALTER TABLE cinema.TicketTypes ADD NameRu nvarchar(40) NULL;
+            IF COL_LENGTH('cinema.TicketTypes', 'NameTr') IS NULL ALTER TABLE cinema.TicketTypes ADD NameTr nvarchar(40) NULL;
+            """, ct);
     }
 
     /// <summary>Applies each module's pending migrations. Contexts are migrated one at a time
@@ -281,6 +298,19 @@ public static class DevelopmentDatabaseBootstrapper
             await identity.SaveChangesAsync(ct);
         }
 
+        // Added after the first three, so a database seeded before the back office existed
+        // still gets its till account without being rebuilt.
+        if (!await identity.Users.AnyAsync(u => u.Email == "kassa@reelandrow.test", ct))
+        {
+            identity.Users.Add(new AppUser
+            {
+                Email = "kassa@reelandrow.test", FullName = "Leyla Karimova",
+                PasswordHash = hasher.Hash("Kassa1234"), IsEmailConfirmed = true,
+                Roles = AppRoles.Cashier
+            });
+            await identity.SaveChangesAsync(ct);
+        }
+
         var catalog = services.GetRequiredService<CatalogDbContext>();
         if (!await catalog.Movies.AnyAsync(ct))
         {
@@ -393,6 +423,106 @@ public static class DevelopmentDatabaseBootstrapper
                 }
             }
 
+            await cinema.SaveChangesAsync(ct);
+        }
+
+        // Two codes to try the checkout with. Real ones are made on the admin page.
+        if (!await cinema.PromoCodes.AnyAsync(ct))
+        {
+            cinema.PromoCodes.AddRange(
+                new PromoCode { Code = "WELCOME10", Description = "10% off — demo code", PercentOff = 10m },
+                new PromoCode { Code = "KINO5", Description = "5 AZN off bookings of 15 AZN or more", AmountOff = 5m, MinSubtotal = 15m, MaxRedemptions = 100 });
+            await cinema.SaveChangesAsync(ct);
+        }
+
+        // Back office: the price bands at the box office, a bar menu to sell from, and
+        // distributor terms for the films on the schedule.
+        if (!await cinema.TicketTypes.AnyAsync(ct))
+        {
+            cinema.TicketTypes.AddRange(
+                new TicketType { Name = "Adult", PercentOfBase = 100m, SortOrder = 1 },
+                new TicketType { Name = "Student", PercentOfBase = 80m, SortOrder = 2 },
+                new TicketType { Name = "Child", PercentOfBase = 60m, SortOrder = 3 },
+                new TicketType { Name = "Senior", PercentOfBase = 70m, SortOrder = 4 });
+            await cinema.SaveChangesAsync(ct);
+
+            // The seeded schedule starts tomorrow, which leaves the box office nothing to sell
+            // on the day you first open it. A few shows later today fix that.
+            var baku = TimeSpan.FromHours(4);
+            var todayLocal = (DateTime.UtcNow + baku).Date;
+            var rooms = await cinema.Halls.AsNoTracking().OrderBy(h => h.Name).Take(3).ToListAsync(ct);
+            var films = await catalog.Movies.AsNoTracking().OrderBy(m => m.Title).Take(3).ToListAsync(ct);
+            var evening = new[] { 19, 21, 23 };
+
+            for (var i = 0; i < Math.Min(rooms.Count, films.Count); i++)
+            {
+                var startUtc = DateTime.SpecifyKind(todayLocal.AddHours(evening[i]) - baku, DateTimeKind.Utc);
+                if (startUtc <= DateTime.UtcNow.AddMinutes(30)) startUtc = DateTime.UtcNow.AddHours(1 + i);
+
+                cinema.Screenings.Add(new Screening
+                {
+                    MovieId = films[i].Id, MovieTitle = films[i].Title,
+                    HallId = rooms[i].Id, Hall = rooms[i].Name, StartsAtUtc = startUtc,
+                    Rows = rooms[i].Rows, SeatsPerRow = rooms[i].SeatsPerRow,
+                    SeatPrice = 10m, AudioLanguage = "az", SubtitleLanguage = "en"
+                });
+            }
+            await cinema.SaveChangesAsync(ct);
+        }
+
+        // The standard tariffs in the other three languages. Only fills a translation nobody has
+        // entered yet, so a name the manager changed on the Prices page is never overwritten.
+        var standardNames = new Dictionary<string, (string Az, string Ru, string Tr)>
+        {
+            ["Adult"] = ("Böyük", "Взрослый", "Tam"),
+            ["Student"] = ("Tələbə", "Студенческий", "Öğrenci"),
+            ["Child"] = ("Uşaq", "Детский", "Çocuk"),
+            ["Senior"] = ("Təqaüdçü", "Пенсионный", "Emekli"),
+        };
+        var untranslated = await cinema.TicketTypes
+            .Where(t => standardNames.Keys.Contains(t.Name) && (t.NameAz == null || t.NameRu == null || t.NameTr == null))
+            .ToListAsync(ct);
+        foreach (var type in untranslated)
+        {
+            var names = standardNames[type.Name];
+            type.NameAz ??= names.Az;
+            type.NameRu ??= names.Ru;
+            type.NameTr ??= names.Tr;
+        }
+        if (untranslated.Count > 0) await cinema.SaveChangesAsync(ct);
+
+        if (!await cinema.ConcessionItems.AnyAsync(ct))
+        {
+            cinema.ConcessionItems.AddRange(
+                new ConcessionItem { Name = "Popcorn S", Category = ConcessionCategory.Popcorn, Price = 4m, CostPrice = 0.9m, Stock = 200 },
+                new ConcessionItem { Name = "Popcorn M", Category = ConcessionCategory.Popcorn, Price = 6m, CostPrice = 1.3m, Stock = 200 },
+                new ConcessionItem { Name = "Popcorn L", Category = ConcessionCategory.Popcorn, Price = 8m, CostPrice = 1.7m, Stock = 150 },
+                new ConcessionItem { Name = "Caramel popcorn", Category = ConcessionCategory.Popcorn, Price = 7m, CostPrice = 1.9m, Stock = 80 },
+                new ConcessionItem { Name = "Coca-Cola 0.5", Category = ConcessionCategory.Drinks, Price = 3m, CostPrice = 1.1m, Stock = 240 },
+                new ConcessionItem { Name = "Fanta 0.5", Category = ConcessionCategory.Drinks, Price = 3m, CostPrice = 1.1m, Stock = 120 },
+                new ConcessionItem { Name = "Water 0.5", Category = ConcessionCategory.Drinks, Price = 1.5m, CostPrice = 0.35m, Stock = 300 },
+                new ConcessionItem { Name = "Iced tea", Category = ConcessionCategory.Drinks, Price = 3.5m, CostPrice = 1.2m, Stock = 8, LowStockThreshold = 12 },
+                new ConcessionItem { Name = "Nachos", Category = ConcessionCategory.Snacks, Price = 5.5m, CostPrice = 1.8m, Stock = 60 },
+                new ConcessionItem { Name = "Hot dog", Category = ConcessionCategory.Snacks, Price = 4.5m, CostPrice = 1.6m, Stock = 45 },
+                new ConcessionItem { Name = "M&M's", Category = ConcessionCategory.Snacks, Price = 3m, CostPrice = 1.4m, Stock = 5, LowStockThreshold = 10 },
+                new ConcessionItem { Name = "Combo: Popcorn M + Cola", Category = ConcessionCategory.Combo, Price = 8m, CostPrice = 2.4m, Stock = 150 },
+                new ConcessionItem { Name = "Combo for two: Popcorn L + 2 Cola", Category = ConcessionCategory.Combo, Price = 12m, CostPrice = 3.9m, Stock = 100 });
+            await cinema.SaveChangesAsync(ct);
+        }
+
+        if (!await cinema.FilmDeals.AnyAsync(ct))
+        {
+            var distributors = new[] { ("Caspian Film Distribution", 50m), ("Kino Film Baku", 55m), ("Nord Pictures", 45m) };
+            var playing = await cinema.Screenings.AsNoTracking()
+                .Select(s => new { s.MovieId, s.MovieTitle }).Distinct().ToListAsync(ct);
+            foreach (var (film, index) in playing.OrderBy(f => f.MovieTitle).Select((f, i) => (f, i)))
+            {
+                var (name, share) = distributors[index % distributors.Length];
+                cinema.FilmDeals.Add(new FilmDeal
+                {
+                    MovieId = film.MovieId, MovieTitle = film.MovieTitle, Distributor = name, SharePercent = share
+                });
+            }
             await cinema.SaveChangesAsync(ct);
         }
     }

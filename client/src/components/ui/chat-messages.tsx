@@ -109,7 +109,16 @@ export function ChatMessages({
   subtitle,
   placeholder,
   className,
+  otherTyping,
+  onTyping,
+  live,
 }: {
+  /** Name of whoever is typing on the other end, shown under the last message. */
+  otherTyping?: string | null;
+  /** Called as the reader types; the caller decides how often to tell the other side. */
+  onTyping?: () => void;
+  /** True while the real-time connection is up, so the header can say replies arrive live. */
+  live?: boolean;
   messages: ChatMessage[];
   pending: boolean;
   onSend: (text: string) => void;
@@ -129,7 +138,7 @@ export function ChatMessages({
     else list.scrollTop = list.scrollHeight;
   }, []);
 
-  useEffect(() => { scrollToBottom(); }, [messages.length, pending, scrollToBottom]);
+  useEffect(() => { scrollToBottom(); }, [messages.length, pending, otherTyping, scrollToBottom]);
 
   function send() {
     const text = value.trim();
@@ -154,7 +163,16 @@ export function ChatMessages({
           </div>
           <div>
             <h3 className="text-sm font-medium text-ink">{title}</h3>
-            <p className="text-xs text-ink-mute">{subtitle}</p>
+            <p className="flex items-center gap-1.5 text-xs text-ink-mute">
+              {live ? (
+                <span className="inline-flex items-center gap-1 text-good" title={t("chat.liveHint", "Replies arrive instantly")}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-good" aria-hidden />
+                  {t("chat.live", "Live")}
+                  <span aria-hidden>·</span>
+                </span>
+              ) : null}
+              {subtitle}
+            </p>
           </div>
         </div>
 
@@ -178,6 +196,11 @@ export function ChatMessages({
       >
         {messages.map((message) => <MessageBubble key={message.id} message={message} />)}
         <AnimatePresence>{pending ? <TypingIndicator /> : null}</AnimatePresence>
+        {otherTyping && !pending ? (
+          <p className="text-xs italic text-ink-mute" aria-live="polite">
+            {otherTyping} {t("chat.typing", "is typing…")}
+          </p>
+        ) : null}
       </div>
 
       <div className="border-t border-line p-3">
@@ -185,7 +208,7 @@ export function ChatMessages({
           <input
             type="text"
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => { setValue(e.target.value); if (e.target.value) onTyping?.(); }}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
             aria-label={placeholder}

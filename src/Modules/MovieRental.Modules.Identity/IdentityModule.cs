@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -29,6 +30,10 @@ public sealed class IdentityModule : IModule
         services.AddScoped<IUserDirectory, UserDirectory>();
         services.AddScoped<IVerificationService, VerificationService>();
         services.AddScoped<IAuditLog, AuditLog>();
+
+        // Real-time chat. The hub lives here because Identity owns both conversations.
+        services.AddSignalR();
+        services.AddSingleton<IRealtimeNotifier, SignalRNotifier>();
 
         RegisterTransports(services, configuration);
     }
@@ -76,5 +81,8 @@ public sealed class IdentityModule : IModule
         DirectMessageEndpoints.Map(endpoints);
         UpdateProfileEndpoint.Map(endpoints);
         CurrentUserProfileEndpoint.Map(endpoints);
+        DeleteAccountEndpoint.Map(endpoints);
+
+        endpoints.MapHub<ChatHub>(ChatHub.Path).RequireAuthorization();
     }
 }
