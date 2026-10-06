@@ -11,6 +11,7 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
 
     public DbSet<Movie> Movies => Set<Movie>();
     public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<WatchlistItem> Watchlist => Set<WatchlistItem>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -47,6 +48,19 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
             e.Property(x => x.Comment).HasMaxLength(2000);
             e.ToTable(t => t.HasCheckConstraint("CK_Review_Stars", "[Stars] BETWEEN 1 AND 5"));
             e.HasIndex(x => new { x.MovieId, x.UserId }).IsUnique().HasFilter("[IsDeleted] = 0");
+        });
+
+        b.Entity<WatchlistItem>(e =>
+        {
+            e.ToTable("WatchlistItems");
+            e.HasKey(x => x.Id);
+            // One entry per customer per film; also the index the "is it saved?" lookup uses.
+            e.HasIndex(x => new { x.UserId, x.MovieId }).IsUnique();
+            e.HasOne(x => x.Movie).WithMany().HasForeignKey(x => x.MovieId).OnDelete(DeleteBehavior.Cascade);
+            // A film taken off the catalogue (soft-deleted) leaves the watchlist with it. Without
+            // this, its entry was hidden from the list but still counted — towards the 100-film
+            // limit, and in the "saved" hearts the catalogue lights up.
+            e.HasQueryFilter(x => !x.Movie!.IsDeleted);
         });
 
         base.OnModelCreating(b);

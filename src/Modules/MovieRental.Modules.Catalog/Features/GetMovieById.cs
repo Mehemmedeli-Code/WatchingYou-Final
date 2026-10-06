@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Catalog.Persistence;
 using MovieRental.SharedKernel.Cqrs;
+using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Catalog.Features;
 
@@ -35,5 +37,5 @@ public static class GetMovieByIdEndpoint
                 var movie = await dispatcher.Ask(new GetMovieByIdQuery(id), ct);
                 return movie is null ? TypedResults.NotFound() : TypedResults.Ok(movie);
             })
-        .WithName("GetMovieById").WithTags("Catalog").AllowAnonymous();
+        .WithName("GetMovieById").WithTags("Catalog").AllowAnonymous().CacheOutput(AppPolicies.CatalogueCache);
 }
