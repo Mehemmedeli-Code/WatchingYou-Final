@@ -72,6 +72,13 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
                 .GroupBy(e => e.PropertyName)
                 .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray())),
 
+        // Thrown by ASP.NET itself before any handler runs: a body that is not valid JSON, a
+        // query value that cannot be read as the type the endpoint declares (?from=yesterday
+        // for a date), a missing required parameter. It carries the right status, usually 400
+        // — falling through to the catch-all below made every one of those a 500.
+        BadHttpRequestException bad => (bad.StatusCode, "The request could not be read. Check the body and the parameters.", null),
+        JsonException => (StatusCodes.Status400BadRequest, "The body is not valid JSON.", null),
+
         UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Sign in to continue.", null),
         KeyNotFoundException => (StatusCodes.Status404NotFound, "That item no longer exists.", null),
         DbUpdateConcurrencyException => (StatusCodes.Status409Conflict, "Someone else changed this first. Reload and retry.", null),

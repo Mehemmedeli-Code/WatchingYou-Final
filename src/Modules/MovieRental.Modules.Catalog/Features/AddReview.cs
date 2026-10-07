@@ -62,13 +62,18 @@ internal sealed class AddReviewHandler(CatalogDbContext db, ICurrentUser current
                 Stars = command.Stars,
                 Comment = command.Comment.Trim()
             };
-            movie.Reviews.Add(review);
+            // Added through the DbSet, not through movie.Reviews. The review's Guid key is set
+            // in C#, and EF assumes an entity found on a tracked parent's collection *with* a
+            // key already exists — so it sent an UPDATE for a row that was never inserted, and
+            // every first review failed with a concurrency error.
+            db.Reviews.Add(review);
         }
 
         // Recompute in the same transaction as the write, so the denormalised average is
         // never observably out of step with the reviews it summarises.
-        movie.ReviewCount = movie.Reviews.Count;
-        movie.AverageRating = Math.Round(movie.Reviews.Average(r => (double)r.Stars), 2);
+        List<Review> all = movie.Reviews.Contains(review) ? movie.Reviews : [.. movie.Reviews, review];
+        movie.ReviewCount = all.Count;
+        movie.AverageRating = Math.Round(all.Average(r => (double)r.Stars), 2);
 
         await db.SaveChangesAsync(ct);
         return Result.Success(new ReviewResponse(review.Id, review.UserId, review.AuthorName,
@@ -80,11 +85,15 @@ public static class AddReviewEndpoint
 {
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPost("/api/movies/{id:guid}/reviews",
-            async Task<Results<Ok<ReviewResponse>, NotFound<Error>>> (
+            async Task<Results<Ok<ReviewResponse>, NotFound<Error>, JsonHttpResult<Error>>> (
                 Guid id, AddReviewCommand body, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var result = await dispatcher.Send(body with { MovieId = id }, ct);
-                return result.IsSuccess ? TypedResults.Ok(result.Value) : TypedResults.NotFound(result.Error);
+                if (result.IsSuccess) return TypedResults.Ok(result.Value);
+                // "Rent it first" is a refusal, not a missing film: 403, so the client can say so.
+                return result.Error.Code == "forbidden"
+                    ? TypedResults.Json(result.Error, statusCode: StatusCodes.Status403Forbidden)
+                    : TypedResults.NotFound(result.Error);
             })
         .WithName("AddReview").WithTags("Catalog").RequireAuthorization();
 }

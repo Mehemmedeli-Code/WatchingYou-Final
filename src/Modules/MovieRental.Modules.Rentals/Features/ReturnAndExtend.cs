@@ -76,14 +76,19 @@ public static class ReturnAndExtendEndpoints
     public static void Map(IEndpointRouteBuilder app)
     {
         app.MapPut("/api/rentals/{id:guid}/extend",
-            async Task<Results<Ok<RentalResponse>, Conflict<Error>, NotFound<Error>>> (
+            async Task<Results<Ok<RentalResponse>, BadRequest<Error>, Conflict<Error>, NotFound<Error>>> (
                 Guid id, ExtendRentalCommand body, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var result = await dispatcher.Send(body with { RentalId = id }, ct);
                 if (result.IsSuccess) return TypedResults.Ok(result.Value);
-                return result.Error.Code == "not_found"
-                    ? TypedResults.NotFound(result.Error)
-                    : TypedResults.Conflict(result.Error);
+                // A bad number of days is the caller's input (400); a closed or maxed-out rental
+                // is the state of things (409). Both used to come back as 409.
+                return result.Error.Code switch
+                {
+                    "not_found" => TypedResults.NotFound(result.Error),
+                    "validation" => TypedResults.BadRequest(result.Error),
+                    _ => TypedResults.Conflict(result.Error)
+                };
             })
         .WithName("PutRentalExtensionWithId").WithTags("Rentals").RequireAuthorization();
 
