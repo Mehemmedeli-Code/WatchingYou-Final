@@ -165,17 +165,15 @@ export async function part1(ctx) {
   setSection("Rentals and reviews");
   r = await call("POST", `/api/movies/${ctx.movieId}/reviews`, { token: ctx.token, body: { movieId: ctx.movieId, stars: 5, comment: "APITEST" } });
   check("review before renting is refused", "POST", "/api/movies/{id}/reviews", r, 403);
-  r = await call("POST", "/api/rentals", { token: ctx.token, body: { movieId: ctx.movieId, days: 0 } }); check("rent for 0 days", "POST", "/api/rentals", r, 400);
+  // Since Watching PRO: always 3 days for $0.50, whatever "days" says.
   r = await call("POST", "/api/rentals", { token: ctx.token, body: { movieId: ctx.movieId, days: 3 } }); check("rent", "POST", "/api/rentals", r, [200, 201]);
   ctx.rentalId = r.json?.id;
-  row = one(`SELECT r.MovieId, DATEDIFF(hour, r.RentedAtUtc, r.DueAtUtc) AS hours, r.ReturnedAtUtc, m.AvailableCopies FROM rentals.Rentals r JOIN catalog.Movies m ON m.Id = r.MovieId WHERE r.Id = ${q(ctx.rentalId)}`);
-  assertDb("rentals.Rentals row for 3 days; a copy taken off the shelf (5 → 4)", row && row.hours === 72 && row.AvailableCopies === 4 && row.ReturnedAtUtc === null, JSON.stringify(row));
+  row = one(`SELECT r.MovieId, DATEDIFF(hour, r.RentedAtUtc, r.DueAtUtc) AS hours, r.ReturnedAtUtc, r.BasePrice, m.AvailableCopies FROM rentals.Rentals r JOIN catalog.Movies m ON m.Id = r.MovieId WHERE r.Id = ${q(ctx.rentalId)}`);
+  assertDb("rentals.Rentals row: 3 days, $0.50; a copy taken off the shelf (5 → 4)", row && row.hours === 72 && row.BasePrice === 0.5 && row.AvailableCopies === 4 && row.ReturnedAtUtc === null, JSON.stringify(row));
   r = await call("POST", "/api/rentals", { token: ctx.token, body: { movieId: ctx.movieId, days: 3 } }); check("rent the same film twice", "POST", "/api/rentals", r, 409);
-  r = await call("PUT", `/api/rentals/${ctx.rentalId}/extend`, { token: ctx.token, body: { rentalId: ctx.rentalId, extraDays: 2 } });
-  check("extend rental", "PUT", "/api/rentals/{id}/extend", r, 200);
-  assertDb("rentals.Rentals due date +2 days", one(`SELECT DATEDIFF(hour, RentedAtUtc, DueAtUtc) AS h FROM rentals.Rentals WHERE Id = ${q(ctx.rentalId)}`)?.h === 120);
-  r = await call("PUT", `/api/rentals/${ctx.rentalId}/extend`, { token: ctx.token, body: { rentalId: ctx.rentalId, extraDays: 99 } });
-  check("extend by too many days", "PUT", "/api/rentals/{id}/extend", r, 400);
+  r = await call("PUT", `/api/rentals/${ctx.rentalId}/extend`, { token: ctx.token, body: {} });
+  check("+3 days is refused while the paid 3 are running", "PUT", "/api/rentals/{id}/extend", r, 409);
+  assertDb("due date unchanged by the refused extension", one(`SELECT DATEDIFF(hour, RentedAtUtc, DueAtUtc) AS h FROM rentals.Rentals WHERE Id = ${q(ctx.rentalId)}`)?.h === 72);
   r = await call("PUT", `/api/rentals/${ctx.rentalId}/extend`, { token: ctx.customer, body: { rentalId: ctx.rentalId, extraDays: 1 } });
   check("someone else cannot extend my rental", "PUT", "/api/rentals/{id}/extend", r, [403, 404]);
   r = await call("GET", "/api/rentals/mine", { token: ctx.token }); check("my rentals", "GET", "/api/rentals/mine", r, 200);
