@@ -14,8 +14,11 @@ type Mode = "signin" | "register" | "verify" | "forgot" | "reset";
 
 export default function AccountPage() {
   const { user, isSignedIn, signOut } = useAuth();
-  const [mode, setMode] = useState<Mode>("signin");
-  const [email, setEmail] = useState("");
+  // The welcome page's "Get started" arrives as ?mode=register&email=… — open the form it
+  // promised, with the address already typed.
+  const [mode, setMode] = useState<Mode>(() =>
+    new URLSearchParams(window.location.search).get("mode") === "register" ? "register" : "signin");
+  const [email, setEmail] = useState(() => new URLSearchParams(window.location.search).get("email") ?? "");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -30,7 +33,11 @@ export default function AccountPage() {
       // A failed sign-in is a bare 401 on purpose — the server will not say which half of the
       // pair was wrong — so there is no message in it, and "Request failed (401)" is what
       // people used to see. Say the plain thing instead, and a network failure likewise.
-      const text = err.status === 401 && !err.code
+      // The resend cooldown comes back in English from the server; say it in the page's language.
+      const wait = /Wait (\d+) more seconds/i.exec(err.message ?? "");
+      const text = wait
+        ? t("account.waitSeconds", "Wait {s} more seconds before asking for another code.").replace("{s}", wait[1])
+        : err.status === 401 && !err.code
         ? t("account.badLogin", "E-mail or password is incorrect.")
         : err.status === 0 || err.status >= 500 ? fallback : err.message;
       setMessage({ tone: "error", text });
@@ -58,7 +65,10 @@ export default function AccountPage() {
       // cashier sign in to work, and the site is one click away from there if they want it.
       const roles = session.user.roles;
       const isStaff = roles.includes("Admin") || roles.includes("Cashier");
-      afterSignIn(safe ?? (isStaff ? "/backoffice" : "/"));
+      // Chose Watching PRO on the welcome page: the PRO page is the next step. Otherwise the
+      // free account goes straight where it was heading.
+      const wantsPro = search.get("plan") === "pro";
+      afterSignIn(wantsPro ? "/pro" : safe ?? (isStaff ? "/backoffice" : "/"));
     } catch (err) {
       const api = fail(err, t("account.signInFailed", "Could not sign in. Check your connection and try again."));
       if (api?.code === "email_unconfirmed") {

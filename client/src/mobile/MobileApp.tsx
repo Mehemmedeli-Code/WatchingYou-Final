@@ -36,8 +36,12 @@ export default function MobileApp() {
   const [route, setRoute] = useState<Route>(readRoute);
   // Door staff (Security) and admins get a fourth tab for scanning tickets at the entrance;
   // the check-in API enforces the same rule, so hiding it is presentation, not security.
-  const { isSecurity } = useAuth();
-  const current: Route = route === "door" && !isSecurity ? "films" : route;
+  const { isSecurity, isSignedIn } = useAuth();
+  // Nobody signed in, and no saved sign-in waiting for a signal to be confirmed: the app is
+  // just its sign-in screen until they are in. A saved session counts as in — offline at the
+  // cinema door, the tickets tab must still open.
+  const signedOut = !isSignedIn && !auth.hasSavedSession();
+  const current: Route = signedOut ? "account" : route === "door" && !isSecurity ? "films" : route;
 
   useEffect(() => {
     const onHash = () => { setRoute(readRoute()); window.scrollTo(0, 0); };
@@ -122,7 +126,7 @@ export default function MobileApp() {
         </div>
       </header>
 
-      <main className="flex-1 pb-24">
+      <main className={cn("flex-1", signedOut ? "pb-8" : "pb-24")}>
         <ErrorBoundary label={current}>
           {current === "films" ? <CinemaPage hideTickets /> : null}
           {current === "tickets" ? <TicketsTab onSignIn={() => go("account")} /> : null}
@@ -131,6 +135,7 @@ export default function MobileApp() {
         </ErrorBoundary>
       </main>
 
+      {signedOut ? null : (
       <nav
         aria-label="WatchingYou"
         className={cn("fixed inset-x-0 bottom-0 z-30 grid border-t border-line bg-surface-raised/95 backdrop-blur", isSecurity ? "grid-cols-4" : "grid-cols-3")}
@@ -141,6 +146,7 @@ export default function MobileApp() {
         {isSecurity ? <Tab active={current === "door"} onClick={() => go("door")} icon={<ScanLine size={22} />} label={t("door.title", "Door")} /> : null}
         <Tab active={current === "account"} onClick={() => go("account")} icon={<UserRound size={22} />} label={t("nav.account", "Account")} />
       </nav>
+      )}
     </div>
   );
 }

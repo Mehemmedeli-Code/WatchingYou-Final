@@ -66,6 +66,35 @@ interface SeatMap {
 
 const seatKey = (row: number, number: number) => `${row}:${number}`;
 
+/** Where the visitor was in a booking: the show, the seats, and whether they had moved on
+ *  to paying. Kept so that a trip to another page (or a language switch, which reloads)
+ *  brings them back to the same place. Nothing here is secret — no card data, ever. */
+interface BookingDraft { screeningId: string; seats: string[]; atCheckout: boolean; savedAt: number }
+const DRAFT_KEY = "wy.cinema.draft";
+const DRAFT_TTL_MS = 30 * 60_000;
+
+function readDraft(): BookingDraft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const draft = JSON.parse(raw) as BookingDraft;
+    if (!draft.screeningId || !Array.isArray(draft.seats) || Date.now() - draft.savedAt > DRAFT_TTL_MS) {
+      localStorage.removeItem(DRAFT_KEY);
+      return null;
+    }
+    return draft;
+  } catch {
+    return null;
+  }
+}
+
+function writeDraft(draft: BookingDraft) {
+  try {
+    if (draft.seats.length > 0) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    else localStorage.removeItem(DRAFT_KEY);
+  } catch { /* storage blocked: the booking still works, it just is not remembered */ }
+}
+
 /** The pending record carries everything the flow needs except the masked address, which
  *  is only used as a reminder of where the code went. */
 const toCheckoutStarted = (checkout: PendingCheckout): CheckoutStarted => ({
@@ -94,6 +123,10 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
   const [resuming, setResuming] = useState<PendingCheckout | null>(null);
   const [preview, setPreview] = useState<PreviewSeat[] | null>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
+  // Read once; consumed by the first seat map of the same show, so later changes of show
+  // start empty as before.
+  const draftRef = useRef<BookingDraft | null>(readDraft());
+  const [draftSettled, setDraftSettled] = useState(false);
   // Set when the schedule could not be fetched at all — no signal, server down. Kept apart
   // from "fetched, and empty": the two need different words and only one needs a retry.
   const [loadFailed, setLoadFailed] = useState(false);
@@ -110,7 +143,8 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
         setScreenings(list);
 
         if (!requested) {
-          setActiveId(list[0]?.id ?? null);
+          const draftShow = draftRef.current?.screeningId;
+          setActiveId(draftShow && list.some((item) => item.id === draftShow) ? draftShow : list[0]?.id ?? null);
           return;
         }
 
@@ -134,11 +168,42 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
   const loadMap = useCallback(async (screeningId: string) => {
     setPicked(new Set());
     try {
-      setMap(await get<SeatMap>(`/api/screenings/${screeningId}/seats`));
+      const loaded = await get<SeatMap>(`/api/screenings/${screeningId}/seats`);
+      setMap(loaded);
+
+      // Back to an unfinished booking: the seats return, minus any somebody else bought in
+      // the meantime, and the payment step reopens if that is where the visitor was.
+      const draft = draftRef.current;
+      if (draft && draft.screeningId === screeningId) {
+        draftRef.current = null;
+        const free = new Set(loaded.seats.filter((seat) => !seat.isTaken).map((seat) => seatKey(seat.row, seat.number)));
+        const still = draft.seats.filter((key) => free.has(key));
+        const started = new Date(loaded.startsAtUtc).getTime() <= Date.now();
+        if (!started && still.length > 0) {
+          setPicked(new Set(still));
+          if (still.length < draft.seats.length) {
+            setMessage({ tone: "info", text: t("cinema.someTaken", "Some of your seats were sold meanwhile — check the selection.") });
+          } else if (draft.atCheckout) {
+            setCheckoutSeats(still.map((key) => {
+              const [row, number] = key.split(":").map(Number);
+              return { row, number };
+            }));
+          }
+        }
+      }
     } catch {
       setMessage({ tone: "error", text: t("error.seatMap") });
+    } finally {
+      setDraftSettled(true);
     }
   }, []);
+
+  // Remember where the booking is whenever it changes — but only after the saved one has had
+  // its chance to come back, or the empty first render would wipe it.
+  useEffect(() => {
+    if (!draftSettled || !map) return;
+    writeDraft({ screeningId: map.screeningId, seats: [...picked], atCheckout: checkoutSeats !== null, savedAt: Date.now() });
+  }, [draftSettled, map, picked, checkoutSeats]);
 
   const [offlineSince, setOfflineSince] = useState<string | null>(null);
 
@@ -168,6 +233,24 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
   }, [isSignedIn]);
 
   useEffect(() => { void loadTickets(); }, [loadTickets]);
+
+  // Left the page while waiting for the e-mailed code: open that step again by itself
+  // rather than making the visitor find the "resume" button. Once per visit.
+  const autoResumed = useRef(false);
+  useEffect(() => {
+    if (autoResumed.current || resuming || pending.length === 0) return;
+    const mine = pending.find((checkout) => {
+      if (checkout.provider === "Stripe") return false;
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(`wy.checkout.${checkout.screeningId}`) ?? "null");
+        return saved?.paymentId === checkout.paymentId;
+      } catch { return false; }
+    });
+    if (!mine) return;
+    autoResumed.current = true;
+    setActiveId(mine.screeningId);
+    setResuming(mine);
+  }, [pending, resuming]);
 
   // In the phone app: coming back from Stripe's page (or from the background). Stripe's return
   // address is the website, which the app never sees, so the app asks instead — for each

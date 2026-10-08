@@ -317,11 +317,14 @@ export function ShaderBackground({ className }: { className?: string }) {
     const start = performance.now();
 
     const resizeCanvas = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // A soft, blurred field: rendering it at half resolution and letting the browser scale it
+      // up looks the same, and costs a quarter of the GPU work of full resolution — the page
+      // stays responsive on laptops with integrated graphics.
+      const dpr = 0.5;
       const rawWidth = Math.max(1, Math.round(bounds.width * dpr));
       const rawHeight = Math.max(1, Math.round(bounds.height * dpr));
-      // Cap total pixels: a 4K screen at DPR 2 is otherwise 33 megapixels per frame.
-      const pixelScale = Math.min(1, Math.sqrt(2_000_000 / Math.max(1, rawWidth * rawHeight)));
+      // And never more than ~0.6 megapixels per frame, whatever the screen.
+      const pixelScale = Math.min(1, Math.sqrt(600_000 / Math.max(1, rawWidth * rawHeight)));
       const width = Math.max(1, Math.round(rawWidth * pixelScale));
       const height = Math.max(1, Math.round(rawHeight * pixelScale));
       if (canvas.width !== width || canvas.height !== height) {
@@ -335,12 +338,16 @@ export function ShaderBackground({ className }: { className?: string }) {
       if (!disposed && visible && inView && frame === 0) frame = requestAnimationFrame(render);
     }
 
+    // A slow drift reads the same at 30 frames a second, at half the cost of 60.
+    let lastDrawn = 0;
     function render(now: number) {
       frame = 0;
       // `context` is re-checked rather than asserted: render is a hoisted declaration, so
       // the compiler cannot carry the earlier narrowing in here, and an assertion would
       // just hide that rather than state it.
       if (disposed || !visible || !inView || !context) return;
+      if (timeScale !== 0 && now - lastDrawn < 33) { requestRender(); return; }
+      lastDrawn = now;
 
       resizeCanvas();
       context.uniform4f(uniform.scene, canvas!.width, canvas!.height,

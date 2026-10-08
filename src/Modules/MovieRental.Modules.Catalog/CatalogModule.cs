@@ -28,6 +28,7 @@ public sealed class CatalogModule : IModule
     {
         GetMoviesEndpoints.Map(endpoints);
         GetMovieByIdEndpoint.Map(endpoints);
+        WatchMovieEndpoint.Map(endpoints);
         ManageMoviesEndpoints.Map(endpoints);
         AddReviewEndpoint.Map(endpoints);
         CompareTasteEndpoint.Map(endpoints);

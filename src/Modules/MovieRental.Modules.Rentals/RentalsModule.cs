@@ -33,5 +33,6 @@ public sealed class RentalsModule : IModule
         ReturnAndExtendEndpoints.Map(endpoints);
         RentalHistoryEndpoints.Map(endpoints);
         ExportRentalsEndpoint.Map(endpoints);
+        WatchingProEndpoints.Map(endpoints);
     }
 }

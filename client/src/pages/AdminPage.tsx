@@ -18,6 +18,7 @@ import { AuditTrail } from "@/components/AuditTrail";
 import { statusTone, type ShortFilmDetail } from "@/lib/shorts";
 import type { MovieListItem } from "@/components/MovieCard";
 import type { MovieDetail } from "@/components/MovieDialog";
+import { ProSubscribers } from "@/components/ProSubscribers";
 
 interface CinemaTotals {
   revenueThisMonth: number;
@@ -296,7 +297,7 @@ export default function AdminPage() {
               </div>
               <Field label={t("sort.price")}><Input type="number" step="0.25" value={draft.dailyPrice} onChange={(e) => setDraft({ ...draft, dailyPrice: Number(e.target.value) })} /></Field>
               <Field label={t("field.posterUrl")}><Input value={draft.posterUrl} onChange={(e) => setDraft({ ...draft, posterUrl: e.target.value })} /></Field>
-              <Field label={t("field.videoUrl")} hint="YouTube, Vimeo or a direct .mp4"><Input value={draft.videoUrl} onChange={(e) => setDraft({ ...draft, videoUrl: e.target.value })} /></Field>
+              <Field label={t("field.videoUrl")} hint={t("admin.videoHint", "YouTube, Vimeo or a direct .mp4")}><Input value={draft.videoUrl} onChange={(e) => setDraft({ ...draft, videoUrl: e.target.value })} /></Field>
               <Field label={t("field.trailerUrl")}><Input value={draft.trailerUrl} onChange={(e) => setDraft({ ...draft, trailerUrl: e.target.value })} /></Field>
               <Field label={t("field.description")}><Textarea value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></Field>
 
@@ -350,6 +351,10 @@ export default function AdminPage() {
 
       <Section title={t("admin.users")} lede={t("admin.usersLede")}>
         <UserAdmin />
+      </Section>
+
+      <Section title={t("proAdmin.title", "Watching PRO subscribers")} lede={t("proAdmin.lede", "Everyone who has paid for Watching PRO, when it ends and what they paid.")}>
+        <ProSubscribers />
       </Section>
 
       <Section title={t("admin.audit")} lede={t("admin.auditLede")}>
@@ -711,8 +716,16 @@ function EditMovieDialog({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    get<MovieDetail>(`/api/movies/${movie.id}`)
-      .then((found) => {
+    // The public detail no longer carries the video address (it is for renters and PRO
+    // members only), so the editor asks /watch for it — as an admin it is always allowed.
+    // Without this, saving the form would blank the film's video.
+    Promise.all([
+      get<MovieDetail>(`/api/movies/${movie.id}`),
+      // No fallback on failure: better an error than a form that would save an empty video.
+      get<{ videoUrl?: string | null }>(`/api/movies/${movie.id}/watch`),
+    ])
+      .then(([detailFound, watch]) => {
+        const found = { ...detailFound, videoUrl: watch.videoUrl ?? null };
         setDetail(found);
         setDraft({
           title: found.title,

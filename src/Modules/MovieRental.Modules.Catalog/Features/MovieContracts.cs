@@ -12,6 +12,6 @@ public sealed record MovieDetail(
     Guid Id, string Title, string Slug, string Description, string Genre, int ReleaseYear,
     int DurationMinutes, string? Director, string? PosterUrl, string? TrailerUrl, string? VideoUrl,
     decimal DailyPrice, int AvailableCopies, int TotalCopies, double AverageRating, int ReviewCount,
-    IReadOnlyList<ReviewResponse> Reviews);
+    IReadOnlyList<ReviewResponse> Reviews, bool HasVideo = false);
 
 public sealed record ReviewResponse(Guid Id, Guid UserId, string AuthorName, int Stars, string Comment, DateTime CreatedAtUtc);

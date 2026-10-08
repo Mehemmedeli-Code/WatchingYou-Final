@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/Shell";
 import { get } from "@/lib/api";
-import { formatMoney, formatRuntime } from "@/lib/format";
+import { formatRuntime, formatUsd } from "@/lib/format";
+import { useAuth } from "@/components/useAuth";
 import { t, formatWhen } from "@/lib/i18n";
 
 export interface MovieDetail {
@@ -24,6 +25,8 @@ export interface MovieDetail {
   posterUrl?: string | null;
   trailerUrl?: string | null;
   videoUrl?: string | null;
+  /** The address itself comes from /watch, only to a renter or a PRO member. */
+  hasVideo?: boolean;
   dailyPrice: number;
   availableCopies: number;
   totalCopies: number;
@@ -70,7 +73,36 @@ export function MovieDialog({
   onRent?: (id: string) => void;
 }) {
   const [detail, setDetail] = useState<MovieDetail | null>(null);
-  const [playing, setPlaying] = useState(mode === "watch");
+  // Staff (Admin, Security) watch everything and are never offered a rental or PRO.
+  const { isSignedIn, isSecurity: isStaff } = useAuth();
+  const [playing, setPlaying] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  // Why the film would not play: "none" (rent or PRO), "awaitingDecision" (+3 days or return),
+  // "signedOut", or null when there is nothing to explain.
+  const [blocked, setBlocked] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
+
+  const watch = useCallback(async () => {
+    if (!isSignedIn) { setBlocked("signedOut"); return; }
+    setAsking(true);
+    try {
+      const answer = await get<{ allowed: boolean; access: string; videoUrl?: string | null }>(`/api/movies/${movieId}/watch`);
+      if (answer.allowed && answer.videoUrl) {
+        setVideoUrl(answer.videoUrl);
+        setBlocked(null);
+        setPlaying(true);
+      } else {
+        setBlocked(answer.access);
+      }
+    } catch {
+      setBlocked("none");
+    } finally {
+      setAsking(false);
+    }
+  }, [isSignedIn, movieId]);
+
+  // Opened with "Watch": ask straight away.
+  useEffect(() => { if (mode === "watch") void watch(); }, [mode, watch]);
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState("");
   const [posting, setPosting] = useState(false);
@@ -120,7 +152,7 @@ export function MovieDialog({
     };
   }, [onClose]);
 
-  const source = detail?.videoUrl ? embedFor(detail.videoUrl) : null;
+  const source = videoUrl ? embedFor(videoUrl) : null;
 
   return createPortal(
     <AnimatePresence>
@@ -185,7 +217,7 @@ export function MovieDialog({
                     ? `${detail.availableCopies} ${t("movie.onShelf")}`
                     : t("movie.allOut")}
                 </Badge>
-                <Badge>{formatMoney(detail.dailyPrice)}</Badge>
+                {isStaff ? null : <Badge>{formatUsd(0.5)} / 3 {t("pro.days", "days")}</Badge>}
                 {detail.reviewCount > 0 ? (
                   <Badge tone="warn">
                     <Star size={12} aria-hidden /> {detail.averageRating.toFixed(1)} ({detail.reviewCount})
@@ -194,8 +226,8 @@ export function MovieDialog({
               </div>
 
               <div className="mt-5 flex flex-wrap gap-2">
-                {detail.videoUrl ? (
-                  <Button size="sm" onClick={() => setPlaying((value) => !value)}>
+                {detail.hasVideo ? (
+                  <Button size="sm" disabled={asking} onClick={() => (playing ? setPlaying(false) : void watch())}>
                     {playing ? t("movie.details") : t("movie.watch")}
                   </Button>
                 ) : (
@@ -208,13 +240,41 @@ export function MovieDialog({
                   </a>
                 ) : null}
 
-                {onRent ? (
+                {onRent && !isStaff ? (
                   <Button size="sm" variant="outline" disabled={detail.availableCopies === 0}
                           onClick={() => onRent(detail.id)}>
-                    {t("movie.rent")}
+                    {t("movie.rent")} · {formatUsd(0.5)}
                   </Button>
                 ) : null}
               </div>
+
+              {blocked ? (
+                <div className="mt-4 rounded-xl border border-accent-dim bg-surface p-4">
+                  {blocked === "signedOut" ? (
+                    <>
+                      <p className="text-sm text-ink">{t("pro.signInToWatch", "Sign in to watch.")}</p>
+                      <a href="/account" className="mt-3 inline-block"><Button size="sm">{t("nav.signIn")}</Button></a>
+                    </>
+                  ) : blocked === "awaitingDecision" ? (
+                    <>
+                      <p className="text-sm text-ink">{t("pro.decideFirst", "Your three days are over. Keep it three more days for $0.50, or return it — nothing is charged while you decide.")}</p>
+                      <a href="/rentals" className="mt-3 inline-block"><Button size="sm">{t("pro.goDecide", "Go to my rentals")}</Button></a>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-ink">{t("pro.howToWatch", "Rent it for 3 days, or watch everything with Watching PRO.")}</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {onRent ? (
+                          <Button size="sm" variant="outline" onClick={() => onRent(detail.id)}>
+                            {t("pro.rentFor", "Rent 3 days")} · {formatUsd(0.5)}
+                          </Button>
+                        ) : null}
+                        <a href="/pro"><Button size="sm">Watching PRO · {formatUsd(5)}/{t("pro.month", "month")}</Button></a>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : null}
 
               <div className="mt-6 border-t border-line pt-4">
                 <h3 className="font-display text-lg text-ink">{t("review.write")}</h3>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapPin, Users, X } from "lucide-react";
 import { Section, Panel, Notice, Empty, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
@@ -6,10 +6,14 @@ import { Input, Field } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/useAuth";
 import { get, put, query } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { t, lang } from "@/lib/i18n";
+import { WORLD_CITIES, flagUrl, countryName, cityKey, type WorldCity } from "@/lib/worldCities";
 import { TasteCompare } from "@/components/TasteCompare";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DirectChat } from "@/components/DirectChat";
+import { GlobeMessages } from "@/components/GlobeMessages";
+import { GlobeMembersMap } from "@/components/GlobeMembersMap";
+import { MeetPeoplePerson } from "@/components/MeetPeoplePerson";
 import { CrowdBand } from "@/components/CrowdBand";
 import { Globe } from "@/components/ui/globe";
 
@@ -48,6 +52,7 @@ export default function GlobePage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [compareWith, setCompareWith] = useState<GlobeMember | null>(null);
   const [writeTo, setWriteTo] = useState<GlobeMember | null>(null);
+  const [messagesKey, setMessagesKey] = useState(0);
 
   const loadCities = useCallback(async () => {
     if (!isSignedIn) { setCities([]); return; }
@@ -99,9 +104,21 @@ export default function GlobePage() {
     <Section title={t("globe.title")} lede={t("globe.lede")}>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
         <div className="rounded-xl border border-line bg-surface-raised p-6">
-          <ErrorBoundary label="Globe" fallback={null}>
-            <Globe size={250} className="flex justify-center py-6" />
-          </ErrorBoundary>
+          {/* The real Earth: the members, pinned to the cities they chose. The decorative
+              globe and the city list below stay as they were. */}
+          <GlobeMembersMap cities={cities ?? []} selectedCity={open?.city} onSelect={openCity} />
+
+          {/* The decorative globe, with a figure beside it pointing at it. */}
+          {/* The figure stands to the right and reaches in, its finger just short of the
+              globe's edge (the negative margin); on a narrow screen it steps below. */}
+          {/* The pair stands right up against the globe: the negative margin brings his
+              pointing finger to its edge. On a narrow screen they step below it. */}
+          <div className="flex flex-wrap items-center justify-center py-6 sm:flex-nowrap">
+            <ErrorBoundary label="Globe" fallback={null}>
+              <Globe size={250} className="flex shrink-0 justify-center" />
+            </ErrorBoundary>
+            <MeetPeoplePerson className="sm:-ml-6" />
+          </div>
 
           {cities === null ? (
             <Spinner label={t("common.loading")} />
@@ -133,6 +150,7 @@ export default function GlobePage() {
                         ),
                       )}
                     </span>
+                    <Flag country={city.countryCode ?? findCity(city.city)?.country} />
                     {city.city}
                     <span className="text-xs text-ink-mute">{city.memberCount}</span>
                   </button>
@@ -151,6 +169,7 @@ export default function GlobePage() {
                 <div>
                   <p className="flex items-center gap-1.5 font-display text-xl text-ink">
                     <MapPin size={16} aria-hidden />
+                    <Flag country={open.countryCode ?? findCity(open.city)?.country} />
                     {open.city}
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-mute">
@@ -213,32 +232,57 @@ export default function GlobePage() {
         </div>
       </div>
 
+      {/* Remounted after a chat opened from the globe closes, so a new "sent" shows at once. */}
+      <GlobeMessages key={messagesKey} />
+
       {compareWith ? (
         <TasteCompare member={compareWith} onClose={() => setCompareWith(null)} />
       ) : null}
 
       {writeTo ? (
-        <DirectChat userId={writeTo.userId} onClose={() => setWriteTo(null)} />
+        <DirectChat userId={writeTo.userId} onClose={() => { setWriteTo(null); setMessagesKey((k) => k + 1); }} />
       ) : null}
     </Section>
     </>
   );
 }
 
+
+/** A country's flag as it is — its own colours, no tint, no backdrop. */
+function Flag({ country, className = "h-3.5 w-[18px]" }: { country?: string | null; className?: string }) {
+  if (!country) return null;
+  return (
+    <img
+      src={flagUrl(country)}
+      alt=""
+      title={countryName(country, lang)}
+      loading="lazy"
+      className={`${className} shrink-0 rounded-[2px] object-cover`}
+    />
+  );
+}
+
+/** The listed city a stored name (and, when known, country) refers to. */
+function findCity(name: string, country?: string | null): WorldCity | undefined {
+  const key = cityKey(name);
+  return WORLD_CITIES.find((c) => cityKey(c.name) === key && (!country || c.country === country))
+    ?? WORLD_CITIES.find((c) => cityKey(c.name) === key);
+}
+
 /** Opting in, and out. Out is one click and it clears the stored city, not just the flag. */
 function PresencePanel({ onSaved }: { onSaved: () => void }) {
   const { user } = useAuth();
-  const [city, setCity] = useState("");
+  const [chosen, setChosen] = useState<WorldCity | null>(null);
   const [avatar, setAvatar] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    get<{ shareOnGlobe: boolean; city?: string | null; avatarUrl?: string | null }>("/api/auth/me")
+    get<{ shareOnGlobe: boolean; city?: string | null; countryCode?: string | null; avatarUrl?: string | null }>("/api/auth/me")
       .then((me) => {
         setVisible(me.shareOnGlobe);
-        setCity(me.city ?? "");
+        setChosen(me.city ? findCity(me.city, me.countryCode) ?? null : null);
         setAvatar(me.avatarUrl ?? "");
       })
       .catch(() => null);
@@ -248,14 +292,14 @@ function PresencePanel({ onSaved }: { onSaved: () => void }) {
     setBusy(true);
     setMessage(null);
     try {
-      // The browser is never asked for a position. The city is typed, and its coordinates
-      // are looked up from a small table of known places on the server side of the form.
+      // The browser is never asked for a position: the city is picked from the list, and the
+      // list carries its coordinates.
       await put("/api/globe/presence", {
         shareOnGlobe: share,
-        city: share ? city : null,
-        countryCode: null,
-        latitude: share ? CITY_POINTS[city.trim().toLowerCase()]?.[0] ?? null : null,
-        longitude: share ? CITY_POINTS[city.trim().toLowerCase()]?.[1] ?? null : null,
+        city: share ? chosen?.name ?? null : null,
+        countryCode: share ? chosen?.country ?? null : null,
+        latitude: share ? chosen?.lat ?? null : null,
+        longitude: share ? chosen?.lon ?? null : null,
         avatarUrl: avatar || null,
       });
       setVisible(share);
@@ -272,19 +316,9 @@ function PresencePanel({ onSaved }: { onSaved: () => void }) {
       <p className="mt-1 text-sm text-ink-mute">{t("globe.joinLede")}</p>
 
       <div className="mt-4 space-y-3">
-        <Field label={t("globe.city")} hint={Object.keys(CITY_POINTS).length + " cities known"}>
-          <Input
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            list="globe-cities"
-            placeholder="Baku"
-          />
+        <Field label={t("globe.city")} hint={`${WORLD_CITIES.length} ${t("globe.citiesKnown", "cities")}`}>
+          <CityPicker value={chosen} onChange={setChosen} />
         </Field>
-        <datalist id="globe-cities">
-          {Object.keys(CITY_POINTS).map((name) => (
-            <option key={name} value={name.replace(/\b\w/g, (c) => c.toUpperCase())} />
-          ))}
-        </datalist>
 
         <Field label={t("globe.avatar")}>
           <Input value={avatar} onChange={(e) => setAvatar(e.target.value)} placeholder="https://…" />
@@ -293,7 +327,7 @@ function PresencePanel({ onSaved }: { onSaved: () => void }) {
         {message ? <Notice tone="ok">{message}</Notice> : null}
 
         <div className="flex gap-2">
-          <Button size="sm" disabled={busy || !city.trim()} onClick={() => save(true)}>
+          <Button size="sm" disabled={busy || !chosen} onClick={() => save(true)}>
             {t("globe.show")}
           </Button>
           {visible ? (
@@ -307,31 +341,118 @@ function PresencePanel({ onSaved }: { onSaved: () => void }) {
   );
 }
 
-/**
- * A small gazetteer, so a typed city name becomes a pin without asking the browser where the
- * person is. Add rows as you need them; an unknown city simply gets no coordinates and no pin.
- */
-const CITY_POINTS: Record<string, [number, number]> = {
-  baku: [40.4093, 49.8671],
-  ganja: [40.6828, 46.3606],
-  sumqayit: [40.5855, 49.6317],
-  istanbul: [41.0082, 28.9784],
-  ankara: [39.9334, 32.8597],
-  moscow: [55.7558, 37.6173],
-  "saint petersburg": [59.9311, 30.3609],
-  london: [51.5074, -0.1278],
-  berlin: [52.52, 13.405],
-  paris: [48.8566, 2.3522],
-  madrid: [40.4168, -3.7038],
-  rome: [41.9028, 12.4964],
-  warsaw: [52.2297, 21.0122],
-  kyiv: [50.4501, 30.5234],
-  tbilisi: [41.7151, 44.8271],
-  dubai: [25.2048, 55.2708],
-  "new york": [40.7128, -74.006],
-  toronto: [43.6532, -79.3832],
-  tokyo: [35.6762, 139.6503],
-  seoul: [37.5665, 126.978],
-  delhi: [28.6139, 77.209],
-  sydney: [-33.8688, 151.2093],
-};
+/** Type a city or a country; pick from the list. Every row shows the country's flag. */
+function CityPicker({ value, onChange }: { value: WorldCity | null; onChange: (city: WorldCity | null) => void }) {
+  const [text, setText] = useState(value?.name ?? "");
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const box = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setText(value?.name ?? ""); }, [value]);
+
+  useEffect(() => {
+    const close = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+
+  // Country names in the page's language, computed once, so "Türkiyə" finds Istanbul.
+  const countries = useMemo(() => {
+    const names = new Map<string, string>();
+    for (const c of WORLD_CITIES) if (!names.has(c.country)) names.set(c.country, countryName(c.country, lang));
+    return names;
+  }, []);
+
+  // Every city, by country name in the page language, then by city — the whole list, no cap.
+  const everything = useMemo(
+    () => [...WORLD_CITIES].sort((a, b) =>
+      (countries.get(a.country) ?? a.country).localeCompare(countries.get(b.country) ?? b.country, lang)
+      || a.name.localeCompare(b.name, lang)),
+    [countries],
+  );
+
+  const matches = useMemo(() => {
+    const key = cityKey(text);
+    if (!key || (value && value.name === text)) return everything;
+    const starts: WorldCity[] = [];
+    const inside: WorldCity[] = [];
+    for (const c of WORLD_CITIES) {
+      const name = cityKey(c.name);
+      const country = cityKey(countries.get(c.country) ?? "");
+      if (name.startsWith(key)) starts.push(c);
+      else if (name.includes(key) || country.startsWith(key) || c.country.toLowerCase() === key) inside.push(c);
+    }
+    return [...starts, ...inside];
+  }, [text, value, countries, everything]);
+  const grouped = matches === everything;
+
+  function pick(city: WorldCity) {
+    onChange(city);
+    setText(city.name);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={box} className="relative">
+      <div className="relative">
+        {value && value.name === text ? (
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
+            <Flag country={value.country} className="h-4 w-[22px]" />
+          </span>
+        ) : null}
+        <Input
+          value={text}
+          role="combobox"
+          aria-expanded={open}
+          aria-autocomplete="list"
+          placeholder="Baku"
+          className={value && value.name === text ? "pl-11" : undefined}
+          onFocus={() => setOpen(true)}
+          onChange={(e) => {
+            setText(e.target.value);
+            setActive(0);
+            setOpen(true);
+            if (value && e.target.value !== value.name) onChange(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowDown") { e.preventDefault(); setOpen(true); setActive((i) => Math.min(i + 1, matches.length - 1)); }
+            else if (e.key === "ArrowUp") { e.preventDefault(); setActive((i) => Math.max(i - 1, 0)); }
+            else if (e.key === "Enter" && open && matches[active]) { e.preventDefault(); pick(matches[active]); }
+            else if (e.key === "Escape") setOpen(false);
+          }}
+        />
+      </div>
+
+      {open && matches.length > 0 ? (
+        <ul
+          role="listbox"
+          className="absolute z-30 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-line bg-surface-raised py-1 shadow-lg"
+        >
+          {matches.map((city, i) => (
+            <li key={`${city.country}-${city.name}`} role="option" aria-selected={i === active}>
+              {grouped && (i === 0 || matches[i - 1].country !== city.country) ? (
+                <p className="sticky top-0 z-10 flex items-center gap-2 bg-surface-raised px-3 pb-1 pt-2 text-[11px] uppercase tracking-wider text-ink-mute">
+                  <Flag country={city.country} className="h-3 w-4" />
+                  {countries.get(city.country)}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onMouseEnter={() => setActive(i)}
+                onClick={() => pick(city)}
+                className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm ${
+                  i === active ? "bg-surface text-ink" : "text-ink"
+                }`}
+              >
+                <Flag country={city.country} className="h-4 w-[22px]" />
+                <span className="truncate">{city.name}</span>
+                <span className="ml-auto truncate text-xs text-ink-mute">{countries.get(city.country)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}

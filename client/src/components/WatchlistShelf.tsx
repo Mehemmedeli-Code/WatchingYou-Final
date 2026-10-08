@@ -44,7 +44,7 @@ export function WatchlistShelf() {
     setBusyId(movie.id);
     setNotice(null);
     try {
-      await post("/api/rentals", { movieId: movie.id, days: 7 });
+      await post("/api/rentals", { movieId: movie.id, days: 3 });
       setNotice(`${movie.title} — ${t("movie.rented")}`);
       // Rented films leave the list: it was a reminder, and it has done its job.
       await toggleWatchlist(movie.id).catch(() => undefined);
