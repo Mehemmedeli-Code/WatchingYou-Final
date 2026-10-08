@@ -73,6 +73,79 @@ internal sealed class GetMyThreadsHandler(IdentityDbContext db, ICurrentUser cur
     }
 }
 
+// Everything under the globe in one call: whom I wrote to, who wrote to me, whom I blocked
+// and who blocked me.
+public sealed record MessagePerson(
+    Guid UserId, string Name, string? AvatarUrl, string? City, string? CountryCode,
+    string? Preview, bool LastWasMine, int Count, DateTime AtUtc);
+
+public sealed record MessageOverview(
+    IReadOnlyList<MessagePerson> Sent,
+    IReadOnlyList<MessagePerson> Received,
+    IReadOnlyList<MessagePerson> BlockedByMe,
+    IReadOnlyList<MessagePerson> BlockedMe);
+
+public sealed record GetMessageOverviewQuery : IQuery<MessageOverview>;
+
+internal sealed class GetMessageOverviewHandler(IdentityDbContext db, ICurrentUser currentUser)
+    : IQueryHandler<GetMessageOverviewQuery, MessageOverview>
+{
+    public async Task<MessageOverview> Handle(GetMessageOverviewQuery query, CancellationToken ct)
+    {
+        var me = currentUser.RequireId();
+
+        var threads = await db.DirectThreads.AsNoTracking()
+            .Include(t => t.Messages)
+            .Where(t => t.LowUserId == me || t.HighUserId == me)
+            .OrderByDescending(t => t.LastMessageAtUtc)
+            .Take(200)
+            .ToListAsync(ct);
+
+        var blocks = await db.UserBlocks.AsNoTracking()
+            .Where(b => b.BlockerId == me || b.BlockedId == me)
+            .ToListAsync(ct);
+
+        var ids = threads.Select(t => t.LowUserId == me ? t.HighUserId : t.LowUserId)
+            .Concat(blocks.Select(b => b.BlockerId == me ? b.BlockedId : b.BlockerId))
+            .Distinct().ToArray();
+
+        var people = await db.Users.AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .Select(u => new { u.Id, u.FullName, u.AvatarUrl, u.City, u.CountryCode })
+            .ToDictionaryAsync(u => u.Id, ct);
+
+        MessagePerson Person(Guid id, string? preview, bool lastMine, int count, DateTime at)
+        {
+            var p = people.GetValueOrDefault(id);
+            return new MessagePerson(id, p?.FullName ?? "—", p?.AvatarUrl, p?.City, p?.CountryCode,
+                preview, lastMine, count, at);
+        }
+
+        List<MessagePerson> sent = [], received = [];
+        foreach (var thread in threads)
+        {
+            var other = thread.LowUserId == me ? thread.HighUserId : thread.LowUserId;
+            var mine = thread.Messages.Where(m => m.SenderId == me).OrderByDescending(m => m.CreatedAtUtc).ToList();
+            var theirs = thread.Messages.Where(m => m.SenderId != me).OrderByDescending(m => m.CreatedAtUtc).ToList();
+            var last = thread.Messages.OrderByDescending(m => m.CreatedAtUtc).FirstOrDefault();
+            static string Cut(string body) => body[..Math.Min(body.Length, 90)];
+
+            if (mine.Count > 0)
+                sent.Add(Person(other, Cut(mine[0].Body), last?.SenderId == me, mine.Count, mine[0].CreatedAtUtc));
+            if (theirs.Count > 0)
+                received.Add(Person(other, Cut(theirs[0].Body), last?.SenderId == me, theirs.Count, theirs[0].CreatedAtUtc));
+        }
+
+        return new MessageOverview(
+            sent,
+            received,
+            [.. blocks.Where(b => b.BlockerId == me).OrderByDescending(b => b.CreatedAtUtc)
+                .Select(b => Person(b.BlockedId, b.Reason, false, 0, b.CreatedAtUtc))],
+            [.. blocks.Where(b => b.BlockedId == me).OrderByDescending(b => b.CreatedAtUtc)
+                .Select(b => Person(b.BlockerId, null, false, 0, b.CreatedAtUtc))]);
+    }
+}
+
 public sealed record GetConversationQuery(Guid OtherUserId) : IQuery<DirectConversation?>;
 
 internal sealed class GetConversationHandler(IdentityDbContext db, ICurrentUser currentUser)
@@ -289,6 +362,10 @@ public static class DirectMessageEndpoints
         mine.MapGet("", async (IDispatcher dispatcher, CancellationToken ct) =>
                 Results.Ok(await dispatcher.Ask(new GetMyThreadsQuery(), ct)))
             .WithName("GetMyDirectThreads");
+
+        mine.MapGet("/overview", async (IDispatcher dispatcher, CancellationToken ct) =>
+                TypedResults.Ok(await dispatcher.Ask(new GetMessageOverviewQuery(), ct)))
+            .WithName("GetMessageOverview");
 
         mine.MapGet("/{userId:guid}", async (Guid userId, IDispatcher dispatcher, CancellationToken ct) =>
             {

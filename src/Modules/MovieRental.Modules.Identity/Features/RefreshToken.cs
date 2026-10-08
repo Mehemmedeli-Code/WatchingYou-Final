@@ -58,8 +58,13 @@ internal sealed class RefreshTokenHandler(
         db.RefreshTokens.Add(replacement);
         await db.SaveChangesAsync(ct);
 
-        var access = tokens.CreateAccessToken(stored.User);
-        return Result.Success(new AuthResponse(access.Value, access.ExpiresAtUtc, replacement.Token, stored.User.ToProfile()));
+        // A successor token may come back without its user loaded; fetch it rather than assume.
+        var user = stored.User ?? await db.Users.FirstOrDefaultAsync(u => u.Id == stored.UserId, ct);
+        if (user is null)
+            return Result.Failure<AuthResponse>(Error.Unauthorized("This session was ended. Sign in again."));
+
+        var access = tokens.CreateAccessToken(user);
+        return Result.Success(new AuthResponse(access.Value, access.ExpiresAtUtc, replacement.Token, user.ToProfile()));
     }
 
     /// <summary>How long a just-rotated token stays usable, to cover an answer the browser lost.</summary>
