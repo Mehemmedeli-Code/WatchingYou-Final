@@ -100,7 +100,13 @@ public static class SeedMoviesEndpoint
                 HttpRequest request, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-                using var document = await JsonDocument.ParseAsync(request.Body, cancellationToken: ct);
+
+                // The body is read by hand (two shapes are accepted), so malformed JSON has to be
+                // caught here — left alone it surfaced as a 500 instead of the caller's mistake.
+                JsonDocument document;
+                try { document = await JsonDocument.ParseAsync(request.Body, cancellationToken: ct); }
+                catch (JsonException) { return Results.BadRequest(Error.Validation("The body is not valid JSON.")); }
+                using var _ = document;
 
                 var array = document.RootElement.ValueKind == JsonValueKind.Array
                     ? document.RootElement
