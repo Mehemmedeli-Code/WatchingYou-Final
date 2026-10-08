@@ -126,6 +126,26 @@ builder.Services
         options.SlidingExpiration = true;
         options.LoginPath = "/account";
         options.AccessDeniedPath = "/account";
+
+        // Pages redirect to sign-in; the API must not. An API call without a token used to
+        // get a 302 to the HTML login page, which fetch follows silently — the caller then got
+        // a 200 full of HTML and failed parsing it, instead of a plain 401 it could act on.
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api") || context.Request.Path.StartsWithSegments("/hubs"))
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            else
+                context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api") || context.Request.Path.StartsWithSegments("/hubs"))
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            else
+                context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
     });
 
 builder.Services.AddAuthorizationBuilder()
@@ -246,9 +266,11 @@ app.UseHttpsRedirection();
 // A missing page produces no exception, so the middleware above never sees it. Re-executing
 // into the error page keeps 404 and 403 looking like part of the site rather than the
 // server's default blank response. Scoped away from /api, because a fetch expecting JSON
-// should not be handed a page of HTML to parse.
+// should not be handed a page of HTML to parse. The SignalR hub likewise: its client reads
+// the status (401 means "refresh the token and reconnect"), and re-executing it into the
+// error page turned a 401 into a 404.
 app.UseWhen(
-    context => !context.Request.Path.StartsWithSegments("/api"),
+    context => !context.Request.Path.StartsWithSegments("/api") && !context.Request.Path.StartsWithSegments("/hubs"),
     branch => branch.UseStatusCodePagesWithReExecute("/error/{0}"));
 
 // The web-app manifest is served with its proper type, which install prompts check for.

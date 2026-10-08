@@ -93,6 +93,13 @@ internal sealed class UpdateMovieHandler(CatalogDbContext db) : ICommandHandler<
 
 public sealed record UpdateStockCommand(Guid Id, int TotalCopies) : ICommand<Result>;
 
+internal sealed class UpdateStockValidator : AbstractValidator<UpdateStockCommand>
+{
+    // A negative stock is a typing mistake (400), not the "copies are out on rental" conflict
+    // it used to be reported as.
+    public UpdateStockValidator() => RuleFor(x => x.TotalCopies).InclusiveBetween(0, 10_000);
+}
+
 internal sealed class UpdateStockHandler(CatalogDbContext db) : ICommandHandler<UpdateStockCommand, Result>
 {
     public async Task<Result> Handle(UpdateStockCommand command, CancellationToken ct)
