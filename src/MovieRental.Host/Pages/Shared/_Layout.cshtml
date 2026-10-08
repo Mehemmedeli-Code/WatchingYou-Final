@@ -91,12 +91,23 @@
 
         @* Items the signed-in user may not see were never added to the model, so there is
            nothing here to hide, grey out or forget to guard. *@
-        <nav class="rr-nav" aria-label="@(T["nav.catalogue"])">
-            @foreach (var item in view.Nav)
-            {
-                <a href="@item.Href" class="@(item.IsCurrent ? "is-current" : null)">@item.Label</a>
-            }
-        </nav>
+        @* Signed out, the site is one door: the menu appears once you are in. Until then the
+           only way on is back to the welcome page, where Watching PRO is explained. *@
+        @if (view.IsSignedIn)
+        {
+            <nav class="rr-nav" aria-label="@(T["nav.catalogue"])">
+                @foreach (var item in view.Nav)
+                {
+                    <a href="@item.Href" class="@(item.IsCurrent ? "is-current" : null)">@item.Label</a>
+                }
+            </nav>
+        }
+        else
+        {
+            <nav class="rr-nav" aria-label="Watching PRO">
+                <a href="/welcome" class="rr-back">← Watching PRO</a>
+            </nav>
+        }
 
         <div class="rr-tools">
             <div id="rr-theme" class="rr-theme"></div>
@@ -108,7 +119,10 @@
                        hreflang="@option.Code" title="@option.Name">@option.Code.ToUpperInvariant()</a>
                 }
             </div>
-            <a class="rr-account" href="/account">@(view.IsSignedIn ? T["nav.account"] : T["nav.signIn"])</a>
+            @if (view.IsSignedIn || view.ActiveNav != "account")
+            {
+                <a class="rr-account" href="/account">@(view.IsSignedIn ? T["nav.account"] : T["nav.signIn"])</a>
+            }
         </div>
     </header>
 

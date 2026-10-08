@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/useAuth";
 import { get, put, ApiError, query, type Paged } from "@/lib/api";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatUsd } from "@/lib/format";
 import { t } from "@/lib/i18n";
 
 interface Rental {
@@ -57,16 +57,11 @@ export default function RentalsPage() {
     setMessage(null);
     try {
       if (action === "extend") {
-        await put(`/api/rentals/${rental.id}/extend`, { extraDays: 7 });
-        setMessage({ tone: "ok", text: `${rental.movieTitle} is now due a week later.` });
+        await put(`/api/rentals/${rental.id}/extend`, {});
+        setMessage({ tone: "ok", text: `${rental.movieTitle}: ${t("rentals.extended", "three more days are yours.")}` });
       } else {
-        const returned = await put<Rental>(`/api/rentals/${rental.id}/return`);
-        setMessage({
-          tone: "ok",
-          text: returned.lateFee > 0
-            ? `${rental.movieTitle} returned. Late fee: ${formatMoney(returned.lateFee)}.`
-            : `${rental.movieTitle} returned on time.`,
-        });
+        await put<Rental>(`/api/rentals/${rental.id}/return`);
+        setMessage({ tone: "ok", text: `${rental.movieTitle}: ${t("rentals.returned", "returned. Thank you!")}` });
       }
       await load();
     } catch (err) {
@@ -120,33 +115,42 @@ export default function RentalsPage() {
                 <div className="min-w-[220px]">
                   <h3 className="font-display text-lg text-ink">{rental.movieTitle}</h3>
                   <p className="mt-1 text-xs text-ink-mute">
-                    Rented {formatDate(rental.rentedAtUtc)} · due {formatDate(rental.dueAtUtc)}
-                    {rental.extensionCount > 0 ? ` · extended ${rental.extensionCount}×` : ""}
+                    {t("rentals.rentedOn", "Rented")} {formatDate(rental.rentedAtUtc)}
+                    {rental.status === "Returned"
+                      ? ` · ${t("rentals.returnedOn", "returned")} ${formatDate(rental.returnedAtUtc!)}`
+                      : ` · ${t("rentals.until", "yours until")} ${formatDate(rental.dueAtUtc)}`}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <Badge tone={rental.status === "Overdue" ? "bad" : rental.status === "Returned" ? "neutral" : "good"}>
-                      {rental.status}
-                      {rental.daysOverdue > 0 ? ` · ${rental.daysOverdue}d late` : ""}
+                    <Badge tone={rental.status === "Overdue" ? "warn" : rental.status === "Returned" ? "neutral" : "good"}>
+                      {rental.status === "Overdue"
+                        ? t("rentals.decide", "3 days are up — your choice")
+                        : rental.status === "Returned"
+                          ? t("rentals.statusReturned", "Returned")
+                          : t("rentals.statusActive", "Watching")}
                     </Badge>
-                    {rental.lateFee > 0 ? <Badge tone="warn">Late fee {formatMoney(rental.lateFee)}</Badge> : null}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4">
                   <div className="text-right">
-                    <p className="text-sm text-ink">{formatMoney(rental.totalDue)}</p>
-                    <p className="text-xs text-ink-mute">rental {formatMoney(rental.basePrice)}</p>
+                    <p className="text-sm text-ink">{formatUsd(rental.basePrice)}</p>
+                    <p className="text-xs text-ink-mute">{formatUsd(0.5)} / 3 {t("pro.days", "days")}</p>
                   </div>
-
-                  {rental.status !== "Returned" ? (
+                  {rental.status === "Overdue" ? (
+                    // The offer only exists once the paid days are over. Until they answer,
+                    // nothing more is charged.
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" disabled={busyId === rental.id || rental.extensionCount >= 2} onClick={() => act(rental, "extend")}>
-                        + 7 days
+                      <Button size="sm" disabled={busyId === rental.id} onClick={() => act(rental, "extend")}>
+                        +3 {t("pro.days", "days")} · {formatUsd(0.5)}
                       </Button>
-                      <Button size="sm" disabled={busyId === rental.id} onClick={() => act(rental, "return")}>
-                        Return
+                      <Button size="sm" variant="outline" disabled={busyId === rental.id} onClick={() => act(rental, "return")}>
+                        {t("rentals.giveBack", "Return")}
                       </Button>
                     </div>
+                  ) : rental.status === "Active" ? (
+                    <Button size="sm" variant="outline" disabled={busyId === rental.id} onClick={() => act(rental, "return")}>
+                      {t("rentals.giveBack", "Return")}
+                    </Button>
                   ) : null}
                 </div>
               </Panel>

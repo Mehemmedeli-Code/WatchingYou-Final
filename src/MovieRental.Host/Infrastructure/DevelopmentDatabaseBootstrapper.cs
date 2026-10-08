@@ -90,6 +90,31 @@ public static class DevelopmentDatabaseBootstrapper
             IF COL_LENGTH('cinema.TicketTypes', 'NameRu') IS NULL ALTER TABLE cinema.TicketTypes ADD NameRu nvarchar(40) NULL;
             IF COL_LENGTH('cinema.TicketTypes', 'NameTr') IS NULL ALTER TABLE cinema.TicketTypes ADD NameTr nvarchar(40) NULL;
             """, ct);
+
+        // A whole new table in an existing schema is additive too: the schema already has tables,
+        // so the create-tables step above skips it. Same shape EF would make.
+        var rentals = services.GetRequiredService<RentalsDbContext>();
+        await rentals.Database.ExecuteSqlRawAsync("""
+            IF OBJECT_ID('rentals.Subscriptions', 'U') IS NULL
+            BEGIN
+                CREATE TABLE rentals.Subscriptions (
+                    Id uniqueidentifier NOT NULL CONSTRAINT PK_Subscriptions PRIMARY KEY,
+                    UserId uniqueidentifier NOT NULL,
+                    [Plan] nvarchar(40) NOT NULL,
+                    StartsAtUtc datetime2 NOT NULL,
+                    EndsAtUtc datetime2 NOT NULL,
+                    Amount decimal(10,2) NOT NULL,
+                    Currency nvarchar(3) NOT NULL,
+                    CardBrand nvarchar(20) NOT NULL,
+                    CardLast4 nvarchar(4) NOT NULL,
+                    ReminderSentAtUtc datetime2 NULL,
+                    CreatedAtUtc datetime2 NOT NULL,
+                    UpdatedAtUtc datetime2 NULL);
+                CREATE INDEX IX_Subscriptions_UserId_EndsAtUtc ON rentals.Subscriptions (UserId, EndsAtUtc);
+            END
+            IF COL_LENGTH('rentals.Subscriptions', 'ReminderSentAtUtc') IS NULL
+                ALTER TABLE rentals.Subscriptions ADD ReminderSentAtUtc datetime2 NULL;
+            """, ct);
     }
 
     /// <summary>Applies each module's pending migrations. Contexts are migrated one at a time

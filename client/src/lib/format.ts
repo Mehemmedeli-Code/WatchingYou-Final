@@ -7,6 +7,9 @@ const number = new Intl.NumberFormat(lang, { minimumFractionDigits: 2, maximumFr
 // Dates follow the visitor's chosen language, and are shown on Baku time: a screening at
 // 19:00 in Baku is at 19:00 whatever time zone the visitor's device happens to be set to.
 const TIME_ZONE = "Asia/Baku";
+/** Rentals and Watching PRO are priced in US dollars; cinema tickets stay in manat. */
+export const formatUsd = (value: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 export const formatMoney = (value: number) => `${number.format(value)} ₼`;
 export const formatDate = (iso: string) =>
   formatDateIn(new Date(iso), { day: "numeric", month: "short", year: "numeric", timeZone: TIME_ZONE });

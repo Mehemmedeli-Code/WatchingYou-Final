@@ -1,0 +1,1 @@
+const t=["Copyright","SexualContent","GraphicViolence","MinorsWithoutConsent","HateOrExtremism","PersonalData","FileIntegrity","OriginDeclaration"],o=e=>e==="Approved"?"good":e==="Rejected"||e==="SecurityFlagged"?"bad":"warn",n=e=>`${(e/1048576).toFixed(1)} MB`;export{t as S,n as m,o as s};

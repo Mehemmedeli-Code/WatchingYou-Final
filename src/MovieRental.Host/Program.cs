@@ -243,6 +243,19 @@ builder.Services.AddCors(options => options.AddPolicy(ClientCors, policy => poli
     .AllowAnyMethod()
     .AllowCredentials()));
 
+// Compression for the static bundle only: scripts, styles and SVG shrink three to five times.
+// Pages and API responses are left alone on purpose — compressing a response that mixes a
+// secret (a session, a token) with text an attacker can influence is what BREACH exploits.
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.MimeTypes = ["text/javascript", "application/javascript", "text/css", "image/svg+xml"];
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+});
+builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProviderOptions>(o =>
+    o.Level = System.IO.Compression.CompressionLevel.Fastest);
+
 var app = builder.Build();
 
 // ---------------------------------------------------------------------------
@@ -262,6 +275,7 @@ else
 }
 
 app.UseHttpsRedirection();
+app.UseResponseCompression();
 
 // A missing page produces no exception, so the middleware above never sees it. Re-executing
 // into the error page keeps 404 and 403 looking like part of the site rather than the
@@ -299,6 +313,27 @@ app.UseStaticFiles(new StaticFileOptions
 });
 app.UseAuthentication();
 app.UseAuthorization();
+
+// The front door. Someone with no session who opens one of the public pages is shown the
+// welcome page first, and brought back to where they were going once signed in. Pages that
+// already require an account keep their own sign-in redirect; the API, the hub, files, the
+// account and privacy pages and the phone app's calls are never touched.
+string[] welcomeGated = ["/", "/on-display", "/ai-catalog", "/human-craft", "/cinema", "/pro", "/help"];
+app.Use(async (context, next) =>
+{
+    var request = context.Request;
+    var path = request.Path.Value?.TrimEnd('/') is { Length: > 0 } trimmed ? trimmed : "/";
+    if ((HttpMethods.IsGet(request.Method) || HttpMethods.IsHead(request.Method))
+        && context.User.Identity?.IsAuthenticated != true
+        && welcomeGated.Contains(path, StringComparer.OrdinalIgnoreCase))
+    {
+        var back = request.Path + request.QueryString;
+        context.Response.Redirect("/welcome?returnUrl=" + Uri.EscapeDataString(back));
+        return;
+    }
+    await next();
+});
+
 app.UseRateLimiter();
 app.UseOutputCache();
 app.EvictOnWrite();

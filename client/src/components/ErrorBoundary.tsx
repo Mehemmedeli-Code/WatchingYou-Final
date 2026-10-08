@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { t } from "@/lib/i18n";
 
 /**
  * Without one of these, a single failing component takes the whole page with it: React
@@ -28,7 +29,7 @@ export class ErrorBoundary extends Component<
 
     return (
       <div className="rounded-xl border border-bad-bg bg-bad-bg/40 p-4 text-sm text-bad">
-        <p className="font-medium">{this.props.label ?? "This part of the page"} could not load.</p>
+        <p className="font-medium">{t("error.partFailed", "This part of the page could not load.")}</p>
         <p className="mt-1 text-xs opacity-80">{this.state.error.message}</p>
       </div>
     );

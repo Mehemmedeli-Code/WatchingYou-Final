@@ -72,6 +72,11 @@ internal sealed class PageShellFactory(
             new("cinema", "/cinema", language["nav.cinema"])
         };
 
+        // Watching PRO is sold to viewers. Staff run the site and watch without it, so the
+        // offer is not in their menu; they see the subscribers under Admin and Security instead.
+        var isStaff = isSecurity || currentUser.IsInRole(AppRoles.Cashier);
+        if (!isStaff) nav.Add(new NavItem("pro", "/pro", "Watching PRO"));
+
         if (isSignedIn)
         {
             // Signed-in only: an anonymous visitor has no business browsing who uses the site.

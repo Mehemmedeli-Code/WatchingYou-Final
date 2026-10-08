@@ -11,6 +11,7 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { useAuth } from "@/components/useAuth";
 import { get, post, ApiError } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { ProSubscribers } from "@/components/ProSubscribers";
 import {
   SECURITY_CHECKS, statusTone, megabytes,
   type ShortFilmDetail, type SecurityCheckName, type CheckOutcome,
@@ -64,11 +65,11 @@ export default function SecurityPage() {
           note: draft[check].note || null,
         })),
       });
-      setMessage({ tone: "ok", text: "Report filed. It is with the admin now." });
+      setMessage({ tone: "ok", text: t("security.reportFiled", "Report filed. It is with the admin now.") });
       setOpenId(null);
       await load();
     } catch (err) {
-      setMessage({ tone: "error", text: err instanceof ApiError ? err.message : "The report was not accepted." });
+      setMessage({ tone: "error", text: err instanceof ApiError ? err.message : t("security.reportRefused", "The report was not accepted.") });
     } finally {
       setBusy(false);
     }
@@ -98,6 +99,10 @@ export default function SecurityPage() {
 
       <Section title={t("reports.title")} lede={t("reports.lede")}>
         <ReportQueue />
+      </Section>
+
+      <Section title={t("proAdmin.title", "Watching PRO subscribers")} lede={t("proAdmin.lede", "Everyone who has paid for Watching PRO, when it ends and what they paid.")}>
+        <ProSubscribers />
       </Section>
 
     <Section title={t("security.title")} lede={t("security.lede")}>

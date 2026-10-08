@@ -111,6 +111,15 @@ html.rr { background: var(--surface); }
 }
 .rr-nav a:hover { color: var(--ink); }
 .rr-nav a.is-current { color: var(--accent); border-bottom-color: var(--accent); }
+/* Signed out: the one way back, to the welcome page. */
+.rr-nav a.rr-back {
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 600;
+}
+.rr-nav a.rr-back:hover { background: var(--accent); color: var(--surface, #0A0C0A); }
 
 .rr-account {
   color: var(--surface);

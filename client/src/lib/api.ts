@@ -4,6 +4,8 @@
  * Storing the short-lived access token outside localStorage limits what an XSS bug reaches.
  */
 import { apiUrl } from "@/lib/platform";
+import { lang } from "@/lib/i18n";
+import { translateServerMessage } from "@/lib/serverMessages";
 
 export interface UserProfile {
   id: string;
@@ -159,7 +161,32 @@ async function parseError(response: Response): Promise<ApiError> {
     /* a non-JSON body is fine; the status carries enough meaning */
   }
 
+  // The server speaks English; the customer reads the page's language.
+  message = translateServerMessage(message, lang);
+  if (fieldErrors) {
+    fieldErrors = Object.fromEntries(Object.entries(fieldErrors)
+      .map(([field, list]) => [field, list.map((text) => translateServerMessage(text, lang))]));
+  }
+
   return new ApiError(message, response.status, fieldErrors, code);
+}
+
+/**
+ * A read that could not reach the server at all (a dropped connection, the site restarting)
+ * is tried twice more before the page is told. Only reads: repeating a GET changes nothing,
+ * while repeating a payment or a booking could do it twice.
+ */
+async function fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+  const method = (init.method ?? "GET").toUpperCase();
+  const attempts = method === "GET" ? 3 : 1;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fetch(url, init);
+    } catch (err) {
+      if (attempt >= attempts) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 700 * attempt));
+    }
+  }
 }
 
 async function send(path: string, init: RequestInit, retry: boolean): Promise<Response> {
@@ -167,7 +194,7 @@ async function send(path: string, init: RequestInit, retry: boolean): Promise<Re
   if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
   if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
 
-  const response = await fetch(apiUrl(path), { ...init, headers, credentials: "include" });
+  const response = await fetchWithRetry(apiUrl(path), { ...init, headers, credentials: "include" });
 
   if (response.status === 401 && retry && (await tryRefresh())) {
     return send(path, init, false);

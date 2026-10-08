@@ -2,7 +2,8 @@ import { motion } from "motion/react";
 import { Clapperboard, Heart, Info, Play, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatMoney, formatRuntime } from "@/lib/format";
+import { formatRuntime, formatUsd } from "@/lib/format";
+import { useAuth } from "@/components/useAuth";
 import { t } from "@/lib/i18n";
 
 export interface MovieListItem {
@@ -45,6 +46,7 @@ export function MovieCard({
   onOpen?: (movie: MovieListItem, mode: "details" | "watch") => void;
   busy?: boolean;
 }) {
+  const { isSecurity: isStaff } = useAuth();
   const available = movie.availableCopies > 0;
 
   return (
@@ -94,7 +96,7 @@ export function MovieCard({
           <Star size={13} className="text-accent" fill="currentColor" aria-hidden />
           {movie.reviewCount > 0 ? (
             <span>
-              {movie.averageRating.toFixed(1)} from {movie.reviewCount} review{movie.reviewCount === 1 ? "" : "s"}
+              {movie.averageRating.toFixed(1)} · {movie.reviewCount} {t("movie.reviews", "reviews")}
             </span>
           ) : (
             <span>{t("movie.noReviews", "No reviews yet")}</span>
@@ -103,7 +105,10 @@ export function MovieCard({
 
         <div className="mt-auto pt-2">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-ink">{formatMoney(movie.dailyPrice)}<span className="text-ink-mute"> / day</span></p>
+            {/* Every rental is $0.50 for three days now; staff never rent, so they see no price. */}
+            {isStaff ? <span /> : (
+              <p className="text-sm text-ink">{formatUsd(0.5)}<span className="text-ink-mute"> / 3 {t("pro.days", "days")}</span></p>
+            )}
             <Badge tone={available ? "good" : "bad"}>
               {available ? `${movie.availableCopies} ${t("movie.onShelf")}` : t("movie.allOut")}
             </Badge>
@@ -133,7 +138,7 @@ export function MovieCard({
               </Button>
             ) : null}
 
-            {onRent ? (
+            {onRent && !isStaff ? (
               <Button size="sm" variant="outline" disabled={!available || busy} onClick={() => onRent(movie)}>
                 {busy ? t("movie.renting") : t("movie.rent")}
               </Button>

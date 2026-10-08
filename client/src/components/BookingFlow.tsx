@@ -86,7 +86,7 @@ const issuerFor = (digits: string) =>
   ISSUERS.find((issuer) => digits.startsWith(issuer.prefix))?.name ?? null;
 
 /** Visa starts with 4; Mastercard is 51–55 or the 2221–2720 range added in 2017. */
-function brandFor(digits: string): "Visa" | "Mastercard" | null {
+export function brandFor(digits: string): "Visa" | "Mastercard" | null {
   if (digits.startsWith("4")) return "Visa";
   const two = Number(digits.slice(0, 2));
   if (digits.length >= 2 && two >= 51 && two <= 55) return "Mastercard";
@@ -96,7 +96,7 @@ function brandFor(digits: string): "Visa" | "Mastercard" | null {
 }
 
 /** Returns a reason the expiry cannot be right, or null. */
-function expiryProblem(value: string): string | null {
+export function expiryProblem(value: string): string | null {
   const digits = value.replace(/\D/g, "");
   if (digits.length < 4) return null;                       // still typing
 
@@ -110,10 +110,20 @@ function expiryProblem(value: string): string | null {
 }
 
 /** Groups digits in fours as you type. Nothing is validated here — the server decides. */
-const groupDigits = (value: string) =>
+export const groupDigits = (value: string) =>
   // Sixteen is the ceiling: Visa and Mastercard are both sixteen digits, and anything
   // longer is a typo rather than a card we accept.
   value.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
+
+/** What to tell the customer when paying fails. The server's own reason when it gave one; when
+ *  it could not be reached at all (no signal, or the site restarting) say exactly that, so
+ *  nobody thinks their card was refused. */
+function bookingError(err: unknown): string {
+  if (err instanceof ApiError) return err.message;
+  if (err instanceof TypeError || !navigator.onLine)
+    return t("error.unreachable", "Could not reach the server. Nothing was charged — please try again in a moment.");
+  return t("error.booking");
+}
 
 /**
  * Pay, then confirm with the code that arrives by e-mail, then the ticket.
@@ -157,9 +167,21 @@ export function BookingFlow({
 
   // Discounts. The typed code only counts once "Apply" is pressed, so the price does not
   // jump about with every keystroke.
-  const [promoInput, setPromoInput] = useState("");
-  const [promo, setPromo] = useState("");
-  const [usePoints, setUsePoints] = useState(false);
+  // Remembered per show, so leaving the page and coming back keeps an applied code.
+  const DISCOUNT_KEY = `wy.discount.${screeningId}`;
+  const [savedDiscount] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(DISCOUNT_KEY) ?? "null") as { promo: string; usePoints: boolean } | null; }
+    catch { return null; }
+  });
+  const [promoInput, setPromoInput] = useState(savedDiscount?.promo ?? "");
+  const [promo, setPromo] = useState(savedDiscount?.promo ?? "");
+  const [usePoints, setUsePoints] = useState(savedDiscount?.usePoints ?? false);
+  useEffect(() => {
+    try {
+      if (promo || usePoints) localStorage.setItem(DISCOUNT_KEY, JSON.stringify({ promo, usePoints }));
+      else localStorage.removeItem(DISCOUNT_KEY);
+    } catch { /* not remembered, still works */ }
+  }, [DISCOUNT_KEY, promo, usePoints]);
   const [quote, setQuote] = useState<CheckoutQuote | null>(null);
 
   const total = quote?.total ?? seatPrice * seats.length;
@@ -210,6 +232,7 @@ export function BookingFlow({
       await post(`/api/bookings/${checkout.paymentId}/cancel`).catch(() => null);
       sessionStorage.removeItem(RESUME_KEY);
     }
+    try { localStorage.removeItem(DISCOUNT_KEY); } catch { /* ignore */ }
     onCancel();
   }
 
@@ -236,7 +259,7 @@ export function BookingFlow({
       setCheckout(started);
       setStep("code");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("error.booking"));
+      setError(bookingError(err));
     } finally {
       setBusy(false);
     }
@@ -254,7 +277,7 @@ export function BookingFlow({
       await openExternal(started.url);
       setBusy(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("error.booking"));
+      setError(bookingError(err));
       setBusy(false);
     }
   }
@@ -266,10 +289,11 @@ export function BookingFlow({
     try {
       setTicket(await post<TicketResponse>(`/api/bookings/${checkout.paymentId}/confirm`, { code }));
       sessionStorage.removeItem(RESUME_KEY);
+      try { localStorage.removeItem(DISCOUNT_KEY); } catch { /* ignore */ }
       setStep("ticket");
       onBooked();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("error.booking"));
+      setError(bookingError(err));
     } finally {
       setBusy(false);
     }

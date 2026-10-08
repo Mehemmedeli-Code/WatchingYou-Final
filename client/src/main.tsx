@@ -10,41 +10,45 @@ import { LiveNotifications } from "@/components/LiveNotifications";
 import { stopRealtime } from "@/lib/realtime";
 import { clearOfflineTickets } from "@/lib/offlineTickets";
 import { auth } from "@/lib/api";
-import HomePage from "@/pages/HomePage";
-import CinemaPage from "@/pages/CinemaPage";
-import RentalsPage from "@/pages/RentalsPage";
-import StudioPage from "@/pages/StudioPage";
-import AdminPage from "@/pages/AdminPage";
-import AccountPage from "@/pages/AccountPage";
-import OnDisplayPage from "@/pages/OnDisplayPage";
-import AiCatalogPage from "@/pages/GalleryPage";
-import HumanCraftPage from "@/pages/HumanCraftPage";
-import SecurityPage from "@/pages/SecurityPage";
-import GlobePage from "@/pages/GlobePage";
-import HelpPage from "@/pages/HelpPage";
-import BackOfficeApp from "@/backoffice/BackOfficeApp";
-import FavouritesPage from "@/pages/FavouritesPage";
+import type { ComponentType } from "react";
 
 /**
  * Island mounting. Razor owns routing and the page shell; each page declares which React
- * component belongs in its #root via data-page. One bundle, ten entry points, no client
- * router fighting the server for the URL.
+ * component belongs in its #root via data-page.
+ *
+ * Each island is its own chunk, loaded only on the page that uses it. With every page in one
+ * bundle, opening the catalogue meant downloading and parsing the back office, the admin
+ * screens and the studio as well — most of the wait on every page.
  */
-const ISLANDS: Record<string, () => JSX.Element> = {
-  home: HomePage,
-  cinema: CinemaPage,
-  rentals: RentalsPage,
-  studio: StudioPage,
-  admin: AdminPage,
-  account: AccountPage,
-  onDisplay: OnDisplayPage,
-  aiCatalog: AiCatalogPage,
-  humanCraft: HumanCraftPage,
-  security: SecurityPage,
-  globe: GlobePage,
-  help: HelpPage,
-  backoffice: BackOfficeApp,
-  favourites: FavouritesPage,
+type IslandModule = { default: ComponentType };
+
+/** A brief hiccup (the server restarting, a flaky connection) should cost a second, not the page. */
+async function withRetry<T>(load: () => Promise<T>, attempts = 4): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await load();
+    } catch (err) {
+      if (attempt >= attempts) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 800 * attempt));
+    }
+  }
+}
+const ISLANDS: Record<string, () => Promise<IslandModule>> = {
+  home: () => import("@/pages/HomePage"),
+  cinema: () => import("@/pages/CinemaPage"),
+  rentals: () => import("@/pages/RentalsPage"),
+  studio: () => import("@/pages/StudioPage"),
+  admin: () => import("@/pages/AdminPage"),
+  account: () => import("@/pages/AccountPage"),
+  onDisplay: () => import("@/pages/OnDisplayPage"),
+  aiCatalog: () => import("@/pages/GalleryPage"),
+  humanCraft: () => import("@/pages/HumanCraftPage"),
+  security: () => import("@/pages/SecurityPage"),
+  globe: () => import("@/pages/GlobePage"),
+  help: () => import("@/pages/HelpPage"),
+  backoffice: () => import("@/backoffice/BackOfficeApp"),
+  favourites: () => import("@/pages/FavouritesPage"),
+  pro: () => import("@/pages/ProPage"),
 };
 
 async function bootstrap() {
@@ -66,15 +70,30 @@ async function bootstrap() {
   if (!container) return;
 
   const name = container.dataset.page ?? "home";
-  const Island = ISLANDS[name];
+  const loadIsland = ISLANDS[name];
 
-  if (!Island) {
+  if (!loadIsland) {
     console.warn(`No React island is registered for data-page="${name}".`);
     return;
   }
 
-  // Refresh first: the page then renders once, already knowing who is signed in.
-  await restoreSession().catch(() => null);
+  // The page's code and the session refresh travel at the same time; the page then renders
+  // once, already knowing who is signed in. (One after the other used to add a round trip.)
+  let module: IslandModule;
+  try {
+    [module] = await Promise.all([
+      withRetry(loadIsland),
+      restoreSession().catch(() => null),
+    ]);
+  } catch {
+    // The server could not be reached even after retrying: say so, with a way to try again,
+    // instead of leaving an empty page.
+    container.innerHTML = `<div style="max-width:560px;margin:80px auto;padding:24px;text-align:center;font-family:Inter,sans-serif">
+      <p style="font-size:18px;margin:0 0 16px">${document.documentElement.lang === "az" ? "Səhifə yüklənmədi. Bağlantını yoxlayın." : "The page could not be loaded. Check your connection."}</p>
+      <button onclick="location.reload()" style="background:#22E07A;color:#03140A;border:0;border-radius:999px;padding:10px 22px;font-weight:600;cursor:pointer">${document.documentElement.lang === "az" ? "Yenidən yüklə" : "Reload"}</button></div>`;
+    return;
+  }
+  const Island = module.default;
 
   // Site-wide message pop-ups: their own root, appended to <body>, so no Razor page has to
   // make room for them. Mounted after the session refresh so the socket starts signed in.

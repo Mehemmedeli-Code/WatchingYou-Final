@@ -196,7 +196,7 @@ export default function HomePage() {
 
     setRentingId(movie.id);
     try {
-      await post("/api/rentals", { movieId: movie.id, days: 7 });
+      await post("/api/rentals", { movieId: movie.id, days: 3 });
       setToast({ id: Date.now(), tone: "ok", text: `${movie.title} — ${t("movie.rented")}` });
       await Promise.all([load(), refreshFeatured(), refreshRecommended()]);
     } catch (err) {

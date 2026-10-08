@@ -1,0 +1,250 @@
+@page "/welcome"
+@model WelcomeModel
+@inject MovieRental.Host.Infrastructure.Localization.ILanguageContext T
+@{
+    Layout = null;
+    var back = Uri.EscapeDataString(Model.ReturnUrl);
+    var here = Uri.EscapeDataString("/welcome?returnUrl=" + Model.ReturnUrl);
+    var faq = new[] { "what", "cost", "where", "cancel", "watch", "cinema", "language" };
+    var languages = new[] { ("az", "Azərbaycan"), ("en", "English"), ("ru", "Русский"), ("tr", "Türkçe") };
+}
+<!DOCTYPE html>
+<html lang="@Model.Language">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WatchingYou · @T["welcome.title"]</title>
+    <meta name="description" content="@T["welcome.lede"]" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#050806" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --bg: #050806; --ink: #F2FFF6; --mute: #A9BCB0; --line: rgba(255,255,255,.14);
+            --accent: #22E07A; --accent-deep: #0B7A3F; --panel: #121A15; --panel-hover: #18231C;
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; }
+        a { color: inherit; }
+
+        .hero { position: relative; min-height: 100vh; min-height: 100svh; overflow: hidden; display: flex; flex-direction: column; }
+        /* The catalogue's own posters, tilted into a wall and pushed into the dark. */
+        .wall { position: absolute; inset: -30% -20%; display: grid; grid-template-columns: repeat(8, 1fr); gap: 14px;
+                transform: rotate(-12deg) scale(1.1); opacity: .8; pointer-events: none; }
+        .wall img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 10px; display: block; }
+        /* A film without a poster gets one of ours: its title, set big, on a dark green field. */
+        .tile { aspect-ratio: 2 / 3; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end;
+                gap: 6px; overflow: hidden; position: relative; border: 1px solid rgba(34,224,122,.18); }
+        .tile::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 30% 20%, rgba(155,255,198,.25), transparent 55%); }
+        .tile-genre { position: relative; font: 600 11px Inter, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #9BFFC6; }
+        .tile-title { position: relative; font: 800 clamp(14px, 1.6vw, 22px)/1.05 Poppins, sans-serif; color: #F2FFF6; text-transform: uppercase; }
+        .tile-year { position: relative; font: 500 12px Inter, sans-serif; color: rgba(242,255,246,.6); }
+        .t0 { background: linear-gradient(160deg, #0B3D22, #04120A 70%); }
+        .t1 { background: linear-gradient(200deg, #145C35, #050A07 65%); }
+        .t2 { background: linear-gradient(135deg, #07170E, #1E7A48 120%); }
+        .t3 { background: linear-gradient(180deg, #0F2A1B, #000 80%); }
+        .t4 { background: linear-gradient(120deg, #22E07A -40%, #062012 45%, #020604); }
+        .t5 { background: linear-gradient(220deg, #0B7A3F -20%, #03100A 60%); }
+        .wall.empty { background: radial-gradient(circle at 30% 30%, #0f3a22, transparent 60%); }
+        .shade { position: absolute; inset: 0;
+                 background: radial-gradient(ellipse at center, rgba(5,8,6,.5) 0%, rgba(5,8,6,.8) 75%),
+                             linear-gradient(180deg, rgba(5,8,6,.85) 0%, rgba(5,8,6,.35) 35%, rgba(5,8,6,.95) 100%); }
+
+        .top { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+               padding: 20px 16px; max-width: 1200px; width: 100%; margin: 0 auto; }
+        .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--accent);
+                 font-family: Poppins, sans-serif; font-weight: 800; font-size: clamp(22px, 4vw, 36px); letter-spacing: -.02em; }
+        .brand svg { width: clamp(34px, 5vw, 48px); height: auto; }
+        .tools { display: flex; align-items: center; gap: 10px; }
+        .lang { position: relative; }
+        .lang select { appearance: none; background: rgba(0,0,0,.55); color: var(--ink); border: 1px solid var(--line);
+                       border-radius: 8px; padding: 8px 34px 8px 12px; font: 500 14px Inter, sans-serif; cursor: pointer; }
+        .lang::after { content: "▾"; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--mute); }
+        .signin { background: var(--accent); color: #03140A; text-decoration: none; font-weight: 600; font-size: 14px;
+                  padding: 9px 16px; border-radius: 8px; white-space: nowrap; }
+        .signin:hover { background: #3BF08E; }
+
+        .center { position: relative; z-index: 2; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+                  text-align: center; padding: 24px 16px 72px; }
+        h1 { font-family: Poppins, sans-serif; font-weight: 800; font-size: clamp(32px, 6vw, 64px); line-height: 1.08;
+             letter-spacing: -.02em; margin: 0; max-width: 900px; }
+        .price { margin: 18px 0 0; font-size: clamp(16px, 2.2vw, 22px); font-weight: 600; }
+        .price b { color: var(--accent); }
+        .plans { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 640px; margin-top: 24px; }
+        .plan { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 14px 16px; border-radius: 10px;
+                background: rgba(0,0,0,.55); border: 1px solid var(--line); }
+        .plan { cursor: pointer; position: relative; transition: border-color .15s, background .15s, box-shadow .15s; }
+        .plan:hover { border-color: rgba(34,224,122,.6); }
+        .plan input { position: absolute; opacity: 0; pointer-events: none; }
+        /* The chosen plan: green frame and a tick in the corner. */
+        .plan:has(input:checked) { border-color: var(--accent); background: rgba(12,40,24,.75); box-shadow: 0 0 0 1px var(--accent); }
+        .plan::after { content: ""; position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; border-radius: 50%;
+                       border: 2px solid rgba(255,255,255,.3); box-sizing: border-box; }
+        .plan:has(input:checked)::after { border-color: var(--accent); background: var(--accent)
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%2303140A' stroke-width='2.4'/%3E%3C/svg%3E") center/12px no-repeat; }
+        .plan:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .plan-name { font: 600 13px Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+        .plan.pro .plan-name { color: var(--accent); }
+        .plan-cost { font: 800 clamp(22px, 3vw, 28px) Poppins, sans-serif; }
+        .plan-cost small { font: 500 14px Inter, sans-serif; color: var(--mute); }
+        .plan-note { font-size: 13px; color: var(--mute); line-height: 1.4; }
+        .ready { margin: 28px 0 14px; color: var(--ink); font-size: clamp(14px, 1.8vw, 18px); }
+        .start { display: flex; gap: 10px; width: 100%; max-width: 640px; }
+        .start input { flex: 1; min-width: 0; background: rgba(0,0,0,.6); color: var(--ink); border: 1px solid rgba(255,255,255,.35);
+                       border-radius: 8px; padding: 18px 16px; font: 16px Inter, sans-serif; }
+        .start input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+        .start button { background: linear-gradient(135deg, #22E07A, #0B7A3F); color: #03140A; border: 0; border-radius: 8px;
+                        padding: 0 26px; font: 700 clamp(18px, 2.4vw, 24px) Poppins, sans-serif; cursor: pointer; white-space: nowrap;
+                        display: flex; align-items: center; gap: 8px; }
+        .start button:hover { filter: brightness(1.1); }
+        .curve { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; z-index: 2;
+                 background: linear-gradient(90deg, transparent, var(--accent-deep), var(--accent), var(--accent-deep), transparent); }
+
+        .faq { max-width: 1200px; margin: 0 auto; padding: 56px 16px 32px; }
+        .faq h2 { font-family: Poppins, sans-serif; font-size: clamp(22px, 3vw, 30px); margin: 0 0 18px; }
+        details { background: var(--panel); margin-bottom: 8px; border-radius: 4px; }
+        details:hover { background: var(--panel-hover); }
+        summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px;
+                  padding: 24px 28px; font-size: clamp(17px, 2.2vw, 24px); }
+        summary::-webkit-details-marker { display: none; }
+        summary::after { content: "+"; font-size: 40px; font-weight: 300; line-height: 1; transition: transform .2s; }
+        details[open] summary::after { transform: rotate(45deg); }
+        details p { margin: 0; padding: 0 28px 24px; border-top: 1px solid rgba(0,0,0,.4); padding-top: 20px;
+                    color: var(--ink); font-size: clamp(15px, 1.9vw, 20px); line-height: 1.5; }
+        .again { text-align: center; padding: 16px 16px 8px; }
+        .again .start { margin: 14px auto 0; }
+        footer { max-width: 1200px; margin: 0 auto; padding: 32px 16px 48px; color: var(--mute); font-size: 14px; }
+        footer a { color: var(--mute); }
+
+        @@media (max-width: 640px) {
+            .start { flex-direction: column; }
+            .plans { grid-template-columns: 1fr; }
+            .brand { font-size: 18px; gap: 6px; }
+            .brand svg { width: 28px; }
+            .tools { gap: 6px; }
+            .lang select { padding: 7px 26px 7px 8px; font-size: 13px; }
+            .lang::after { right: 8px; }
+            .signin { padding: 8px 12px; font-size: 13px; }
+            .top { padding: 14px 12px; }
+            .start button { justify-content: center; padding: 14px 20px; }
+            .wall { grid-template-columns: repeat(5, 1fr); }
+            summary { padding: 18px 18px; }
+            details p { padding: 16px 18px 18px; }
+        }
+        @@media (prefers-reduced-motion: no-preference) {
+            .wall { animation: drift 60s linear infinite alternate; }
+            @@keyframes drift { from { transform: rotate(-12deg) scale(1.1) translateY(0); } to { transform: rotate(-12deg) scale(1.1) translateY(-6%); } }
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <div class="wall @(Model.Tiles.Count == 0 ? "empty" : null)" aria-hidden="true">
+            @for (var i = 0; i < Model.Tiles.Count; i++)
+            {
+                var tile = Model.Tiles[i];
+                if (tile.PosterUrl is { } poster)
+                {
+                    <img src="@poster" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                }
+                else
+                {
+                    <div class="tile t@(Math.Abs(tile.Title.GetHashCode() % 6))">
+                        <span class="tile-genre">@tile.Genre</span>
+                        <span class="tile-title">@tile.Title</span>
+                        <span class="tile-year">@tile.Year</span>
+                    </div>
+                }
+            }
+        </div>
+        <div class="shade" aria-hidden="true"></div>
+
+        <header class="top">
+            <a class="brand" href="/welcome" aria-label="WatchingYou">
+                <svg viewBox="0 0 64 44" aria-hidden="true">
+                    <path d="M2 22C2 22 14 4 32 4s30 18 30 18-12 18-30 18S2 22 2 22Z" fill="#050A07" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" />
+                    <circle cx="32" cy="22" r="13" fill="currentColor" />
+                    <circle cx="34" cy="23" r="6.4" fill="#04120A" />
+                    <circle cx="27.5" cy="16.5" r="2.6" fill="#EAFFF2" />
+                </svg>
+                WATCHINGYOU
+            </a>
+            <div class="tools">
+                <label class="lang">
+                    <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">@T["welcome.language"]</span>
+                    <select onchange="location.href='/lang/'+this.value+'?returnUrl=@here'">
+                        @foreach (var (code, name) in languages)
+                        {
+                            <option value="@code" selected="@(code == Model.Language)">@name</option>
+                        }
+                    </select>
+                </label>
+                <a class="signin" href="/account?returnUrl=@back">@T["nav.signIn"]</a>
+            </div>
+        </header>
+
+        <div class="center">
+            <h1>@T["welcome.title"]</h1>
+            <p class="price">@Html.Raw(T["welcome.price"])</p>
+            @* Two ways in, side by side: pick one. Free is chosen to begin with — joining never
+               requires PRO. The choice travels with the form as "plan": with PRO the new account
+               lands on the PRO page after sign-up, with Free straight in the site. *@
+            <div class="plans" role="radiogroup" aria-label="@T["welcome.choosePlan"]">
+                <label class="plan">
+                    <input type="radio" name="plan" value="free" form="start-form" checked />
+                    <span class="plan-name">@T["welcome.planFree"]</span>
+                    <span class="plan-cost">$0.50 <small>/ 3 @T["pro.days"]</small></span>
+                    <span class="plan-note">@T["welcome.planFreeNote"]</span>
+                </label>
+                <label class="plan pro">
+                    <input type="radio" name="plan" value="pro" form="start-form" />
+                    <span class="plan-name" lang="en">Watching PRO</span>
+                    <span class="plan-cost">$5 <small>/ @T["pro.month"]</small></span>
+                    <span class="plan-note">@T["welcome.planProNote"]</span>
+                </label>
+            </div>
+            <p class="ready">@T["welcome.ready"]</p>
+            <form class="start" id="start-form" method="get" action="/account">
+                <input type="hidden" name="mode" value="register" />
+                <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                <input type="email" name="email" required autocomplete="email" placeholder="@T["welcome.email"]" aria-label="@T["welcome.email"]" />
+                <button type="submit"><span id="start-label">@T["welcome.start"]</span> <span aria-hidden="true">›</span></button>
+            </form>
+            <script>
+                // Only the button text follows the choice. Where the account goes afterwards is
+                // decided by the "plan" field itself, so this works without the script too.
+                (function () {
+                    var label = document.getElementById("start-label");
+                    var words = {
+                        free: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["welcome.start"])),
+                        pro: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["welcome.startPro"]))
+                    };
+                    document.querySelectorAll("input[name=plan]").forEach(function (radio) {
+                        radio.addEventListener("change", function () { label.textContent = words[radio.value]; });
+                    });
+                })();
+            </script>
+        </div>
+        <div class="curve" aria-hidden="true"></div>
+    </section>
+
+    <section class="faq">
+        <h2>@T["welcome.faq"]</h2>
+        @foreach (var key in faq)
+        {
+            <details>
+                <summary>@T[$"welcome.q.{key}"]</summary>
+                <p>@T[$"welcome.a.{key}"]</p>
+            </details>
+        }
+    </section>
+
+    <footer>
+        <p>@T["footer.note"]</p>
+        <p><a href="/privacy">@T["privacy.title"]</a></p>
+    </footer>
+</body>
+</html>
