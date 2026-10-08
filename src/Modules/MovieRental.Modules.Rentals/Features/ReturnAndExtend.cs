@@ -12,14 +12,13 @@ using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Rentals.Features;
 
-// Feature 3 (continued) — extend the due date, then return the copy.
-public sealed record ExtendRentalCommand(Guid RentalId, int ExtraDays) : ICommand<Result<RentalResponse>>;
+// Feature 3 (continued) — when the paid three days are over: three more for $0.50, or return.
+// ExtraDays is kept in the request for older clients and ignored; a period is always three days.
+public sealed record ExtendRentalCommand(Guid RentalId, int ExtraDays = RentalPricing.PeriodDays) : ICommand<Result<RentalResponse>>;
 
 internal sealed class ExtendRentalHandler(RentalsDbContext db, ICurrentUser currentUser, LateFeePolicy policy)
     : ICommandHandler<ExtendRentalCommand, Result<RentalResponse>>
 {
-    private const int MaxExtensions = 2;
-
     public async Task<Result<RentalResponse>> Handle(ExtendRentalCommand command, CancellationToken ct)
     {
         var userId = currentUser.RequireId();
@@ -28,17 +27,19 @@ internal sealed class ExtendRentalHandler(RentalsDbContext db, ICurrentUser curr
         if (rental is null) return Result.Failure<RentalResponse>(Error.NotFound("Rental"));
         if (rental.ReturnedAtUtc is not null)
             return Result.Failure<RentalResponse>(Error.Conflict("This rental is already closed."));
-        if (rental.ExtensionCount >= MaxExtensions)
-            return Result.Failure<RentalResponse>(Error.Conflict($"A rental can be extended {MaxExtensions} times."));
-        if (command.ExtraDays is < 1 or > 14)
-            return Result.Failure<RentalResponse>(Error.Validation("Extend by 1 to 14 days."));
+        // The offer appears once the paid days are over, not before: paying for days you
+        // already have would be paying twice.
+        var now = DateTime.UtcNow;
+        if (now < rental.DueAtUtc)
+            return Result.Failure<RentalResponse>(Error.Conflict("You can add three more days once the current three are over."));
 
-        // Extending from the current due date, not from today, so a late customer cannot
-        // extend their way out of a fee they have already earned.
-        rental.DueAtUtc = rental.DueAtUtc.AddDays(command.ExtraDays);
-        rental.BasePrice = Math.Round(rental.BasePrice + rental.DailyPrice * command.ExtraDays, 2);
+        // Counted from the moment they say yes. The time they took to decide was free and
+        // does not eat into the days they are now paying for.
+        rental.DueAtUtc = now.AddDays(RentalPricing.PeriodDays);
+        rental.BasePrice = Math.Round(rental.BasePrice + RentalPricing.PeriodPrice, 2);
         rental.ExtensionCount++;
         rental.DueSoonNotified = false;
+        rental.OverdueNotified = false;   // the next "keep or return?" gets its own e-mail
 
         await db.SaveChangesAsync(ct);
         return Result.Success(rental.ToResponse(policy, DateTime.UtcNow));
@@ -76,14 +77,19 @@ public static class ReturnAndExtendEndpoints
     public static void Map(IEndpointRouteBuilder app)
     {
         app.MapPut("/api/rentals/{id:guid}/extend",
-            async Task<Results<Ok<RentalResponse>, Conflict<Error>, NotFound<Error>>> (
+            async Task<Results<Ok<RentalResponse>, BadRequest<Error>, Conflict<Error>, NotFound<Error>>> (
                 Guid id, ExtendRentalCommand body, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var result = await dispatcher.Send(body with { RentalId = id }, ct);
                 if (result.IsSuccess) return TypedResults.Ok(result.Value);
-                return result.Error.Code == "not_found"
-                    ? TypedResults.NotFound(result.Error)
-                    : TypedResults.Conflict(result.Error);
+                // A bad number of days is the caller's input (400); a closed or maxed-out rental
+                // is the state of things (409). Both used to come back as 409.
+                return result.Error.Code switch
+                {
+                    "not_found" => TypedResults.NotFound(result.Error),
+                    "validation" => TypedResults.BadRequest(result.Error),
+                    _ => TypedResults.Conflict(result.Error)
+                };
             })
         .WithName("PutRentalExtensionWithId").WithTags("Rentals").RequireAuthorization();
 

@@ -10,6 +10,7 @@ public sealed class RentalsDbContext(DbContextOptions<RentalsDbContext> options)
     public override string Schema => SchemaName;
 
     public DbSet<Rental> Rentals => Set<Rental>();
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -30,6 +31,18 @@ public sealed class RentalsDbContext(DbContextOptions<RentalsDbContext> options)
             e.HasIndex(x => new { x.UserId, x.MovieId })
              .IsUnique()
              .HasFilter("[ReturnedAtUtc] IS NULL AND [IsDeleted] = 0");
+        });
+
+        b.Entity<Subscription>(e =>
+        {
+            e.ToTable("Subscriptions");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Plan).HasMaxLength(40).IsRequired();
+            e.Property(x => x.Amount).HasPrecision(10, 2);
+            e.Property(x => x.Currency).HasMaxLength(3).IsRequired();
+            e.Property(x => x.CardBrand).HasMaxLength(20).IsRequired();
+            e.Property(x => x.CardLast4).HasMaxLength(4).IsRequired();
+            e.HasIndex(x => new { x.UserId, x.EndsAtUtc });
         });
 
         base.OnModelCreating(b);
