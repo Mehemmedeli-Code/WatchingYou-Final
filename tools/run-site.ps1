@@ -43,6 +43,9 @@ $env:ASPNETCORE_URLS = "https://localhost:7139;http://localhost:5139"
 Get-Process MovieRental.Host -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep 1
 
+# The phone app's dev server has a keeper of its own, so the two restart independently.
+Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", (Join-Path $PSScriptRoot "run-mobile.ps1") -WindowStyle Hidden
+
 try {
     while ($true) {
         Start-Database
