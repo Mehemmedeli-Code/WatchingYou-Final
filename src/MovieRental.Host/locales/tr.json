@@ -831,8 +831,18 @@
   "security.reportRefused": "Rapor kabul edilmedi.",
   "error.partFailed": "Sayfanın bu bölümü yüklenemedi.",
   "admin.videoHint": "YouTube, Vimeo veya doğrudan .mp4 bağlantısı",
-  "globe.meetPeople": "İnsanlarla tanışın!",
   "globe.wholeWorld": "Tüm dünya",
   "globe.nobodyHere": "Bu ülkeden henüz kimse katılmadı.",
-  "map.clickToUse": "Döndürmek ve yakınlaştırmak için küreye tıklayın"
+  "map.clickToUse": "Döndürmek ve yakınlaştırmak için küreye tıklayın",
+  "app.more": "Keşfet",
+  "app.moreLede": "Sitedeki her şey, telefonun için.",
+  "app.back": "Geri",
+  "app.onDisplayHint": "Bugün sinemalarda neler var",
+  "app.aiHint": "Yapay zekâ ile çekilmiş kısa filmler",
+  "app.craftHint": "El emeğiyle çekilmiş kısa filmler",
+  "app.globeHint": "Dünyada kimler izliyor, tanış",
+  "app.helpHint": "Sorun mu var? Bize yaz",
+  "app.catalogueHint": "Tüm filmler: ara, göz at, kaydet",
+  "app.notInLibrary": "Bu film kütüphanenizde yok.",
+  "common.close": "Kapat"
 }

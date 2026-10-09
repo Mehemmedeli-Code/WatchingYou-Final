@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MapPin, Users, X } from "lucide-react";
+import { Globe2, MapPin, Users, X } from "lucide-react";
 import { Section, Panel, Notice, Empty, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Input, Field } from "@/components/ui/input";
@@ -13,7 +13,6 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DirectChat } from "@/components/DirectChat";
 import { GlobeMessages } from "@/components/GlobeMessages";
 import { GlobeMembersMap } from "@/components/GlobeMembersMap";
-import { MeetPeoplePerson } from "@/components/MeetPeoplePerson";
 import { CrowdBand } from "@/components/CrowdBand";
 import { Globe } from "@/components/ui/globe";
 
@@ -108,16 +107,11 @@ export default function GlobePage() {
               globe and the city list below stay as they were. */}
           <GlobeMembersMap cities={cities ?? []} selectedCity={open?.city} onSelect={openCity} />
 
-          {/* The decorative globe, with a figure beside it pointing at it. */}
-          {/* The figure stands to the right and reaches in, its finger just short of the
-              globe's edge (the negative margin); on a narrow screen it steps below. */}
-          {/* The pair stands right up against the globe: the negative margin brings his
-              pointing finger to its edge. On a narrow screen they step below it. */}
-          <div className="flex flex-wrap items-center justify-center py-6 sm:flex-nowrap">
+          {/* The decorative globe. */}
+          <div className="flex justify-center py-6">
             <ErrorBoundary label="Globe" fallback={null}>
               <Globe size={250} className="flex shrink-0 justify-center" />
             </ErrorBoundary>
-            <MeetPeoplePerson className="sm:-ml-6" />
           </div>
 
           {cities === null ? (
@@ -221,7 +215,7 @@ export default function GlobePage() {
           ) : (
             <Panel>
               <p className="flex items-center gap-2 font-display text-lg text-ink">
-                <Globe size={18} aria-hidden />
+                <Globe2 size={18} aria-hidden />
                 {t("globe.title")}
               </p>
               <p className="mt-1 text-sm text-ink-mute">{t("globe.lede")}</p>

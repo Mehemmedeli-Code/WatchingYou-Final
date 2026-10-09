@@ -831,8 +831,18 @@
   "security.reportRefused": "Hesabat qəbul olunmadı.",
   "error.partFailed": "Səhifənin bu hissəsi yüklənmədi.",
   "admin.videoHint": "YouTube, Vimeo və ya birbaşa .mp4 linki",
-  "globe.meetPeople": "İnsanlarla tanış olun!",
   "globe.wholeWorld": "Bütün dünya",
   "globe.nobodyHere": "Bu ölkədən hələ heç kim qoşulmayıb.",
-  "map.clickToUse": "Fırlatmaq və böyütmək üçün kürəyə basın"
+  "map.clickToUse": "Fırlatmaq və böyütmək üçün kürəyə basın",
+  "app.more": "Kəşf et",
+  "app.moreLede": "Saytdakı hər şey, telefon üçün.",
+  "app.back": "Geri",
+  "app.onDisplayHint": "Bu gün kinoteatrlarda nə var",
+  "app.aiHint": "Süni intellektlə çəkilmiş qısa filmlər",
+  "app.craftHint": "İnsan əli ilə çəkilmiş qısa filmlər",
+  "app.globeHint": "Dünyada kim izləyir, tanış ol",
+  "app.helpHint": "Sualın var? Yazış və cavab al",
+  "app.catalogueHint": "Bütün filmlər: axtar, bax, seçilmişlərə əlavə et",
+  "app.notInLibrary": "Bu film sizin kitabxananızda yoxdur.",
+  "common.close": "Bağla"
 }

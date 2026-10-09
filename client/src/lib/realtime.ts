@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { HubConnectionBuilder, HubConnectionState, LogLevel, type HubConnection } from "@microsoft/signalr";
 import { auth } from "@/lib/api";
+import { apiUrl } from "@/lib/platform";
 
 /**
  * One SignalR connection per tab, shared by every chat on the page.
@@ -27,8 +28,9 @@ function announceState() {
 
 function build(): HubConnection {
   const hub = new HubConnectionBuilder()
-    // Absolute, so the client never has to guess the base (it cannot outside a browser).
-    .withUrl(new URL("/hubs/chat", window.location.href).href, {
+    // Absolute, so the client never has to guess the base (it cannot outside a browser). In
+    // the phone app the hub is on the server, not on the device the page was loaded from.
+    .withUrl(new URL(apiUrl("/hubs/chat"), window.location.href).href, {
       // Browsers cannot put an Authorization header on a WebSocket upgrade, so the token
       // travels as ?access_token= and the server reads it only on /hubs paths.
       accessTokenFactory: async () => (await auth.ensureToken()) ?? "",

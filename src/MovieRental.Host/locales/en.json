@@ -831,8 +831,18 @@
   "security.reportRefused": "The report was not accepted.",
   "error.partFailed": "This part of the page could not load.",
   "admin.videoHint": "YouTube, Vimeo or a direct .mp4",
-  "globe.meetPeople": "Meet the people!",
   "globe.wholeWorld": "Whole world",
   "globe.nobodyHere": "Nobody from this country has joined yet.",
-  "map.clickToUse": "Click the globe to turn and zoom it"
+  "map.clickToUse": "Click the globe to turn and zoom it",
+  "app.more": "Discover",
+  "app.moreLede": "Everything on the website, made for your phone.",
+  "app.back": "Back",
+  "app.onDisplayHint": "What is on at the cinemas today",
+  "app.aiHint": "Short films made with AI",
+  "app.craftHint": "Short films made by hand",
+  "app.globeHint": "See who is watching around the world",
+  "app.helpHint": "Got a question? Chat with us",
+  "app.catalogueHint": "Every film: search, browse, save for later",
+  "app.notInLibrary": "This film is not in your library.",
+  "common.close": "Close"
 }

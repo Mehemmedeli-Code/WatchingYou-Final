@@ -357,6 +357,25 @@ public static class DevelopmentDatabaseBootstrapper
             }
         }
 
+        // Films added before their poster and trailer were stored with the site get them now.
+        await MovieRental.Modules.Catalog.Features.MoviePosters.FillMissingAsync(
+            catalog, services.GetRequiredService<IHostEnvironment>(), ct);
+        await MovieRental.Modules.Catalog.Features.MovieTrailers.FillMissingAsync(
+            catalog, services.GetRequiredService<IHostEnvironment>(), ct);
+
+        // A rental keeps its own copy of the poster address, taken when the film was rented.
+        var rentals = services.GetRequiredService<RentalsDbContext>();
+        var withoutPoster = await rentals.Rentals.Where(r => r.PosterUrl == null || r.PosterUrl == "").ToListAsync(ct);
+        if (withoutPoster.Count > 0)
+        {
+            var ids = withoutPoster.Select(r => r.MovieId).Distinct().ToList();
+            var posters = await catalog.Movies.Where(m => ids.Contains(m.Id) && m.PosterUrl != null && m.PosterUrl != "")
+                .ToDictionaryAsync(m => m.Id, m => m.PosterUrl, ct);
+            foreach (var rental in withoutPoster)
+                if (posters.TryGetValue(rental.MovieId, out var poster)) rental.PosterUrl = poster;
+            await rentals.SaveChangesAsync(ct);
+        }
+
         var cinema = services.GetRequiredService<CinemaDbContext>();
         if (!await cinema.Screenings.AnyAsync(ct))
         {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Clapperboard, Info, Play, Ticket } from "lucide-react";
+import { Info, Play, Ticket } from "lucide-react";
+import { GenrePoster } from "@/components/PosterArt";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { MovieListItem } from "@/components/MovieCard";
@@ -186,16 +187,16 @@ export function MovieCarousel({
                     `rotateY(${TILT}deg)`,
                   ].join(" "),
                   zIndex: 200 - Math.round(offset * 10),
-                  opacity: Math.max(0, 1 - Math.abs(offset) / (VISIBLE + 1)),
+                  // Solid, so no poster shows through the one in front of it; only the last
+                  // card at each end fades in or out as the ribbon turns.
+                  opacity: Math.min(1, Math.max(0, VISIBLE + 0.5 - Math.abs(offset))),
                   transition: dragging ? "none" : "opacity 300ms",
                 }}
               >
                 {movie.posterUrl ? (
                   <img src={movie.posterUrl} alt="" className="h-full w-full object-cover" draggable={false} />
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center bg-surface text-accent-dim">
-                    <Clapperboard size={44} strokeWidth={1.2} aria-hidden />
-                  </span>
+                  <GenrePoster genre={movie.genre} />
                 )}
 
                 {/* A wash towards the far end, so the ribbon fades into depth instead of
@@ -229,7 +230,7 @@ export function MovieCarousel({
             </Button>
           ) : null}
 
-          {onOpen && current.hasVideo ? (
+          {onOpen && (current.hasVideo || current.trailerUrl) ? (
             <Button size="sm" variant="outline" onClick={() => onOpen(current, "watch")}>
               <Play size={14} aria-hidden />
               {t("movie.watch")}

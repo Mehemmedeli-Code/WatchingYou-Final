@@ -45,6 +45,25 @@ const apiBase = (read(API_KEY) || __WY_API_BASE__ || "").replace(/\/+$/, "");
   navigate: (route: string) => { window.location.hash = `#/${route}`; },
 };
 
+// The server hands out its pictures and videos (posters, avatars, short films) as paths on
+// itself — "/api/posters/…". On the website that is the page's own origin; in the app the page
+// is on the device, so those paths are pointed at the server as they appear.
+if (apiBase) {
+  const fix = (el: Element) => {
+    const src = el.getAttribute("src");
+    if (src && src.startsWith("/api/")) el.setAttribute("src", apiBase + src);
+  };
+  const scan = (root: ParentNode) => root.querySelectorAll("img[src^='/api/'], video[src^='/api/'], source[src^='/api/']").forEach(fix);
+  new MutationObserver((changes) => {
+    for (const change of changes) {
+      if (change.type === "attributes") fix(change.target as Element);
+      else change.addedNodes.forEach((node) => {
+        if (node instanceof Element) { fix(node); scan(node); }
+      });
+    }
+  }).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ["src"] });
+}
+
 // Same theme handling as the website, before first paint.
 try {
   const theme = read("wy.theme") === "light" ? "light" : "dark";
