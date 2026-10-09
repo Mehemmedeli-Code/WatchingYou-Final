@@ -12,6 +12,8 @@ import { get } from "@/lib/api";
 import { formatRuntime, formatUsd } from "@/lib/format";
 import { useAuth } from "@/components/useAuth";
 import { t, formatWhen } from "@/lib/i18n";
+import { isApp } from "@/lib/platform";
+import { TrailerPlayer } from "@/components/TrailerPlayer";
 
 export interface MovieDetail {
   id: string;
@@ -40,7 +42,7 @@ export interface MovieDetail {
  * watch URL rather than a file, and those cannot go in a <video> tag — they need the
  * provider's embed player in an iframe.
  */
-function embedFor(url: string): { kind: "iframe" | "file"; src: string } {
+export function embedFor(url: string): { kind: "iframe" | "file"; src: string } {
   try {
     const parsed = new URL(url);
     const host = parsed.hostname.replace(/^www\./, "");
@@ -75,12 +77,16 @@ export function MovieDialog({
   const [detail, setDetail] = useState<MovieDetail | null>(null);
   // Staff (Admin, Security) watch everything and are never offered a rental or PRO.
   const { isSignedIn, isSecurity: isStaff } = useAuth();
+  // The phone app sells no digital content (the stores require their own billing for that),
+  // so there it shows no prices and no way to rent or subscribe — only what is already yours.
+  const inApp = isApp();
   const [playing, setPlaying] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   // Why the film would not play: "none" (rent or PRO), "awaitingDecision" (+3 days or return),
   // "signedOut", or null when there is nothing to explain.
   const [blocked, setBlocked] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [showTrailer, setShowTrailer] = useState(false);
 
   const watch = useCallback(async () => {
     if (!isSignedIn) { setBlocked("signedOut"); return; }
@@ -217,7 +223,7 @@ export function MovieDialog({
                     ? `${detail.availableCopies} ${t("movie.onShelf")}`
                     : t("movie.allOut")}
                 </Badge>
-                {isStaff ? null : <Badge>{formatUsd(0.5)} / 3 {t("pro.days", "days")}</Badge>}
+                {isStaff || inApp ? null : <Badge>{formatUsd(0.5)} / 3 {t("pro.days", "days")}</Badge>}
                 {detail.reviewCount > 0 ? (
                   <Badge tone="warn">
                     <Star size={12} aria-hidden /> {detail.averageRating.toFixed(1)} ({detail.reviewCount})
@@ -235,9 +241,12 @@ export function MovieDialog({
                 )}
 
                 {detail.trailerUrl ? (
-                  <a href={detail.trailerUrl} target="_blank" rel="noreferrer noopener">
-                    <Button size="sm" variant="outline">{t("movie.trailer")}</Button>
-                  </a>
+                  <Button size="sm" variant={detail.hasVideo ? "outline" : "solid"} onClick={() => setShowTrailer(true)}>
+                    {t("movie.trailer")}
+                  </Button>
+                ) : null}
+                {showTrailer && detail.trailerUrl ? (
+                  <TrailerPlayer film={{ ...detail, trailerUrl: detail.trailerUrl }} onClose={() => setShowTrailer(false)} />
                 ) : null}
 
                 {onRent && !isStaff ? (
@@ -255,6 +264,8 @@ export function MovieDialog({
                       <p className="text-sm text-ink">{t("pro.signInToWatch", "Sign in to watch.")}</p>
                       <a href="/account" className="mt-3 inline-block"><Button size="sm">{t("nav.signIn")}</Button></a>
                     </>
+                  ) : inApp ? (
+                    <p className="text-sm text-ink">{t("app.notInLibrary", "This film is not in your library.")}</p>
                   ) : blocked === "awaitingDecision" ? (
                     <>
                       <p className="text-sm text-ink">{t("pro.decideFirst", "Your three days are over. Keep it three more days for $0.50, or return it — nothing is charged while you decide.")}</p>

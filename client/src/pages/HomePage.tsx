@@ -9,11 +9,13 @@ import { Pagination } from "@/components/Pagination";
 import { useWatchlist } from "@/lib/watchlist";
 import { Toaster, type ToastMessage } from "@/components/Toast";
 import { MovieDialog } from "@/components/MovieDialog";
+import { TrailerPlayer } from "@/components/TrailerPlayer";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
 import { useAuth } from "@/components/useAuth";
 import { get, post, query, ApiError, type Paged } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { isApp } from "@/lib/platform";
 
 const SORTS = [
   { value: "newest", label: t("sort.newest") },
@@ -59,6 +61,9 @@ function readFilters() {
 }
 
 export default function HomePage() {
+  // The phone app lists the films but sells none: the stores require their own billing for
+  // digital content, so there is no rent button there (see MobileApp).
+  const inApp = isApp();
   const { isSignedIn } = useAuth();
   const watchlist = useWatchlist();
   const initial = useMemo(readFilters, []);
@@ -84,6 +89,14 @@ export default function HomePage() {
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [dialog, setDialog] = useState<{ id: string; mode: "details" | "watch" } | null>(null);
   const [rentingId, setRentingId] = useState<string | null>(null);
+  const [trailer, setTrailer] = useState<MovieListItem | null>(null);
+
+  // Watch plays the film when the site has it, and otherwise its trailer, full screen over the
+  // catalogue. Details always opens the dialog.
+  const openMovie = useCallback((movie: MovieListItem, mode: "details" | "watch") => {
+    if (mode === "watch" && !movie.hasVideo && movie.trailerUrl) setTrailer(movie);
+    else setDialog({ id: movie.id, mode });
+  }, []);
 
   const refreshFeatured = useCallback(async () => {
     const page = await get<Paged<MovieListItem>>(
@@ -214,12 +227,16 @@ export default function HomePage() {
     <>
       <Toaster toast={toast} onDismiss={() => setToast(null)} />
 
+      {trailer?.trailerUrl ? (
+        <TrailerPlayer film={{ ...trailer, trailerUrl: trailer.trailerUrl }} onClose={() => setTrailer(null)} />
+      ) : null}
+
       {dialog ? (
         <MovieDialog
           movieId={dialog.id}
           mode={dialog.mode}
           onClose={() => setDialog(null)}
-          onRent={(id) => {
+          onRent={inApp ? undefined : (id) => {
             const movie = [...featured, ...(data?.items ?? [])].find((m) => m.id === id);
             if (movie) { setDialog(null); void rent(movie); }
           }}
@@ -228,15 +245,15 @@ export default function HomePage() {
 
       {/* The eye, not a headline: the posters used to scatter across the words and leave
           half a sentence showing. The eye says the name without text to cover. */}
-      <StackSpread centerpiece={<HeroEye label={t("home.hero.cta")} />} />
+      {inApp ? null : <StackSpread centerpiece={<HeroEye label={t("home.hero.cta")} />} />}
       <h1 className="sr-only">WatchingYou</h1>
 
       {featured.length > 0 ? (
         <Section title={t("featured.title")} lede={t("featured.lede")}>
           <MovieCarousel
             movies={featured}
-            onRent={rent}
-            onOpen={(m, mode) => setDialog({ id: m.id, mode })}
+            onRent={inApp ? undefined : rent}
+            onOpen={openMovie}
             busyId={rentingId}
           />
         </Section>
@@ -256,8 +273,8 @@ export default function HomePage() {
                 movie={item.movie}
                 index={i}
                 note={item.becauseGenre ? `${t("recommend.because", "Because you like")} ${item.becauseGenre}` : null}
-                onRent={rent}
-                onOpen={(m, mode) => setDialog({ id: m.id, mode })}
+                onRent={inApp ? undefined : rent}
+                onOpen={openMovie}
                 busy={rentingId === item.movie.id}
                 saved={watchlist.has(item.movie.id)}
                 onToggleSave={isSignedIn ? toggleSave : undefined}
@@ -360,8 +377,8 @@ export default function HomePage() {
                   key={movie.id}
                   movie={movie}
                   index={i}
-                  onRent={rent}
-                  onOpen={(m, mode) => setDialog({ id: m.id, mode })}
+                  onRent={inApp ? undefined : rent}
+                  onOpen={openMovie}
                   busy={rentingId === movie.id}
                   saved={watchlist.has(movie.id)}
                   onToggleSave={isSignedIn ? toggleSave : undefined}

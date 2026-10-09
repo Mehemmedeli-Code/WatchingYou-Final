@@ -1,10 +1,12 @@
 import { motion } from "motion/react";
-import { Clapperboard, Heart, Info, Play, Star } from "lucide-react";
+import { Heart, Info, Play, Star } from "lucide-react";
+import { GenrePoster } from "@/components/PosterArt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatRuntime, formatUsd } from "@/lib/format";
 import { useAuth } from "@/components/useAuth";
 import { t } from "@/lib/i18n";
+import { isApp } from "@/lib/platform";
 
 export interface MovieListItem {
   id: string;
@@ -21,6 +23,8 @@ export interface MovieListItem {
   posterUrl?: string | null;
   isDeleted: boolean;
   hasVideo: boolean;
+  /** What the Watch button plays when the film itself is not on the site. */
+  trailerUrl?: string | null;
 }
 
 export function MovieCard({
@@ -48,6 +52,7 @@ export function MovieCard({
 }) {
   const { isSecurity: isStaff } = useAuth();
   const available = movie.availableCopies > 0;
+  const playable = movie.hasVideo || !!movie.trailerUrl;
 
   return (
     <motion.article
@@ -62,9 +67,7 @@ export function MovieCard({
         {movie.posterUrl ? (
           <img src={movie.posterUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-accent-dim">
-            <Clapperboard size={40} strokeWidth={1.2} aria-hidden />
-          </div>
+          <GenrePoster genre={movie.genre} />
         )}
         <span className="absolute left-3 top-3 rounded-full bg-surface/85 px-2.5 py-1 text-xs text-ink-mute">
           {movie.genre}
@@ -105,8 +108,9 @@ export function MovieCard({
 
         <div className="mt-auto pt-2">
           <div className="flex items-center justify-between gap-3">
-            {/* Every rental is $0.50 for three days now; staff never rent, so they see no price. */}
-            {isStaff ? <span /> : (
+            {/* Every rental is $0.50 for three days now; staff never rent, so they see no price,
+                and neither does the phone app, which sells no films. */}
+            {isStaff || isApp() ? <span /> : (
               <p className="text-sm text-ink">{formatUsd(0.5)}<span className="text-ink-mute"> / 3 {t("pro.days", "days")}</span></p>
             )}
             <Badge tone={available ? "good" : "bad"}>
@@ -128,9 +132,9 @@ export function MovieCard({
             {onOpen ? (
               <Button
                 size="sm"
-                variant={movie.hasVideo ? "solid" : "outline"}
-                disabled={!movie.hasVideo}
-                title={movie.hasVideo ? undefined : t("movie.noVideo")}
+                variant={playable ? "solid" : "outline"}
+                disabled={!playable}
+                title={playable ? undefined : t("movie.noVideo")}
                 onClick={() => onOpen(movie, "watch")}
               >
                 <Play size={14} aria-hidden />

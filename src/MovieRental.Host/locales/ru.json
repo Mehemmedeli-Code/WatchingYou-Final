@@ -831,8 +831,18 @@
   "security.reportRefused": "Отчёт не принят.",
   "error.partFailed": "Эта часть страницы не загрузилась.",
   "admin.videoHint": "YouTube, Vimeo или прямая ссылка на .mp4",
-  "globe.meetPeople": "Знакомьтесь с людьми!",
   "globe.wholeWorld": "Весь мир",
   "globe.nobodyHere": "Из этой страны пока никто не присоединился.",
-  "map.clickToUse": "Нажмите на глобус, чтобы вращать и приближать"
+  "map.clickToUse": "Нажмите на глобус, чтобы вращать и приближать",
+  "app.more": "Обзор",
+  "app.moreLede": "Всё, что есть на сайте, — для телефона.",
+  "app.back": "Назад",
+  "app.onDisplayHint": "Что сегодня идёт в кинотеатрах",
+  "app.aiHint": "Короткометражки, снятые с ИИ",
+  "app.craftHint": "Короткометражки, снятые вручную",
+  "app.globeHint": "Кто смотрит по всему миру",
+  "app.helpHint": "Есть вопрос? Напишите нам",
+  "app.catalogueHint": "Все фильмы: поиск, просмотр, избранное",
+  "app.notInLibrary": "Этого фильма нет в вашей библиотеке.",
+  "common.close": "Закрыть"
 }

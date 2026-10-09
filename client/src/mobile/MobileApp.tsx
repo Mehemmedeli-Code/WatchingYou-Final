@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { Clapperboard, ScanLine, Ticket, UserRound } from "lucide-react";
+import { lazy, Suspense, useEffect, useState, type MouseEvent, type ReactNode } from "react";
+import { ArrowLeft, Clapperboard, Compass, ScanLine, Ticket, UserRound } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
@@ -15,19 +15,44 @@ import { TicketsTab } from "./TicketsTab";
 import { DoorTab } from "./DoorTab";
 import { useAuth } from "@/components/useAuth";
 import { LANGUAGES, appLanguage, setAppLanguage } from "./boot";
+import { DISCOVER_ROUTES, DiscoverTab, discoverLabel, type DiscoverRoute } from "./DiscoverTab";
+import { openServerPage } from "@/lib/platform";
 
-type Route = "films" | "tickets" | "door" | "account";
+// The website's other pages, loaded only when opened: the globe alone brings a map library.
+const CataloguePage = lazy(() => import("@/pages/HomePage"));
+const OnDisplayPage = lazy(() => import("@/pages/OnDisplayPage"));
+const AiCatalogPage = lazy(() => import("@/pages/GalleryPage"));
+const HumanCraftPage = lazy(() => import("@/pages/HumanCraftPage"));
+const GlobePage = lazy(() => import("@/pages/GlobePage"));
+const HelpPage = lazy(() => import("@/pages/HelpPage"));
+
+type Route = "films" | "tickets" | "door" | "account" | "more" | DiscoverRoute;
+
+const isDiscover = (route: string): route is DiscoverRoute => (DISCOVER_ROUTES as readonly string[]).includes(route);
 
 const readRoute = (): Route => {
   const hash = window.location.hash.replace(/^#\/?/, "");
-  return hash === "tickets" || hash === "account" || hash === "door" ? hash : "films";
+  return hash === "tickets" || hash === "account" || hash === "door" || hash === "more" || isDiscover(hash) ? hash : "films";
 };
 
 /**
- * The phone app: three tabs over the same screens the website uses.
+ * The shared pages link to each other the website's way (<a href="/cinema?screening=…">), which
+ * inside the app would leave it for a page that is not there. Those clicks become tab changes;
+ * a server page the app does not carry opens in the in-app browser.
+ */
+function routeForLink(path: string): Route | null {
+  const page = path.replace(/^\//, "").split(/[?#]/)[0];
+  if (page === "" || page === "cinema") return "films";
+  if (page === "account") return "account";
+  return isDiscover(page) ? page : null;
+}
+
+/**
+ * The phone app: four tabs over the same screens the website uses.
  *
  * Films is the cinema page — schedule, seat map, checkout. Tickets is the wallet, with the QR
- * codes saved for offline use. Account is sign-in, registration and the profile. Film rental
+ * codes saved for offline use. Discover carries the website's other pages: the cinema listings,
+ * the short films, the globe and help. Account is sign-in, registration and the profile. Film rental
  * is deliberately absent: digital content sold inside an app must go through Apple's and
  * Google's own billing, while cinema tickets — a service used in the real world — may be paid
  * by card, so the app sells only tickets.
@@ -64,9 +89,11 @@ export default function MobileApp() {
 
       const onResume = await App.addListener("resume", resume);
       const onBrowserClosed = await Browser.addListener("browserFinished", resume);
-      // Android's back button walks back to Films first, and only then leaves the app.
+      // Android's back button walks back out of a Discover page, then to Films, and only then
+      // leaves the app.
       const onBack = await App.addListener("backButton", () => {
-        if (readRoute() !== "films") window.location.hash = "#/films";
+        if (isDiscover(readRoute())) window.location.hash = "#/more";
+        else if (readRoute() !== "films") window.location.hash = "#/films";
         else void App.exitApp();
       });
       cleanups.push(() => void onResume.remove(), () => void onBrowserClosed.remove(), () => void onBack.remove());
@@ -105,14 +132,37 @@ export default function MobileApp() {
 
   const go = (next: Route) => { window.location.hash = `#/${next}`; };
 
+  const onLinkClick = (event: MouseEvent) => {
+    const link = (event.target as Element).closest?.("a[href]");
+    const href = link?.getAttribute("href");
+    if (!href || !href.startsWith("/") || href.startsWith("//") || link?.getAttribute("target")) return;
+    event.preventDefault();
+    const next = routeForLink(href);
+    if (!next) { openServerPage(href); return; }
+    // The cinema page reads the screening to open from the address, as on the website.
+    const query = href.includes("?") ? href.slice(href.indexOf("?")).split("#")[0] : "";
+    window.history.replaceState(null, "", window.location.pathname + query + window.location.hash);
+    go(next);
+  };
+  const inDiscover = current === "more" || isDiscover(current);
+
   return (
     <div className="flex min-h-screen flex-col bg-surface text-ink" style={{ fontFamily: "var(--font-sans)" }}>
       <header
         className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-surface/90 px-4 pb-2.5 backdrop-blur"
         style={{ paddingTop: "calc(env(safe-area-inset-top) + 10px)" }}
       >
-        <EyeMark />
-        <span className="font-display text-lg font-bold tracking-tight text-accent">WatchingYou</span>
+        {isDiscover(current) ? (
+          <button type="button" onClick={() => go("more")} className="-ml-1 flex min-w-0 items-center gap-2 text-ink" aria-label={t("app.back", "Back")}>
+            <ArrowLeft size={22} className="shrink-0" aria-hidden />
+            <span className="truncate font-display text-lg font-bold tracking-tight">{discoverLabel(current)}</span>
+          </button>
+        ) : (
+          <>
+            <EyeMark />
+            <span className="font-display text-lg font-bold tracking-tight text-accent">WatchingYou</span>
+          </>
+        )}
         <div className="ml-auto flex items-center gap-2">
           <select
             aria-label="Language"
@@ -126,24 +176,34 @@ export default function MobileApp() {
         </div>
       </header>
 
-      <main className={cn("flex-1", signedOut ? "pb-8" : "pb-24")}>
+      <main className={cn("flex-1 overflow-x-hidden", signedOut ? "pb-8" : "pb-24")} onClickCapture={onLinkClick}>
         <ErrorBoundary label={current}>
           {current === "films" ? <CinemaPage hideTickets /> : null}
           {current === "tickets" ? <TicketsTab onSignIn={() => go("account")} /> : null}
           {current === "door" ? <DoorTab /> : null}
           {current === "account" ? <AccountPage /> : null}
+          {current === "more" ? <DiscoverTab onOpen={go} /> : null}
+          <Suspense fallback={<p className="p-8 text-center text-sm text-ink-mute">…</p>}>
+            {current === "catalogue" ? <CataloguePage /> : null}
+            {current === "on-display" ? <OnDisplayPage /> : null}
+            {current === "ai-catalog" ? <AiCatalogPage /> : null}
+            {current === "human-craft" ? <HumanCraftPage /> : null}
+            {current === "globe" ? <GlobePage /> : null}
+            {current === "help" ? <HelpPage /> : null}
+          </Suspense>
         </ErrorBoundary>
       </main>
 
       {signedOut ? null : (
       <nav
         aria-label="WatchingYou"
-        className={cn("fixed inset-x-0 bottom-0 z-30 grid border-t border-line bg-surface-raised/95 backdrop-blur", isSecurity ? "grid-cols-4" : "grid-cols-3")}
+        className={cn("fixed inset-x-0 bottom-0 z-30 grid border-t border-line bg-surface-raised/95 backdrop-blur", isSecurity ? "grid-cols-5" : "grid-cols-4")}
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <Tab active={current === "films"} onClick={() => go("films")} icon={<Clapperboard size={22} />} label={t("app.films", "Films")} />
         <Tab active={current === "tickets"} onClick={() => go("tickets")} icon={<Ticket size={22} />} label={t("app.tickets", "My tickets")} />
         {isSecurity ? <Tab active={current === "door"} onClick={() => go("door")} icon={<ScanLine size={22} />} label={t("door.title", "Door")} /> : null}
+        <Tab active={inDiscover} onClick={() => go("more")} icon={<Compass size={22} />} label={t("app.more", "Discover")} />
         <Tab active={current === "account"} onClick={() => go("account")} icon={<UserRound size={22} />} label={t("nav.account", "Account")} />
       </nav>
       )}

@@ -76,7 +76,7 @@ internal sealed class GetRecommendationsHandler(CatalogDbContext db, ICurrentUse
             .Select(m => new MovieListItem(
                 m.Id, m.Title, m.Slug, m.Genre, m.ReleaseYear, m.DurationMinutes,
                 m.DailyPrice, m.AvailableCopies, m.TotalCopies, m.AverageRating, m.ReviewCount,
-                m.PosterUrl, m.IsDeleted, m.VideoUrl != null && m.VideoUrl != ""))
+                m.PosterUrl, m.IsDeleted, m.VideoUrl != null && m.VideoUrl != "", m.TrailerUrl))
             .ToDictionaryAsync(m => m.Id, ct);
 
         var items = ranked

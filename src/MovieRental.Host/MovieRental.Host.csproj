@@ -18,6 +18,10 @@
     <!-- Seed payload copied next to the binary so the dev bootstrapper can find it. -->
     <Content Update="seed\movies.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Update="locales\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The film posters, served by /api/posters/{slug}. -->
+    <None Include="posters\*.jpg" CopyToPublishDirectory="PreserveNewest" />
+    <!-- The trailers, served by /api/trailers/{slug}, and the YouTube list. -->
+    <None Include="trailers\*.webm;trailers\trailers.json" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

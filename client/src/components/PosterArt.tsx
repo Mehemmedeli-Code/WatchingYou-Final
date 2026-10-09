@@ -473,3 +473,19 @@ export const DRAWN_POSTERS: { key: string; alt: string; render: () => ReactNode 
   { key: "western", alt: "Western poster", render: () => <Western /> },
   { key: "noir", alt: "Film noir poster", render: () => <Noir /> },
 ];
+
+/**
+ * A drawn poster for a film that has no poster of its own (our own titles), picked by genre so
+ * the catalogue never shows an empty card.
+ */
+export function GenrePoster({ genre }: { genre: string }) {
+  const g = genre.toLowerCase();
+  if (g.includes("science") || g.includes("sci")) return <SciFi />;
+  if (g.includes("horror")) return <Horror />;
+  if (g.includes("romance")) return <Romance />;
+  if (g.includes("western")) return <Western />;
+  if (g.includes("crime") || g.includes("thriller") || g.includes("mystery") || g.includes("noir")) return <Noir />;
+  if (g.includes("comedy") || g.includes("musical") || g.includes("animation") || g.includes("family")) return <Musical />;
+  if (g.includes("drama") || g.includes("history")) return <Hall />;
+  return <Reel />;
+}
