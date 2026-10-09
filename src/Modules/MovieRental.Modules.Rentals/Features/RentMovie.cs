@@ -13,15 +13,15 @@ using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Rentals.Features;
 
-// Feature 3 — one-click rental.
-public sealed record RentMovieCommand(Guid MovieId, int Days) : ICommand<Result<RentalResponse>>;
+// Feature 3 — one-click rental. Always three days for $0.50 (RentalPricing); Days is kept in the
+// request for older clients and ignored.
+public sealed record RentMovieCommand(Guid MovieId, int Days = RentalPricing.PeriodDays) : ICommand<Result<RentalResponse>>;
 
 internal sealed class RentMovieValidator : AbstractValidator<RentMovieCommand>
 {
     public RentMovieValidator()
     {
         RuleFor(x => x.MovieId).NotEmpty();
-        RuleFor(x => x.Days).InclusiveBetween(1, 30);
     }
 }
 
@@ -32,6 +32,11 @@ internal sealed class RentMovieHandler(
     public async Task<Result<RentalResponse>> Handle(RentMovieCommand command, CancellationToken ct)
     {
         var userId = currentUser.RequireId();
+
+        // Watching PRO already plays every film; renting on top would only take their money.
+        var now = DateTime.UtcNow;
+        if (await db.Subscriptions.AnyAsync(s => s.UserId == userId && s.StartsAtUtc <= now && s.EndsAtUtc > now, ct))
+            return Result.Failure<RentalResponse>(Error.Conflict("Watching PRO already includes every film — just press Watch."));
 
         var alreadyOut = await db.Rentals.AnyAsync(
             r => r.UserId == userId && r.MovieId == command.MovieId && r.ReturnedAtUtc == null, ct);
@@ -54,9 +59,10 @@ internal sealed class RentMovieHandler(
             MovieTitle = movie.Title,
             PosterUrl = movie.PosterUrl,
             RentedAtUtc = DateTime.UtcNow,
-            DueAtUtc = DateTime.UtcNow.AddDays(command.Days),
-            DailyPrice = movie.DailyPrice,
-            BasePrice = Math.Round(movie.DailyPrice * command.Days, 2)
+            DueAtUtc = DateTime.UtcNow.AddDays(RentalPricing.PeriodDays),
+            // DailyPrice now holds the price of one three-day period; BasePrice the total paid.
+            DailyPrice = RentalPricing.PeriodPrice,
+            BasePrice = RentalPricing.PeriodPrice
         };
 
         try

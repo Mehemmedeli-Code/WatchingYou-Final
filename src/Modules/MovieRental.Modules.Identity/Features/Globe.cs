@@ -121,6 +121,8 @@ internal sealed class UpdateGlobePresenceValidator : AbstractValidator<UpdateGlo
         RuleFor(x => x.Latitude).InclusiveBetween(-90, 90).When(x => x.Latitude.HasValue);
         RuleFor(x => x.Longitude).InclusiveBetween(-180, 180).When(x => x.Longitude.HasValue);
         RuleFor(x => x.AvatarUrl).MaximumLength(500);
+        RuleFor(x => x.CountryCode).Matches("^[A-Za-z]{2}$").When(x => !string.IsNullOrEmpty(x.CountryCode))
+            .WithMessage("Country code must be two letters.");
     }
 }
 

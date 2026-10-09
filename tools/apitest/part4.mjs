@@ -21,6 +21,9 @@ export async function part4(ctx) {
   r = await call("POST", `/api/messages/${ctx.userId}`, { token: ctx.customer, body: { otherUserId: ctx.userId, body: `APITEST hello ${RUN}` } });
   check("send a direct message", "POST", "/api/messages/{userId}", r, 200);
   assertDb("identity.DirectMessages row written", one(`SELECT COUNT(*) AS n FROM identity.DirectMessages WHERE Body = 'APITEST hello ${RUN}'`).n === 1);
+  // The rule needs someone who is hidden: take the seeded customer off the globe first (the
+  // database is restored after the run), rather than assume the data leaves them hidden.
+  await call("PUT", "/api/globe/presence", { token: ctx.customer, body: { shareOnGlobe: false } });
   r = await call("POST", `/api/messages/${ctx.customerId}`, { token: ctx.token, body: { otherUserId: ctx.customerId, body: "hi" } });
   check("someone hidden from the globe cannot be written to (privacy rule)", "POST", "/api/messages/{userId}", r, 409);
   r = await call("POST", `/api/messages/${ctx.userId}`, { token: ctx.customer, body: { otherUserId: ctx.userId, body: "" } }); check("empty message refused", "POST", "/api/messages/{userId}", r, 400);
