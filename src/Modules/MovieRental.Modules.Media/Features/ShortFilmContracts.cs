@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using MovieRental.Modules.Media.Domain;
+using MovieRental.SharedKernel.Contracts;
 using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Media.Features;
@@ -47,18 +48,39 @@ internal static class ShortFilmStorage
 
     public static string PathFor(IHostEnvironment environment, string storedFileName) =>
         Path.Combine(Folder(environment), storedFileName);
+
+    /// <summary>The type a stored film is served with, from its own (server-chosen) extension.
+    /// The uploader's Content-Type was stored and served back before, so a "film" sent as
+    /// text/html ran as a page on this origin for whoever opened it.</summary>
+    public static string ContentTypeFor(string storedFileName) => Path.GetExtension(storedFileName).ToLowerInvariant() switch
+    {
+        ".mp4" => "video/mp4",
+        ".webm" => "video/webm",
+        ".mov" => "video/quicktime",
+        ".mkv" => "video/x-matroska",
+        _ => "application/octet-stream"
+    };
 }
 
 internal static class ViewerRules
 {
-    /// <summary>Owner, Security and Admin may always watch. Everyone else only sees a film
-    /// that has been approved and made public by its author.</summary>
-    public static bool MayWatch(ShortFilm film, ICurrentUser user) =>
-        film.IsPublished ||
-        (user.IsAuthenticated && (user.Id == film.UserId ||
-                                  user.IsInRole(AppRoles.Admin) ||
-                                  user.IsInRole(AppRoles.Security)));
+    /// <summary>
+    /// Whether an approved film is out in its gallery, for everyone. On a public account every
+    /// approved film is: there is nothing to hide, anyone can open the profile anyway. On a
+    /// private account only the films its owner made public are; the rest are for followers.
+    /// </summary>
+    public static bool IsListed(ShortFilm film, bool ownerIsPrivate) =>
+        film.Status == SubmissionStatus.Approved && (!ownerIsPrivate || film.Visibility == ShortFilmVisibility.Public);
 
+    /// <summary>Owner, Security and Admin may always watch. Anyone may watch a listed film; an
+    /// approved film kept for followers, only someone the private account has accepted.</summary>
+    public static async Task<bool> MayWatchAsync(ShortFilm film, ICurrentUser user, IUserDirectory users, CancellationToken ct)
+    {
+        if (user.IsAuthenticated && (user.Id == film.UserId || IsReviewer(user))) return true;
+        if (film.Status != SubmissionStatus.Approved) return false;
+        if (IsListed(film, (await users.PrivateAccountsAsync([film.UserId], ct)).Contains(film.UserId))) return true;
+        return user.IsAuthenticated && await users.MayViewProfileAsync(user.RequireId(), film.UserId, ct);
+    }
     public static bool IsReviewer(ICurrentUser user) =>
         user.IsInRole(AppRoles.Admin) || user.IsInRole(AppRoles.Security);
 

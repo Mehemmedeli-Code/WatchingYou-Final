@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -20,13 +21,20 @@ internal sealed class UploadShortFilmHandler(
     MediaDbContext db, ICurrentUser currentUser, IUserDirectory users, IHostEnvironment environment)
     : ICommandHandler<UploadShortFilmCommand, Result<ShortFilmSummary>>
 {
-    private const long MaxBytes = 512L * 1024 * 1024;
+    internal const long MaxBytes = 512L * 1024 * 1024;
+    private const int MaxPending = 3;
     private static readonly string[] AllowedExtensions = [".mp4", ".mov", ".webm", ".mkv"];
 
     public async Task<Result<ShortFilmSummary>> Handle(UploadShortFilmCommand command, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(command.Title))
             return Result.Failure<ShortFilmSummary>(Error.Validation("Give your film a title."));
+        if (command.Title.Trim().Length > 120)
+            return Result.Failure<ShortFilmSummary>(Error.Validation("The title can be 120 characters at most."));
+        if ((command.Synopsis ?? "").Trim().Length > 2000)
+            return Result.Failure<ShortFilmSummary>(Error.Validation("The synopsis can be 2000 characters at most."));
+        if (!Enum.IsDefined(command.Origin) || !Enum.IsDefined(command.Visibility))
+            return Result.Failure<ShortFilmSummary>(Error.Validation("Say whether the film is AI-generated or hand-crafted."));
         if (command.SizeBytes is 0 or > MaxBytes)
             return Result.Failure<ShortFilmSummary>(Error.Validation("Upload a file between 1 byte and 512 MB."));
 
@@ -35,6 +43,11 @@ internal sealed class UploadShortFilmHandler(
             return Result.Failure<ShortFilmSummary>(Error.Validation($"Supported formats: {string.Join(", ", AllowedExtensions)}."));
 
         var userId = currentUser.RequireId();
+
+        // Each pending film waits for a human reviewer and takes disk space until then.
+        if (await db.ShortFilms.CountAsync(f => f.UserId == userId && f.Status == SubmissionStatus.Pending, ct) >= MaxPending)
+            return Result.Failure<ShortFilmSummary>(Error.Validation($"You already have {MaxPending} films waiting for review. Wait for a decision first."));
+
         var contact = await users.GetContactAsync(userId, ct);
 
         // Stored under a generated name: the uploader's filename never reaches the file
@@ -43,8 +56,28 @@ internal sealed class UploadShortFilmHandler(
         var folder = ShortFilmStorage.Folder(environment);
         Directory.CreateDirectory(folder);
 
-        await using (var target = File.Create(Path.Combine(folder, storedName)))
-            await command.Content.CopyToAsync(target, ct);
+        // The first bytes must say video: an MP4/QuickTime box ("ftyp", "moov", ...) or the
+        // Matroska/WebM header. The extension alone let any file in as long as it was named .mp4.
+        var header = new byte[12];
+        var read = await command.Content.ReadAtLeastAsync(header, header.Length, throwOnEndOfStream: false, ct);
+        if (read < header.Length || !LooksLikeVideo(header))
+            return Result.Failure<ShortFilmSummary>(Error.Validation($"Supported formats: {string.Join(", ", AllowedExtensions)}."));
+
+        var path = Path.Combine(folder, storedName);
+        try
+        {
+            await using (var target = File.Create(path))
+            {
+                await target.WriteAsync(header, ct);
+                await command.Content.CopyToAsync(target, ct);
+            }
+        }
+        catch
+        {
+            // A cancelled or failed copy must not leave half a video on the disk.
+            File.Delete(path);
+            throw;
+        }
 
         var film = new ShortFilm
         {
@@ -56,15 +89,31 @@ internal sealed class UploadShortFilmHandler(
             Visibility = command.Visibility,
             StoredFileName = storedName,
             OriginalFileName = Path.GetFileName(command.OriginalFileName),
-            ContentType = command.ContentType,
+            ContentType = ShortFilmStorage.ContentTypeFor(storedName),
             SizeBytes = command.SizeBytes,
             SubmittedAtUtc = DateTime.UtcNow,
             ReviewDeadlineUtc = DateTime.UtcNow.AddDays(3)
         };
 
         db.ShortFilms.Add(film);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // No row, no file: a rejected save used to leave the video on the disk for good.
+            File.Delete(path);
+            throw;
+        }
         return Result.Success(film.ToSummary(DateTime.UtcNow));
+    }
+
+    private static bool LooksLikeVideo(byte[] h)
+    {
+        if (h[0] == 0x1A && h[1] == 0x45 && h[2] == 0xDF && h[3] == 0xA3) return true;   // Matroska / WebM
+        var box = System.Text.Encoding.ASCII.GetString(h, 4, 4);
+        return box is "ftyp" or "moov" or "mdat" or "wide" or "free" or "skip" or "pnot";  // MP4 / QuickTime
     }
 }
 
@@ -94,7 +143,11 @@ public static class UploadShortFilmEndpoints
 
                 return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
             })
-        .WithName("UploadShortFilm").WithTags("Shorts").RequireAuthorization()
+        .WithName("UploadShortFilm").WithTags("Shorts").RequireAuthorization().RequireRateLimiting(AppPolicies.WriteRateLimit)
+        // Kestrel (30 MB) and the form reader (128 MB) cut uploads off well below the 512 MB the
+        // handler allows. Raise both to match, for this endpoint only.
+        .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(UploadShortFilmHandler.MaxBytes + 1024 * 1024))
+        .WithFormOptions(multipartBodyLengthLimit: UploadShortFilmHandler.MaxBytes + 1024 * 1024)
         .DisableAntiforgery();
     }
 }
