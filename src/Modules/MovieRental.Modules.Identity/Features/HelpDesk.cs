@@ -258,7 +258,7 @@ public static class HelpDeskEndpoints
             return result.Error.Code == "not_found"
                 ? TypedResults.NotFound(result.Error)
                 : TypedResults.BadRequest(result.Error);
-        }).WithName("SendChatMessage");
+        }).WithName("SendChatMessage").RequireRateLimiting(AppPolicies.WriteRateLimit);
 
         var desk = app.MapGroup("/api/help/inbox").WithTags("Help")
             .RequireAuthorization(AppPolicies.SecurityDesk);

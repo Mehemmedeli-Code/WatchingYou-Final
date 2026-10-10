@@ -25,7 +25,7 @@ internal sealed class RegisterValidator : AbstractValidator<RegisterCommand>
     {
         RuleFor(x => x.FullName).NotEmpty().MaximumLength(150);
         RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
-        RuleFor(x => x.Password).NotEmpty().MinimumLength(8)
+        RuleFor(x => x.Password).NotEmpty().MinimumLength(8).MaximumLength(128)
             .Matches("[A-Z]").WithMessage("Password needs at least one capital letter.")
             .Matches("[0-9]").WithMessage("Password needs at least one digit.");
         RuleFor(x => x.PhoneNumber).Matches(@"^\+?[0-9]{7,15}$")
@@ -48,10 +48,16 @@ internal sealed class RegisterHandler(
         if (await db.Users.AnyAsync(u => u.Email == normalizedEmail, ct))
             return Result.Failure<RegistrationResponse>(Error.Conflict("That e-mail is already registered."));
 
+        // A handle from the e-mail, with a short suffix only when that one is already taken.
+        var handle = Usernames.FromEmail(normalizedEmail);
+        if (await db.Users.AnyAsync(u => u.Username == handle, ct))
+            handle = $"{handle}_{Random.Shared.Next(1000, 9999)}";
+
         var user = new AppUser
         {
             Email = normalizedEmail,
             FullName = command.FullName.Trim(),
+            Username = handle,
             PhoneNumber = command.PhoneNumber?.Trim(),
             PasswordHash = hasher.Hash(command.Password),
             Roles = AppRoles.Customer
@@ -103,5 +109,5 @@ internal static class UserProfileMapper
     public static UserProfileResponse ToProfile(this AppUser user) => new(
         user.Id, user.FullName, user.Email, user.PhoneNumber,
         user.IsEmailConfirmed, user.IsPhoneConfirmed, user.RoleList,
-        user.ShareOnGlobe, user.City, user.AvatarUrl);
+        user.ShareOnGlobe, user.City, user.AvatarUrl, user.Username, user.IsPrivate, user.Bio);
 }

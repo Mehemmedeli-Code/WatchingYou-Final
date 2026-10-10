@@ -21,6 +21,11 @@ namespace MovieRental.Modules.Identity.Features;
 
 public sealed record RequestPasswordResetCommand(string Email) : ICommand<Result>;
 
+internal sealed class RequestPasswordResetValidator : AbstractValidator<RequestPasswordResetCommand>
+{
+    public RequestPasswordResetValidator() => RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+}
+
 internal sealed class RequestPasswordResetHandler(IdentityDbContext db, IVerificationService verification)
     : ICommandHandler<RequestPasswordResetCommand, Result>
 {
@@ -32,12 +37,10 @@ internal sealed class RequestPasswordResetHandler(IdentityDbContext db, IVerific
         // Unknown address, or one that cannot sign in anyway: report success, send nothing.
         if (user is null || user.IsSuspended) return Result.Success();
 
-        var issued = await verification.IssueAsync(
-            user, VerificationChannel.Email, VerificationPurpose.PasswordReset, ct);
-
-        // A throttle rejection is worth surfacing — the caller is the account owner, and
-        // "wait 40 seconds" is more useful than silence.
-        return issued.IsFailure && issued.Error.Code == "conflict" ? issued : Result.Success();
+        // Always the same answer: a "wait a minute" for some addresses and not others showed
+        // which ones have an account.
+        await verification.IssueAsync(user, VerificationChannel.Email, VerificationPurpose.PasswordReset, ct);
+        return Result.Success();
     }
 }
 
@@ -49,7 +52,7 @@ internal sealed class ResetPasswordValidator : AbstractValidator<ResetPasswordCo
     {
         RuleFor(x => x.Email).NotEmpty().EmailAddress();
         RuleFor(x => x.Code).NotEmpty().Length(6);
-        RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(8)
+        RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(8).MaximumLength(128)
             .Matches("[A-Z]").WithMessage("Password needs at least one capital letter.")
             .Matches("[0-9]").WithMessage("Password needs at least one digit.");
     }

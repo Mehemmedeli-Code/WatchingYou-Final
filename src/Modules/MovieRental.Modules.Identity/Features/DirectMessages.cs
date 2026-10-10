@@ -28,9 +28,10 @@ namespace MovieRental.Modules.Identity.Features;
 
 public sealed record DirectLine(Guid Id, bool Mine, string SenderName, string Body, DateTime CreatedAtUtc);
 
+/// <param name="HasOlder">More messages exist before the first one here; ask with ?before=.</param>
 public sealed record DirectConversation(
     Guid OtherUserId, string OtherName, string? OtherAvatarUrl, string? OtherCity,
-    bool BlockedByMe, bool Unreachable, IReadOnlyList<DirectLine> Messages);
+    bool BlockedByMe, bool Unreachable, IReadOnlyList<DirectLine> Messages, bool HasOlder = false);
 
 public sealed record DirectThreadRow(
     Guid OtherUserId, string OtherName, string? OtherAvatarUrl,
@@ -45,11 +46,18 @@ internal sealed class GetMyThreadsHandler(IdentityDbContext db, ICurrentUser cur
     {
         var me = currentUser.RequireId();
 
+        // The last message and the unread count are worked out in SQL. Loading every message of
+        // a hundred threads to read one line from each grew with every conversation.
         var threads = await db.DirectThreads.AsNoTracking()
-            .Include(t => t.Messages)
             .Where(t => t.LowUserId == me || t.HighUserId == me)
             .OrderByDescending(t => t.LastMessageAtUtc)
             .Take(100)
+            .Select(t => new
+            {
+                t.LowUserId, t.HighUserId, t.LastMessageAtUtc,
+                Last = t.Messages.OrderByDescending(m => m.CreatedAtUtc).Select(m => m.Body).FirstOrDefault(),
+                Unread = t.Messages.Count(m => m.SenderId != me && m.SeenAtUtc == null)
+            })
             .ToListAsync(ct);
 
         var otherIds = threads.Select(t => t.LowUserId == me ? t.HighUserId : t.LowUserId).ToArray();
@@ -62,13 +70,12 @@ internal sealed class GetMyThreadsHandler(IdentityDbContext db, ICurrentUser cur
         {
             var otherId = t.LowUserId == me ? t.HighUserId : t.LowUserId;
             var other = people.GetValueOrDefault(otherId);
-            var last = t.Messages.OrderByDescending(m => m.CreatedAtUtc).FirstOrDefault();
 
             return new DirectThreadRow(
                 otherId, other?.FullName ?? "—", other?.AvatarUrl,
-                last?.Body is { } body ? body[..Math.Min(body.Length, 90)] : "",
+                t.Last is { } body ? body[..Math.Min(body.Length, 90)] : "",
                 t.LastMessageAtUtc,
-                t.Messages.Count(m => m.SenderId != me && m.SeenAtUtc is null));
+                t.Unread);
         })];
     }
 }
@@ -95,10 +102,20 @@ internal sealed class GetMessageOverviewHandler(IdentityDbContext db, ICurrentUs
         var me = currentUser.RequireId();
 
         var threads = await db.DirectThreads.AsNoTracking()
-            .Include(t => t.Messages)
             .Where(t => t.LowUserId == me || t.HighUserId == me)
             .OrderByDescending(t => t.LastMessageAtUtc)
             .Take(200)
+            .Select(t => new
+            {
+                t.LowUserId, t.HighUserId,
+                MineCount = t.Messages.Count(m => m.SenderId == me),
+                Mine = t.Messages.Where(m => m.SenderId == me).OrderByDescending(m => m.CreatedAtUtc)
+                    .Select(m => new { m.Body, m.CreatedAtUtc }).FirstOrDefault(),
+                TheirsCount = t.Messages.Count(m => m.SenderId != me),
+                Theirs = t.Messages.Where(m => m.SenderId != me).OrderByDescending(m => m.CreatedAtUtc)
+                    .Select(m => new { m.Body, m.CreatedAtUtc }).FirstOrDefault(),
+                LastSender = t.Messages.OrderByDescending(m => m.CreatedAtUtc).Select(m => (Guid?)m.SenderId).FirstOrDefault()
+            })
             .ToListAsync(ct);
 
         var blocks = await db.UserBlocks.AsNoTracking()
@@ -125,15 +142,13 @@ internal sealed class GetMessageOverviewHandler(IdentityDbContext db, ICurrentUs
         foreach (var thread in threads)
         {
             var other = thread.LowUserId == me ? thread.HighUserId : thread.LowUserId;
-            var mine = thread.Messages.Where(m => m.SenderId == me).OrderByDescending(m => m.CreatedAtUtc).ToList();
-            var theirs = thread.Messages.Where(m => m.SenderId != me).OrderByDescending(m => m.CreatedAtUtc).ToList();
-            var last = thread.Messages.OrderByDescending(m => m.CreatedAtUtc).FirstOrDefault();
+            var lastMine = thread.LastSender == me;
             static string Cut(string body) => body[..Math.Min(body.Length, 90)];
 
-            if (mine.Count > 0)
-                sent.Add(Person(other, Cut(mine[0].Body), last?.SenderId == me, mine.Count, mine[0].CreatedAtUtc));
-            if (theirs.Count > 0)
-                received.Add(Person(other, Cut(theirs[0].Body), last?.SenderId == me, theirs.Count, theirs[0].CreatedAtUtc));
+            if (thread.Mine is { } mine)
+                sent.Add(Person(other, Cut(mine.Body), lastMine, thread.MineCount, mine.CreatedAtUtc));
+            if (thread.Theirs is { } theirs)
+                received.Add(Person(other, Cut(theirs.Body), lastMine, thread.TheirsCount, theirs.CreatedAtUtc));
         }
 
         return new MessageOverview(
@@ -146,7 +161,8 @@ internal sealed class GetMessageOverviewHandler(IdentityDbContext db, ICurrentUs
     }
 }
 
-public sealed record GetConversationQuery(Guid OtherUserId) : IQuery<DirectConversation?>;
+/// <param name="Before">Only messages older than this: the page above the one already shown.</param>
+public sealed record GetConversationQuery(Guid OtherUserId, DateTime? Before = null) : IQuery<DirectConversation?>;
 
 internal sealed class GetConversationHandler(IdentityDbContext db, ICurrentUser currentUser)
     : IQueryHandler<GetConversationQuery, DirectConversation?>
@@ -162,8 +178,22 @@ internal sealed class GetConversationHandler(IdentityDbContext db, ICurrentUser 
         var (low, high) = DirectThread.Pair(me, query.OtherUserId);
 
         var thread = await db.DirectThreads.AsNoTracking()
-            .Include(t => t.Messages)
             .FirstOrDefaultAsync(t => t.LowUserId == low && t.HighUserId == high, ct);
+
+        // A page at a time, newest first. The window polls, and every poll used to carry the
+        // whole history of the conversation.
+        const int pageSize = 50;
+        var page = thread is null ? [] : await db.DirectMessages.AsNoTracking()
+            .Where(m => m.ThreadId == thread.Id && (query.Before == null || m.CreatedAtUtc < query.Before))
+            .OrderByDescending(m => m.CreatedAtUtc)
+            .Take(pageSize + 1)
+            .ToListAsync(ct);
+        var hasOlder = page.Count > pageSize;
+        if (hasOlder) page.RemoveAt(page.Count - 1);
+
+        // Name and city only for someone on the globe or already in a conversation with me;
+        // any user id used to return both.
+        if (thread is null && !other.ShareOnGlobe) return null;
 
         // Marking messages read is a set-based update: the window polls, and a tracked write on
         // every poll is how a chat starts throwing concurrency errors.
@@ -187,9 +217,10 @@ internal sealed class GetConversationHandler(IdentityDbContext db, ICurrentUser 
             other.Id, other.FullName, other.AvatarUrl, other.City,
             blockedByMe,
             blockedByMe || blockedByThem || !other.ShareOnGlobe || other.IsSuspended,
-            [.. (thread?.Messages ?? [])
+            [.. page
                 .OrderBy(m => m.CreatedAtUtc)
-                .Select(m => new DirectLine(m.Id, m.SenderId == me, m.SenderName, m.Body, m.CreatedAtUtc))]);
+                .Select(m => new DirectLine(m.Id, m.SenderId == me, m.SenderName, m.Body, m.CreatedAtUtc))],
+            hasOlder);
     }
 }
 
@@ -263,6 +294,9 @@ internal sealed class BlockUserHandler(IdentityDbContext db, ICurrentUser curren
     {
         var me = currentUser.RequireId();
         if (me == command.OtherUserId) return Result.Failure(Error.Validation("You cannot block yourself."));
+        // Only real people: a block row for an id nobody has was pure clutter.
+        if (command.Blocked && !await db.Users.AnyAsync(u => u.Id == command.OtherUserId, ct))
+            return Result.Failure(Error.NotFound("User"));
 
         var existing = await db.UserBlocks
             .FirstOrDefaultAsync(b => b.BlockerId == me && b.BlockedId == command.OtherUserId, ct);
@@ -291,8 +325,15 @@ internal sealed class ReportMessageHandler(IdentityDbContext db, ICurrentUser cu
         var about = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.AboutUserId, ct);
 
         if (reporter is null || about is null) return Result.Failure(Error.NotFound("User"));
-        if (string.IsNullOrWhiteSpace(command.Quote))
-            return Result.Failure(Error.Validation("Nothing to report."));
+
+        // The quote is read from the thread, not taken from the request. Taking it from the
+        // request let anyone file a report "quoting" abuse the other person never wrote.
+        var (low, high) = DirectThread.Pair(me, about.Id);
+        var quote = await db.DirectMessages.AsNoTracking()
+            .Where(m => m.SenderId == about.Id && m.Thread!.LowUserId == low && m.Thread.HighUserId == high)
+            .OrderByDescending(m => m.CreatedAtUtc)
+            .Select(m => m.Body)
+            .FirstOrDefaultAsync(ct) ?? "(no message)";
 
         db.MessageReports.Add(new MessageReport
         {
@@ -302,7 +343,7 @@ internal sealed class ReportMessageHandler(IdentityDbContext db, ICurrentUser cu
             AboutEmail = about.Email,
             // Copied, not referenced: the sender can delete the message and the desk still
             // needs to read what was said.
-            Quote = command.Quote.Trim()[..Math.Min(command.Quote.Trim().Length, 2000)],
+            Quote = quote[..Math.Min(quote.Length, 2000)],
             Reason = command.Reason?.Trim()
         });
 
@@ -367,9 +408,9 @@ public static class DirectMessageEndpoints
                 TypedResults.Ok(await dispatcher.Ask(new GetMessageOverviewQuery(), ct)))
             .WithName("GetMessageOverview");
 
-        mine.MapGet("/{userId:guid}", async (Guid userId, IDispatcher dispatcher, CancellationToken ct) =>
+        mine.MapGet("/{userId:guid}", async (Guid userId, DateTime? before, IDispatcher dispatcher, CancellationToken ct) =>
             {
-                var conversation = await dispatcher.Ask(new GetConversationQuery(userId), ct);
+                var conversation = await dispatcher.Ask(new GetConversationQuery(userId, before?.ToUniversalTime()), ct);
                 return conversation is null ? Results.NotFound() : Results.Ok(conversation);
             })
             .WithName("GetDirectConversationWithId");
@@ -386,7 +427,7 @@ public static class DirectMessageEndpoints
                     "conflict" => TypedResults.Conflict(result.Error),
                     _ => TypedResults.BadRequest(result.Error)
                 };
-            }).WithName("SendDirectMessageWithId");
+            }).WithName("SendDirectMessageWithId").RequireRateLimiting(AppPolicies.WriteRateLimit);
 
         mine.MapPut("/{userId:guid}/block",
             async Task<Results<NoContent, BadRequest<Error>>> (
@@ -394,7 +435,7 @@ public static class DirectMessageEndpoints
             {
                 var result = await dispatcher.Send(body with { OtherUserId = userId }, ct);
                 return result.IsSuccess ? TypedResults.NoContent() : TypedResults.BadRequest(result.Error);
-            }).WithName("BlockUserWithId");
+            }).WithName("BlockUserWithId").RequireRateLimiting(AppPolicies.WriteRateLimit);
 
         mine.MapPost("/{userId:guid}/report",
             async Task<Results<NoContent, BadRequest<Error>, NotFound<Error>>> (
@@ -405,7 +446,7 @@ public static class DirectMessageEndpoints
                 return result.Error.Code == "not_found"
                     ? TypedResults.NotFound(result.Error)
                     : TypedResults.BadRequest(result.Error);
-            }).WithName("ReportMessageWithId");
+            }).WithName("ReportMessageWithId").RequireRateLimiting(AppPolicies.WriteRateLimit);
 
         var desk = app.MapGroup("/api/reports").WithTags("Messages")
             .RequireAuthorization(AppPolicies.SecurityDesk);
