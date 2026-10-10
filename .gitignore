@@ -9,3 +9,9 @@ src/MovieRental.Host/uploads/
 
 # Capacitor app build output
 dist-mobile/
+
+# Written by tools/run-site.ps1 and run-mobile.ps1
+logs/
+
+# graphify knowledge graph (local, rebuilt on demand)
+graphify-out/

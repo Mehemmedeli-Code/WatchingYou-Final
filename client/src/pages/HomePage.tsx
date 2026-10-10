@@ -14,8 +14,11 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
 import { useAuth } from "@/components/useAuth";
 import { get, post, query, ApiError, type Paged } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { t, genreName } from "@/lib/i18n";
 import { isApp } from "@/lib/platform";
+import { PaymentSheet } from "@/components/CardPayment";
+import { formatUsd, RENTAL_PRICE } from "@/lib/format";
+import { Clapperboard as RentIcon } from "lucide-react";
 
 const SORTS = [
   { value: "newest", label: t("sort.newest") },
@@ -88,7 +91,9 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [dialog, setDialog] = useState<{ id: string; mode: "details" | "watch" } | null>(null);
-  const [rentingId, setRentingId] = useState<string | null>(null);
+  const [rentingId] = useState<string | null>(null);
+  // The film being paid for: the payment sheet is open while this is set.
+  const [payFor, setPayFor] = useState<MovieListItem | null>(null);
   const [trailer, setTrailer] = useState<MovieListItem | null>(null);
 
   // Watch plays the film when the site has it, and otherwise its trailer, full screen over the
@@ -99,10 +104,12 @@ export default function HomePage() {
   }, []);
 
   const refreshFeatured = useCallback(async () => {
-    const page = await get<Paged<MovieListItem>>(
-      "/api/movies" + query({ sortBy: "rating", sortDir: "desc", pageSize: 8 }),
-    ).catch(() => null);
-    if (page) setFeatured(page.items);
+    // Real films lead the shelf; our own Originals start from the 12th card.
+    const [real, originals] = await Promise.all([
+      get<Paged<MovieListItem>>("/api/movies" + query({ sortBy: "rating", sortDir: "desc", pageSize: 11, originals: false })).catch(() => null),
+      get<Paged<MovieListItem>>("/api/movies" + query({ sortBy: "rating", sortDir: "desc", pageSize: 5, originals: true })).catch(() => null),
+    ]);
+    if (real) setFeatured([...real.items, ...(originals?.items ?? [])]);
   }, []);
 
   useEffect(() => { void refreshFeatured(); }, [refreshFeatured]);
@@ -207,25 +214,26 @@ export default function HomePage() {
       return;
     }
 
-    setRentingId(movie.id);
-    try {
-      await post("/api/rentals", { movieId: movie.id, days: 3 });
-      setToast({ id: Date.now(), tone: "ok", text: `${movie.title} — ${t("movie.rented")}` });
-      await Promise.all([load(), refreshFeatured(), refreshRecommended()]);
-    } catch (err) {
-      setToast({
-        id: Date.now(),
-        tone: "error",
-        text: err instanceof ApiError ? err.message : t("error.rental"),
-      });
-    } finally {
-      setRentingId(null);
-    }
+    setPayFor(movie);
+  }
+
+  // After the receipt: copies, shelves and recommendations have all changed.
+  async function rented(movie: MovieListItem) {
+    setToast({ id: Date.now(), tone: "ok", text: `${movie.title} — ${t("movie.rented")}` });
+    await Promise.all([load(), refreshFeatured(), refreshRecommended()]);
   }
 
   return (
     <>
       <Toaster toast={toast} onDismiss={() => setToast(null)} />
+      {payFor ? (
+        <PaymentSheet
+          item={{ title: payFor.title, detail: t("pay.rentalDetail", "Rental · 3 days"), amount: formatUsd(RENTAL_PRICE), icon: <RentIcon size={18} aria-hidden /> }}
+          pay={(card) => post("/api/rentals", { movieId: payFor.id, days: 3, card })}
+          onClose={() => setPayFor(null)}
+          onPaid={() => void rented(payFor)}
+        />
+      ) : null}
 
       {trailer?.trailerUrl ? (
         <TrailerPlayer film={{ ...trailer, trailerUrl: trailer.trailerUrl }} onClose={() => setTrailer(null)} />
@@ -300,7 +308,7 @@ export default function HomePage() {
           <Select value={genre} onChange={(e) => { setGenre(e.target.value); setPage(1); }} aria-label={t("home.genre")}>
             <option value="all">{t("home.everyGenre")}</option>
             {genres.map((g) => (
-              <option key={g} value={g}>{g}</option>
+              <option key={g} value={g}>{genreName(g)}</option>
             ))}
           </Select>
 

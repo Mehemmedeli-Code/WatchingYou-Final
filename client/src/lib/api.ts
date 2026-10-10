@@ -1,10 +1,13 @@
 /**
- * One place that knows how to talk to the .NET host. Keeps the access token in memory
- * and the refresh token in localStorage, then transparently refreshes once on a 401.
- * Storing the short-lived access token outside localStorage limits what an XSS bug reaches.
+ * One place that knows how to talk to the .NET host. Keeps the access token in memory and
+ * transparently refreshes once on a 401.
+ *
+ * The refresh token: on the website it lives in an HttpOnly cookie the server sets (page
+ * scripts never see it; this file only remembers whose session the tab holds). The phone app
+ * keeps it in storage as before, since it calls the API from another origin.
  */
-import { apiUrl } from "@/lib/platform";
-import { lang } from "@/lib/i18n";
+import { apiUrl, isApp } from "@/lib/platform";
+import { lang, t } from "@/lib/i18n";
 import { translateServerMessage } from "@/lib/serverMessages";
 
 export interface UserProfile {
@@ -15,6 +18,10 @@ export interface UserProfile {
   isEmailConfirmed: boolean;
   isPhoneConfirmed: boolean;
   roles: string[];
+  username?: string | null;
+  avatarUrl?: string | null;
+  isPrivate?: boolean;
+  bio?: string | null;
 }
 
 /** Registration hands back a destination, not a session — the code has to be confirmed first. */
@@ -62,17 +69,40 @@ const REFRESH_KEY = "rr.refresh";
  * and localStorage is still read once at startup so an ordinary single-tab visit stays signed
  * in across a restart.
  */
+const OWNER_KEY = "rr.refresh.user";
+
+/** The website keeps no token of its own: the server holds it in a cookie. */
+const cookieMode = () => !isApp();
+
 const tokenStore = {
   read(): string | null {
-    return sessionStorage.getItem(REFRESH_KEY) ?? localStorage.getItem(REFRESH_KEY);
+    if (cookieMode()) return sessionStorage.getItem(OWNER_KEY) ?? localStorage.getItem(OWNER_KEY);
+    const mine = sessionStorage.getItem(REFRESH_KEY);
+    const shared = localStorage.getItem(REFRESH_KEY);
+    // Same account in two tabs: the shared copy is the newest. Each tab preferring its own
+    // copy meant one of them eventually sent an already-rotated token, which the server
+    // treats as theft and answers by signing the account out everywhere.
+    const owner = sessionStorage.getItem(OWNER_KEY);
+    if (mine && shared && owner && owner === localStorage.getItem(OWNER_KEY)) return shared;
+    return mine ?? shared;
   },
-  write(token: string) {
-    sessionStorage.setItem(REFRESH_KEY, token);
-    localStorage.setItem(REFRESH_KEY, token);
+  write(token: string, userId: string) {
+    if (cookieMode()) {
+      // Earlier versions kept the token here; it is not needed (or valid) any more.
+      sessionStorage.removeItem(REFRESH_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+    } else {
+      sessionStorage.setItem(REFRESH_KEY, token);
+      localStorage.setItem(REFRESH_KEY, token);
+    }
+    sessionStorage.setItem(OWNER_KEY, userId);
+    localStorage.setItem(OWNER_KEY, userId);
   },
   clear() {
     sessionStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(REFRESH_KEY);
+    sessionStorage.removeItem(OWNER_KEY);
+    localStorage.removeItem(OWNER_KEY);
   },
 };
 
@@ -95,6 +125,10 @@ function announce() {
   for (const listener of listeners) listener(currentUser);
 }
 
+/** A browser-storage key that belongs to the signed-in account, so a half-finished booking,
+ *  a promo code or offline tickets never show up for the next person signed in on this browser. */
+export const accountKey = (key: string) => `${key}.${currentUser?.id ?? "guest"}`;
+
 export const auth = {
   /** For the real-time connection, which cannot send headers on a WebSocket upgrade. */
   get accessToken() {
@@ -109,6 +143,11 @@ export const auth = {
   get user() {
     return currentUser;
   },
+  /** What sign-out sends so the server can end this session: the token (phone app) or the
+   *  account whose cookie to revoke (website). */
+  logoutBody() {
+    return cookieMode() ? { userId: tokenStore.read() } : { refreshToken: tokenStore.read() };
+  },
   get isSignedIn() {
     return currentUser !== null;
   },
@@ -117,6 +156,11 @@ export const auth = {
    *  should say "offline", not "sign in". */
   hasSavedSession() {
     return tokenStore.read() !== null;
+  },
+  /** After the profile page saves: the new name, handle or picture everywhere at once. */
+  setUser(user: UserProfile) {
+    currentUser = user;
+    announce();
   },
   isAdmin() {
     return currentUser?.roles.includes("Admin") ?? false;
@@ -136,7 +180,7 @@ export const auth = {
   apply(response: AuthResponse) {
     accessToken = response.accessToken;
     currentUser = response.user;
-    tokenStore.write(response.refreshToken);
+    tokenStore.write(response.refreshToken, response.user.id);
     announce();
   },
   clear() {
@@ -192,6 +236,10 @@ async function fetchWithRetry(url: string, init: RequestInit): Promise<Response>
 async function send(path: string, init: RequestInit, retry: boolean): Promise<Response> {
   const headers = new Headers(init.headers);
   if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+  // The page's language, not the browser's: the server writes the PDF ticket in it, and the
+  // phone app has no language cookie to go by.
+  headers.set("Accept-Language", lang);
+  if (cookieMode()) headers.set("X-Refresh-Mode", "cookie");
   if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
 
   const response = await fetchWithRetry(apiUrl(path), { ...init, headers, credentials: "include" });
@@ -224,21 +272,35 @@ function withRefreshLock<T>(work: () => Promise<T>): Promise<T> {
 }
 
 async function refreshOnce(): Promise<boolean> {
-  const refreshToken = tokenStore.read();
-  if (!refreshToken) return false;
+  const saved = tokenStore.read();
+  const response = saved
+    ? await fetch(apiUrl("/api/auth/refresh"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(cookieMode() ? { "X-Refresh-Mode": "cookie" } : {}) },
+        body: JSON.stringify(cookieMode() ? { userId: saved } : { refreshToken: saved }),
+        credentials: "include",
+      }).catch(() => null)
+    : null;
 
-  const response = await fetch(apiUrl("/api/auth/refresh"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken }),
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    auth.clear();
-    return false;
+  if (response?.ok) {
+    auth.apply((await response.json()) as AuthResponse);
+    return true;
   }
+  if (await sessionFromCookie()) return true;
 
+  auth.clear();
+  return false;
+}
+
+/** The page was served to a signed-in visitor (the header shows their picture) but this tab
+ *  has no working refresh token: exchange the session cookie for one rather than showing
+ *  "sign in" under a header that says otherwise. */
+async function sessionFromCookie(): Promise<boolean> {
+  if (document.body?.dataset.signedIn !== "true") return false;
+  const response = await fetch(apiUrl("/api/auth/session"), {
+    method: "POST", credentials: "include", headers: cookieMode() ? { "X-Refresh-Mode": "cookie" } : {},
+  }).catch(() => null);
+  if (!response?.ok) return false;
   auth.apply((await response.json()) as AuthResponse);
   return true;
 }
@@ -262,6 +324,36 @@ export const del = <T,>(path: string) => api<T>(path, { method: "DELETE" });
 export const postForm = <T,>(path: string, form: FormData) =>
   api<T>(path, { method: "POST", body: form });
 
+export interface UploadProgress { loaded: number; total: number }
+
+/**
+ * A form upload that reports how far it has got. fetch cannot report upload progress, and a
+ * large film with no progress looks frozen, so this one goes through XMLHttpRequest. Signs in
+ * again once on a 401, like every other call.
+ */
+export async function uploadForm<T>(path: string, form: FormData, onProgress: (p: UploadProgress) => void, signal?: AbortSignal): Promise<T> {
+  const attempt = (token: string | null) => new Promise<{ status: number; text: string }>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", apiUrl(path));
+    xhr.withCredentials = true;
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.setRequestHeader("Accept-Language", lang);
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress({ loaded: e.loaded, total: e.total }); };
+    xhr.onload = () => resolve({ status: xhr.status, text: xhr.responseText });
+    xhr.onerror = () => reject(new ApiError(t("studio.connectionDropped", "The connection dropped during the upload. Check your internet and try again."), 0));
+    xhr.onabort = () => reject(new ApiError(t("studio.cancelled", "Upload cancelled."), 0, undefined, "aborted"));
+    signal?.addEventListener("abort", () => xhr.abort());
+    xhr.send(form);
+  });
+
+  let result = await attempt(await auth.ensureToken());
+  if (result.status === 401 && (await tryRefresh())) result = await attempt(accessToken);
+  if (result.status < 200 || result.status >= 300) {
+    throw await parseError(new Response(result.text || null, { status: result.status, headers: { "Content-Type": "application/json" } }));
+  }
+  return (result.text ? JSON.parse(result.text) : undefined) as T;
+}
+
 /** Downloads an authenticated file (a PDF ticket, a CSV export) and hands it to the browser
  *  as a save. A plain link cannot carry the bearer token, so the bytes are fetched first. */
 export async function download(path: string, fallbackName: string): Promise<void> {
@@ -284,7 +376,7 @@ export async function download(path: string, fallbackName: string): Promise<void
 
 /** Restores a session on page load. Every Razor page is a fresh document, so this runs often. */
 export async function restoreSession(): Promise<UserProfile | null> {
-  if (!tokenStore.read()) return null;
+  if (!tokenStore.read() && document.body?.dataset.signedIn !== "true") return null;
   if (!(await tryRefresh())) return null;
   return currentUser;
 }

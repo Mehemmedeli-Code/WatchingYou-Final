@@ -11,7 +11,7 @@ import { get, post, put, patch, del, query, download, ApiError, type Paged } fro
 import { BulkScheduleForm } from "@/components/admin/BulkScheduleForm";
 import { PromoAdmin } from "@/components/admin/PromoAdmin";
 import { formatDate, formatMoney } from "@/lib/format";
-import { t, languageName } from "@/lib/i18n";
+import { t, languageName, genreName } from "@/lib/i18n";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { UserAdmin } from "@/components/UserAdmin";
 import { AuditTrail } from "@/components/AuditTrail";
@@ -19,6 +19,7 @@ import { statusTone, type ShortFilmDetail } from "@/lib/shorts";
 import type { MovieListItem } from "@/components/MovieCard";
 import type { MovieDetail } from "@/components/MovieDialog";
 import { ProSubscribers } from "@/components/ProSubscribers";
+import { askConfirm, askText } from "@/lib/dialog";
 
 interface CinemaTotals {
   revenueThisMonth: number;
@@ -239,7 +240,7 @@ export default function AdminPage() {
                   <tr key={movie.id} className="border-t border-line">
                     <td className="px-4 py-3">
                       <p className="text-ink">{movie.title}</p>
-                      <p className="text-xs text-ink-mute">{movie.genre} · {movie.releaseYear}</p>
+                      <p className="text-xs text-ink-mute">{genreName(movie.genre)} · {movie.releaseYear}</p>
                       {movie.isDeleted ? <Badge tone="bad" className="mt-1">{t("admin.removed")}</Badge> : null}
                     </td>
                     <td className="px-4 py-3">
@@ -249,11 +250,11 @@ export default function AdminPage() {
                           min={0}
                           defaultValue={movie.totalCopies}
                           className="h-8 w-20"
-                          aria-label={`Total copies of ${movie.title}`}
+                          aria-label={t("admin.totalCopiesOf", "Total copies of {0}").replace("{0}", movie.title)}
                           onBlur={(e) => {
                             const next = Number(e.target.value);
                             if (next !== movie.totalCopies) {
-                              void run(() => patch(`/api/admin/movies/${movie.id}/stock`, { totalCopies: next }), "Stock updated.");
+                              void run(() => patch(`/api/admin/movies/${movie.id}/stock`, { totalCopies: next }), t("admin.stockUpdated", "Stock updated."));
                             }
                           }}
                         />
@@ -263,7 +264,7 @@ export default function AdminPage() {
                     <td className="px-4 py-3 text-ink-mute">{formatMoney(movie.dailyPrice)}</td>
                     <td className="px-4 py-3 text-right">
                       {movie.isDeleted ? (
-                        <Button size="sm" variant="outline" onClick={() => run(() => post(`/api/admin/movies/${movie.id}/restore`), "Title restored.")}>
+                        <Button size="sm" variant="outline" onClick={() => run(() => post(`/api/admin/movies/${movie.id}/restore`), t("admin.titleRestored", "Title restored."))}>
                           {t("common.restore")}
                         </Button>
                       ) : (
@@ -271,7 +272,7 @@ export default function AdminPage() {
                           <Button size="sm" variant="outline" onClick={() => setEditing(movie)}>
                             {t("admin.edit")}
                           </Button>
-                          <Button size="sm" variant="danger" onClick={() => run(() => del(`/api/admin/movies/${movie.id}`), "Title removed.")}>
+                          <Button size="sm" variant="danger" onClick={() => run(() => del(`/api/admin/movies/${movie.id}`), t("admin.titleRemoved", "Title removed."))}>
                             {t("common.remove")}
                           </Button>
                         </div>
@@ -304,7 +305,7 @@ export default function AdminPage() {
               <Button
                 className="w-full"
                 disabled={!draft.title}
-                onClick={() => run(async () => { await post("/api/admin/movies", draft); setDraft(BLANK); }, "Title added to the catalogue.")}
+                onClick={() => run(async () => { await post("/api/admin/movies", draft); setDraft(BLANK); }, t("admin.titleAdded", "Title added to the catalogue."))}
               >
                 {t("admin.addToCatalogue")}
               </Button>
@@ -405,8 +406,8 @@ export default function AdminPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              const reason = window.prompt(t("admin.suspendReason"));
+                            onClick={async () => {
+                              const reason = await askText(t("admin.suspendReason"));
                               if (!reason) return;
                               void run(
                                 () => post(`/api/admin/screenings/${screening.id}/cancel`, { reason }),
@@ -425,7 +426,10 @@ export default function AdminPage() {
                         <Button
                           size="sm"
                           variant="danger"
-                          onClick={() => run(() => del(`/api/admin/screenings/${screening.id}`), "Screening removed.")}
+                          onClick={async () => {
+                            if (!(await askConfirm(t("admin.deleteScreeningConfirm", "Delete this screening? This cannot be undone."), { danger: true }))) return;
+                            run(() => del(`/api/admin/screenings/${screening.id}`), t("admin.screeningRemoved", "Screening removed."));
+                          }}
                         >
                           {t("common.reject")}
                         </Button>
@@ -441,7 +445,7 @@ export default function AdminPage() {
             <NewScreeningForm
               movies={movies?.items ?? []}
               venues={venues}
-              onSaved={() => run(async () => undefined, "Screening scheduled.")}
+              onSaved={() => run(async () => undefined, t("admin.screeningScheduled", "Screening scheduled."))}
             />
             <BulkScheduleForm movies={movies?.items ?? []} venues={venues} onSaved={load} />
           </div>
@@ -503,7 +507,7 @@ function ShortDecisionCard({
             {film.authorName} · {film.hoursLeft}h · {formatDate(film.reviewDeadlineUtc)}
           </p>
           {film.synopsis ? <p className="mt-2 text-sm text-ink-mute">{film.synopsis}</p> : null}
-          <Badge tone={statusTone(film.status)} className="mt-2">{film.status}</Badge>
+          <Badge tone={statusTone(film.status)} className="mt-2">{t(`status.${film.status.charAt(0).toLowerCase()}${film.status.slice(1)}`, film.status)}</Badge>
         </div>
 
         <div>
@@ -523,7 +527,7 @@ function ShortDecisionCard({
                       {check.note ? <em className="block text-xs">{check.note}</em> : null}
                     </span>
                     <Badge tone={check.outcome === "Fail" ? "bad" : check.outcome === "Pass" ? "good" : undefined}>
-                      {check.outcome}
+                      {t(`outcome.${check.outcome}`, check.outcome)}
                     </Badge>
                   </li>
                 ))}
@@ -598,7 +602,7 @@ function NewScreeningForm({
       setStartsAt("");
       await onSaved();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "The screening was not saved.");
+      setError(err instanceof ApiError ? err.message : t("admin.screeningNotSaved", "The screening was not saved."));
     } finally {
       setBusy(false);
     }
@@ -826,7 +830,12 @@ function EditScreeningDialog({
   onClose: () => void;
   onSaved: () => void | Promise<void>;
 }) {
-  const local = (iso: string) => new Date(iso).toISOString().slice(0, 16);
+  // datetime-local wants local wall time; toISOString() alone gives UTC, which then got read
+  // back as local on save and moved the screening by the UTC offset on every edit.
+  const local = (iso: string) => {
+    const d = new Date(iso);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  };
 
   const [hallId, setHallId] = useState(screening.hallId);
   const [startsAt, setStartsAt] = useState(local(screening.startsAtUtc));

@@ -12,6 +12,17 @@ import { afterSignIn, afterSignOut, openServerPage } from "@/lib/platform";
 
 type Mode = "signin" | "register" | "verify" | "forgot" | "reset";
 
+/** The path part of a same-site address, or null for anything that would leave the site. */
+export function sameOriginPath(value: string | null): string | null {
+  if (!value?.startsWith("/")) return null;
+  try {
+    const url = new URL(value, window.location.origin);
+    return url.origin === window.location.origin ? url.pathname + url.search + url.hash : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function AccountPage() {
   const { user, isSignedIn, signOut } = useAuth();
   // The welcome page's "Get started" arrives as ?mode=register&email=… — open the form it
@@ -59,16 +70,18 @@ export default function AccountPage() {
       // ASP.NET's cookie challenge spells it "ReturnUrl"; the site's own links, "returnUrl".
       const search = new URLSearchParams(window.location.search);
       const requested = search.get("returnUrl") ?? search.get("ReturnUrl");
-      const safe = requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : null;
+      // Resolved the way the browser will resolve it, then compared by origin. A pattern test
+      // missed "/<tab>/evil.com": browsers drop tabs and newlines from URLs, leaving "//evil.com".
+      const safe = sameOriginPath(requested);
 
       // Staff accounts land in the back office, not the public catalogue: the manager and the
       // cashier sign in to work, and the site is one click away from there if they want it.
       const roles = session.user.roles;
       const isStaff = roles.includes("Admin") || roles.includes("Cashier");
-      // Chose Watching PRO on the welcome page: the PRO page is the next step. Otherwise the
-      // free account goes straight where it was heading.
+      // Chose Watching PRO on the welcome page: the choice is made, so the next step is paying
+      // for it, not the comparison again. Otherwise the free account goes where it was heading.
       const wantsPro = search.get("plan") === "pro";
-      afterSignIn(wantsPro ? "/pro" : safe ?? (isStaff ? "/backoffice" : "/"));
+      afterSignIn(wantsPro ? "/pro?checkout=1" : safe ?? (isStaff ? "/backoffice" : "/"));
     } catch (err) {
       const api = fail(err, t("account.signInFailed", "Could not sign in. Check your connection and try again."));
       if (api?.code === "email_unconfirmed") {
@@ -241,7 +254,7 @@ export default function AccountPage() {
             className="mt-6"
             variant="outline"
             onClick={async () => {
-              await post("/api/auth/logout", { refreshToken: localStorage.getItem("rr.refresh") }).catch(() => null);
+              await post("/api/auth/logout", auth.logoutBody()).catch(() => null);
               signOut();
               afterSignOut();
             }}

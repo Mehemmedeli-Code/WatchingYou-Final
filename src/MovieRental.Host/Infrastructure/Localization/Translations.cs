@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using System.Text.Json;
 
 namespace MovieRental.Host.Infrastructure.Localization;
@@ -100,7 +101,10 @@ public static class LanguageEndpoints
 
             // Only ever return to our own pages: an open redirect here would be handed out
             // by every language link on the site.
-            var target = !string.IsNullOrWhiteSpace(returnUrl) && returnUrl.StartsWith('/') && !returnUrl.StartsWith("//")
+            // RedirectHttpResult.IsLocalUrl also rejects "/\evil.com", which browsers treat as "//evil.com".
+            // Printable ASCII only: a line separator or other non-ASCII character made the
+            // Location header itself throw (500). Browsers send such paths percent-encoded anyway.
+            var target = RedirectHttpResult.IsLocalUrl(returnUrl) && returnUrl!.All(c => c is > (char)32 and < (char)127)
                 ? returnUrl
                 : "/";
 

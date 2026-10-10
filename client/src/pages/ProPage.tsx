@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Crown, Film, Infinity as InfinityIcon, Clock3 } from "lucide-react";
-import { Section, Panel, Notice, Spinner } from "@/components/Shell";
+import { Section, Panel, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
-import { Input, Field } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/useAuth";
-import { brandFor, expiryProblem, groupDigits } from "@/components/BookingFlow";
-import { get, post, ApiError } from "@/lib/api";
-import { formatDate, formatUsd } from "@/lib/format";
+import { get, post } from "@/lib/api";
+import { formatDate, formatUsd, PRO_PRICE } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { ProSubscribers } from "@/components/ProSubscribers";
+import { PaymentSheet } from "@/components/CardPayment";
 
 interface ProPayment {
   id: string;
@@ -46,6 +45,14 @@ export default function ProPage() {
   }, [isSignedIn]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Arrived from the welcome page having picked PRO: open the payment straight away, once,
+  // unless the account already has it. The flag leaves the address so a reload does not reopen it.
+  useEffect(() => {
+    if (!status || new URLSearchParams(location.search).get("checkout") !== "1") return;
+    history.replaceState(null, "", location.pathname);
+    if (!status.active) setPaying(true);
+  }, [status]);
 
   // Staff watch everything already; what they need is the subscriber list, not the offer.
   if (isStaff) {
@@ -119,18 +126,19 @@ export default function ProPage() {
                     <span className="text-ink-mute">({status.daysLeft} {t("pro.days", "days")})</span>
                   </p>
                 ) : null}
+                <Button className="w-full" onClick={() => setPaying(true)}>
+                  {status.active
+                    ? `${t("pro.addMonth", "Add another month")} · ${formatUsd(PRO_PRICE)}`
+                    : `${t("pro.join", "Get Watching PRO")} · ${formatUsd(PRO_PRICE)}`}
+                </Button>
                 {paying ? (
-                  <ProCheckout
-                    onCancel={() => setPaying(false)}
-                    onPaid={(next) => { setStatus(next); setPaying(false); }}
+                  <PaymentSheet
+                    item={{ title: "Watching PRO", detail: t("pay.proDetail", "One month, every film"), amount: formatUsd(PRO_PRICE), icon: <Crown size={18} aria-hidden /> }}
+                    pay={async (card) => { setStatus(await post<ProStatus>("/api/pro/subscribe", { card })); }}
+                    onClose={() => setPaying(false)}
+                    onPaid={() => void load()}
                   />
-                ) : (
-                  <Button className="w-full" onClick={() => setPaying(true)}>
-                    {status.active
-                      ? `${t("pro.addMonth", "Add another month")} · ${formatUsd(5)}`
-                      : `${t("pro.join", "Get Watching PRO")} · ${formatUsd(5)}`}
-                  </Button>
-                )}
+                ) : null}
               </>
             )}
           </div>
@@ -152,71 +160,5 @@ export default function ProPage() {
         </Panel>
       ) : null}
     </Section>
-  );
-}
-
-function ProCheckout({ onCancel, onPaid }: { onCancel: () => void; onPaid: (status: ProStatus) => void }) {
-  const [number, setNumber] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvc, setCvc] = useState("");
-  const [holder, setHolder] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const digits = number.replace(/\D/g, "");
-  const brand = brandFor(digits);
-  const expiryError = expiryProblem(expiry);
-  const canPay = digits.length === 16 && !!brand && cvc.length === 3 && !expiryError
-    && expiry.replace(/\D/g, "").length === 4 && holder.trim().length > 1;
-
-  async function pay() {
-    const [month, year] = expiry.split("/").map((part) => Number(part.trim()));
-    setBusy(true);
-    setError(null);
-    try {
-      const next = await post<ProStatus>("/api/pro/subscribe", {
-        card: { number: digits, expiryMonth: month || 0, expiryYear: year || 0, cvc, holderName: holder },
-      });
-      setNumber(""); setCvc(""); setExpiry("");
-      onPaid(next);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("error.action"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="space-y-3">
-      <Field label={t("book.cardNumber", "Card number")} hint={brand ?? "4242 4242 4242 4242"}>
-        <Input inputMode="numeric" autoComplete="cc-number" value={number}
-               onChange={(e) => setNumber(groupDigits(e.target.value))} placeholder="0000 0000 0000 0000" />
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label={t("book.expiry", "Expiry")} hint={expiryError ?? "MM/YY"}>
-          <Input inputMode="numeric" autoComplete="cc-exp" value={expiry} placeholder="MM/YY"
-                 onChange={(e) => {
-                   const d = e.target.value.replace(/\D/g, "").slice(0, 4);
-                   setExpiry(d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d);
-                 }} />
-        </Field>
-        <Field label="CVC">
-          <Input inputMode="numeric" autoComplete="cc-csc" value={cvc} placeholder="123"
-                 onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 3))} />
-        </Field>
-      </div>
-      <Field label={t("book.holder", "Name on card")}>
-        <Input autoComplete="cc-name" value={holder} onChange={(e) => setHolder(e.target.value)} />
-      </Field>
-
-      {error ? <Notice tone="error">{error}</Notice> : null}
-
-      <div className="flex gap-2">
-        <Button className="flex-1" disabled={!canPay || busy} onClick={pay}>
-          {busy ? t("common.loading") : `${t("pro.pay", "Pay")} ${formatUsd(5)}`}
-        </Button>
-        <Button variant="outline" disabled={busy} onClick={onCancel}>{t("common.cancel")}</Button>
-      </div>
-    </div>
   );
 }

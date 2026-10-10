@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { Heart } from "lucide-react";
+import { Clapperboard, Heart } from "lucide-react";
 import { Section, Empty, Spinner, Notice } from "@/components/Shell";
 import { MovieCard, type MovieListItem } from "@/components/MovieCard";
 import { MovieDialog } from "@/components/MovieDialog";
 import { get, post, ApiError } from "@/lib/api";
 import { loadWatchlist, toggleWatchlist } from "@/lib/watchlist";
 import { formatDay, t } from "@/lib/i18n";
+import { PaymentSheet } from "@/components/CardPayment";
+import { formatUsd, RENTAL_PRICE } from "@/lib/format";
 
 interface WatchlistEntry {
   addedAtUtc: string;
@@ -18,7 +20,8 @@ export function WatchlistShelf() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [dialog, setDialog] = useState<{ id: string; mode: "details" | "watch" } | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [busyId] = useState<string | null>(null);
+  const [payFor, setPayFor] = useState<MovieListItem | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -41,19 +44,15 @@ export function WatchlistShelf() {
   }
 
   async function rent(movie: MovieListItem) {
-    setBusyId(movie.id);
     setNotice(null);
-    try {
-      await post("/api/rentals", { movieId: movie.id, days: 3 });
-      setNotice(`${movie.title} — ${t("movie.rented")}`);
-      // Rented films leave the list: it was a reminder, and it has done its job.
-      await toggleWatchlist(movie.id).catch(() => undefined);
-      await Promise.all([load(), loadWatchlist(true)]);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("error.rental"));
-    } finally {
-      setBusyId(null);
-    }
+    setPayFor(movie);
+  }
+
+  // After the receipt. Rented films leave the list: it was a reminder, and it has done its job.
+  async function rented(movie: MovieListItem) {
+    setNotice(`${movie.title} — ${t("movie.rented")}`);
+    await toggleWatchlist(movie.id).catch(() => undefined);
+    await Promise.all([load(), loadWatchlist(true)]);
   }
 
   return (
@@ -70,6 +69,14 @@ export function WatchlistShelf() {
         />
       ) : null}
 
+      {payFor ? (
+        <PaymentSheet
+          item={{ title: payFor.title, detail: t("pay.rentalDetail", "Rental · 3 days"), amount: formatUsd(RENTAL_PRICE), icon: <Clapperboard size={18} aria-hidden /> }}
+          pay={(card) => post("/api/rentals", { movieId: payFor.id, days: 3, card })}
+          onClose={() => setPayFor(null)}
+          onPaid={() => void rented(payFor)}
+        />
+      ) : null}
       {error ? <Notice tone="error">{error}</Notice> : null}
       {notice ? <div className="mb-4"><Notice tone="ok">{notice}</Notice></div> : null}
       {entries === null && !error ? <Spinner /> : null}

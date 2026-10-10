@@ -10,12 +10,13 @@
  *
  * Bump VERSION when this file changes so old caches are cleared on activation.
  */
-const VERSION = "wy-v2";
+const VERSION = "wy-v4";
 const SHELL = `${VERSION}-shell`;
 const PAGES = `${VERSION}-pages`;
 
 const PRECACHE = [
   "/offline.html",
+  "/offline.js",
   "/app/app.js",
   "/app/app.css",
   "/css/shell.css",
@@ -79,6 +80,19 @@ self.addEventListener("fetch", (event) => {
   // out the previous bundle after every deploy — the new one only arrived on the load after
   // that, so a fix looked as if it had not worked. The host sends Cache-Control: no-cache with
   // an ETag for /app, so asking the network costs a 304 when nothing changed.
+  // A hashed chunk never changes under its name, so the cached copy is always right.
+  if (/^\/app\/.+-[A-Za-z0-9_-]{8}\.(js|css)$/.test(url.pathname)) {
+    event.respondWith(
+      caches.open(SHELL).then(async (cache) =>
+        (await cache.match(request)) ??
+        fetch(request).then((response) => {
+          if (response.ok) cache.put(request, response.clone());
+          return response;
+        })),
+    );
+    return;
+  }
+
   if (/^\/(app|css|icons|img|seed)\//.test(url.pathname) || url.pathname === "/manifest.webmanifest") {
     event.respondWith(
       caches.open(SHELL).then((cache) =>

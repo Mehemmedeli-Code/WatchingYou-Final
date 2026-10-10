@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { embedFor } from "@/components/MovieDialog";
 import { formatRuntime } from "@/lib/format";
 import { apiUrl } from "@/lib/platform";
-import { t } from "@/lib/i18n";
+import { t, genreName } from "@/lib/i18n";
 
 export interface TrailerFilm {
   title: string;
@@ -79,7 +79,7 @@ export function TrailerPlayer({ film, onClose }: { film: TrailerFilm; onClose: (
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">{t("movie.trailer", "Trailer")}</p>
           <h2 className="truncate font-display text-xl font-bold sm:text-2xl">{film.title}</h2>
           <p className="text-xs text-white/60">
-            {film.genre} · {film.releaseYear} · {formatRuntime(film.durationMinutes)}
+            {genreName(film.genre)} · {film.releaseYear} · {formatRuntime(film.durationMinutes)}
           </p>
         </div>
         {/* Large and high-contrast, so it is found at once on top of a dark trailer and is an

@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/useAuth";
 import { get, put, ApiError, query, type Paged } from "@/lib/api";
-import { formatDate, formatUsd } from "@/lib/format";
+import { formatDate, formatUsd, RENTAL_PRICE } from "@/lib/format";
 import { t } from "@/lib/i18n";
+import { PaymentSheet } from "@/components/CardPayment";
+import { Clapperboard } from "lucide-react";
 
 interface Rental {
   id: string;
@@ -34,6 +36,8 @@ export default function RentalsPage() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  // The rental whose three more days are being paid for.
+  const [extending, setExtending] = useState<Rental | null>(null);
 
   const load = useCallback(async () => {
     if (!isSignedIn) {
@@ -53,16 +57,13 @@ export default function RentalsPage() {
   useEffect(() => { void load(); }, [load]);
 
   async function act(rental: Rental, action: "extend" | "return") {
-    setBusyId(rental.id);
     setMessage(null);
+    // Three more days are paid for: the card sheet takes it from here.
+    if (action === "extend") { setExtending(rental); return; }
+    setBusyId(rental.id);
     try {
-      if (action === "extend") {
-        await put(`/api/rentals/${rental.id}/extend`, {});
-        setMessage({ tone: "ok", text: `${rental.movieTitle}: ${t("rentals.extended", "three more days are yours.")}` });
-      } else {
-        await put<Rental>(`/api/rentals/${rental.id}/return`);
-        setMessage({ tone: "ok", text: `${rental.movieTitle}: ${t("rentals.returned", "returned. Thank you!")}` });
-      }
+      await put<Rental>(`/api/rentals/${rental.id}/return`);
+      setMessage({ tone: "ok", text: `${rental.movieTitle}: ${t("rentals.returned", "returned. Thank you!")}` });
       await load();
     } catch (err) {
       setMessage({ tone: "error", text: err instanceof ApiError ? err.message : t("error.action") });
@@ -85,6 +86,17 @@ export default function RentalsPage() {
 
   return (
     <Section title={t("rentals.title")} lede={t("rentals.lede")}>
+      {extending ? (
+        <PaymentSheet
+          item={{ title: extending.movieTitle, detail: t("pay.extendDetail", "Three more days"), amount: formatUsd(RENTAL_PRICE), icon: <Clapperboard size={18} aria-hidden /> }}
+          pay={(card) => put(`/api/rentals/${extending.id}/extend`, { card })}
+          onClose={() => setExtending(null)}
+          onPaid={() => {
+            setMessage({ tone: "ok", text: `${extending.movieTitle}: ${t("rentals.extended", "three more days are yours.")}` });
+            void load();
+          }}
+        />
+      ) : null}
       <div className="mb-5 flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <Button key={f} size="sm" variant={filter === f ? "solid" : "outline"} onClick={() => setFilter(f)}>

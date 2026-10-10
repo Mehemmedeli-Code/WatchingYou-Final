@@ -40,7 +40,7 @@ export function AuditTrail() {
         <Panel key={entry.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={tone(entry.action)}>{entry.action}</Badge>
+              <Badge tone={tone(entry.action)}>{t(`audit.${entry.action}`, entry.action)}</Badge>
               <span className="text-sm text-ink">{entry.subject}</span>
             </div>
             {entry.reason ? <p className="mt-1 text-xs text-ink-mute">{entry.reason}</p> : null}

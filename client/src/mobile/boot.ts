@@ -38,7 +38,13 @@ document.documentElement.lang = appLanguage;
 
 // The server the app talks to. Fixed at build time (WY_API_BASE); a tester can point a build
 // at another server by setting "wy.app.apiBase" in storage, without rebuilding.
-const apiBase = (read(API_KEY) || __WY_API_BASE__ || "").replace(/\/+$/, "");
+// A dev build points at https://localhost:7139. Opened from a phone on the same Wi-Fi
+// (http://192.168.x.x:5174), "localhost" would be the phone itself, so the computer's address
+// the page came from is used instead. The installed app (capacitor://localhost or
+// https://localhost) and a real server address are left as they are.
+const built = (__WY_API_BASE__ || "").replace(/\/+$/, "");
+const fromLan = /^https?:\/\/localhost(:\d+)?$/.test(built) && window.location.protocol === "http:" && window.location.hostname !== "localhost";
+const apiBase = (read(API_KEY) || (fromLan ? built.replace("localhost", window.location.hostname) : built)).replace(/\/+$/, "");
 
 (window as unknown as { __WY_APP__: unknown }).__WY_APP__ = {
   apiBase,

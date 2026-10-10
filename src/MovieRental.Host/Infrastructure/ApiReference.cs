@@ -26,7 +26,8 @@ public static class ApiReference
                 await next();
             }));
 
-        app.UseSwagger();
+        // Same URL as before, so it stays behind the Admin gate above.
+        app.MapOpenApi("/swagger/{documentName}/swagger.json");
         app.UseSwaggerUI(options =>
         {
             options.SwaggerEndpoint("/swagger/v1/swagger.json", "WatchingYou API v1");

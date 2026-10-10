@@ -1,8 +1,8 @@
 import { lazy, Suspense, useEffect, useState, type MouseEvent, type ReactNode } from "react";
-import { ArrowLeft, Clapperboard, Compass, ScanLine, Ticket, UserRound } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Clapperboard, Compass, Globe2, ScanLine, Settings, Ticket, UserRound } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { cn } from "@/lib/utils";
-import { t } from "@/lib/i18n";
+import { t, languageName } from "@/lib/i18n";
 import { RESUME_EVENT, onAppResume } from "@/lib/platform";
 import { auth, get, restoreSession } from "@/lib/api";
 import type { TicketResponse } from "@/components/BookingFlow";
@@ -25,14 +25,23 @@ const AiCatalogPage = lazy(() => import("@/pages/GalleryPage"));
 const HumanCraftPage = lazy(() => import("@/pages/HumanCraftPage"));
 const GlobePage = lazy(() => import("@/pages/GlobePage"));
 const HelpPage = lazy(() => import("@/pages/HelpPage"));
+const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
+const ProfileEditPage = lazy(() => import("@/pages/ProfileEditPage"));
+const PeoplePage = lazy(() => import("@/pages/PeoplePage"));
 
-type Route = "films" | "tickets" | "door" | "account" | "more" | DiscoverRoute;
+// The profile pages are the website's, as they are: your own profile, its edit page, people
+// search, and someone else's profile by handle ("u/aysel.quliyeva").
+type SocialRoute = "profile" | "profile-edit" | "people" | `u/${string}`;
+type Route = "films" | "tickets" | "door" | "account" | "more" | DiscoverRoute | SocialRoute;
+
+const isSocial = (route: string): route is SocialRoute =>
+  route === "profile" || route === "profile-edit" || route === "people" || /^u\/[^/]+$/.test(route);
 
 const isDiscover = (route: string): route is DiscoverRoute => (DISCOVER_ROUTES as readonly string[]).includes(route);
 
 const readRoute = (): Route => {
   const hash = window.location.hash.replace(/^#\/?/, "");
-  return hash === "tickets" || hash === "account" || hash === "door" || hash === "more" || isDiscover(hash) ? hash : "films";
+  return hash === "tickets" || hash === "account" || hash === "door" || hash === "more" || isDiscover(hash) || isSocial(hash) ? hash : "films";
 };
 
 /**
@@ -44,6 +53,10 @@ function routeForLink(path: string): Route | null {
   const page = path.replace(/^\//, "").split(/[?#]/)[0];
   if (page === "" || page === "cinema") return "films";
   if (page === "account") return "account";
+  if (page === "profile") return "profile";
+  if (page === "profile/edit") return "profile-edit";
+  if (page === "people") return "people";
+  if (/^u\/[^/]+$/.test(page)) return page as SocialRoute;
   return isDiscover(page) ? page : null;
 }
 
@@ -61,7 +74,7 @@ export default function MobileApp() {
   const [route, setRoute] = useState<Route>(readRoute);
   // Door staff (Security) and admins get a fourth tab for scanning tickets at the entrance;
   // the check-in API enforces the same rule, so hiding it is presentation, not security.
-  const { isSecurity, isSignedIn } = useAuth();
+  const { isSecurity, isSignedIn, user } = useAuth();
   // Nobody signed in, and no saved sign-in waiting for a signal to be confirmed: the app is
   // just its sign-in screen until they are in. A saved session counts as in — offline at the
   // cinema door, the tickets tab must still open.
@@ -93,6 +106,7 @@ export default function MobileApp() {
       // leaves the app.
       const onBack = await App.addListener("backButton", () => {
         if (isDiscover(readRoute())) window.location.hash = "#/more";
+        else if (isSocial(readRoute()) && readRoute() !== "profile") window.history.back();
         else if (readRoute() !== "films") window.location.hash = "#/films";
         else void App.exitApp();
       });
@@ -145,6 +159,9 @@ export default function MobileApp() {
     go(next);
   };
   const inDiscover = current === "more" || isDiscover(current);
+  // A page reached from the profile (its edit page, people search, someone else's profile)
+  // gets a back arrow in the header, like a Discover page does.
+  const socialChild = isSocial(current) && current !== "profile";
 
   return (
     <div className="flex min-h-screen flex-col bg-surface text-ink" style={{ fontFamily: "var(--font-sans)" }}>
@@ -152,7 +169,14 @@ export default function MobileApp() {
         className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-surface/90 px-4 pb-2.5 backdrop-blur"
         style={{ paddingTop: "calc(env(safe-area-inset-top) + 10px)" }}
       >
-        {isDiscover(current) ? (
+        {socialChild ? (
+          <button type="button" onClick={() => window.history.back()} className="-ml-1 flex min-w-0 items-center gap-2 text-ink" aria-label={t("app.back", "Back")}>
+            <ArrowLeft size={22} className="shrink-0" aria-hidden />
+            <span className="truncate font-display text-lg font-bold tracking-tight">
+              {current === "profile-edit" ? t("profile.edit", "Edit profile") : current === "people" ? t("nav.people", "People") : `@${current.slice(2)}`}
+            </span>
+          </button>
+        ) : isDiscover(current) ? (
           <button type="button" onClick={() => go("more")} className="-ml-1 flex min-w-0 items-center gap-2 text-ink" aria-label={t("app.back", "Back")}>
             <ArrowLeft size={22} className="shrink-0" aria-hidden />
             <span className="truncate font-display text-lg font-bold tracking-tight">{discoverLabel(current)}</span>
@@ -164,14 +188,8 @@ export default function MobileApp() {
           </>
         )}
         <div className="ml-auto flex items-center gap-2">
-          <select
-            aria-label="Language"
-            value={appLanguage}
-            onChange={(e) => setAppLanguage(e.target.value as (typeof LANGUAGES)[number])}
-            className="h-8 rounded-full border border-line bg-surface-raised px-2 text-xs uppercase text-ink"
-          >
-            {LANGUAGES.map((code) => <option key={code} value={code}>{code.toUpperCase()}</option>)}
-          </select>
+          <LanguageMenu />
+
           <ThemeSwitcher />
         </div>
       </header>
@@ -190,6 +208,9 @@ export default function MobileApp() {
             {current === "human-craft" ? <HumanCraftPage /> : null}
             {current === "globe" ? <GlobePage /> : null}
             {current === "help" ? <HelpPage /> : null}
+            {current === "profile" || current.startsWith("u/") ? <ProfilePage key={current} /> : null}
+            {current === "profile-edit" ? <ProfileEditPage /> : null}
+            {current === "people" ? <PeoplePage /> : null}
           </Suspense>
         </ErrorBoundary>
       </main>
@@ -197,14 +218,18 @@ export default function MobileApp() {
       {signedOut ? null : (
       <nav
         aria-label="WatchingYou"
-        className={cn("fixed inset-x-0 bottom-0 z-30 grid border-t border-line bg-surface-raised/95 backdrop-blur", isSecurity ? "grid-cols-5" : "grid-cols-4")}
+        className={cn("fixed inset-x-0 bottom-0 z-30 grid border-t border-line bg-surface-raised/95 backdrop-blur", isSecurity ? "grid-cols-6" : "grid-cols-5")}
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <Tab active={current === "films"} onClick={() => go("films")} icon={<Clapperboard size={22} />} label={t("app.films", "Films")} />
         <Tab active={current === "tickets"} onClick={() => go("tickets")} icon={<Ticket size={22} />} label={t("app.tickets", "My tickets")} />
         {isSecurity ? <Tab active={current === "door"} onClick={() => go("door")} icon={<ScanLine size={22} />} label={t("door.title", "Door")} /> : null}
         <Tab active={inDiscover} onClick={() => go("more")} icon={<Compass size={22} />} label={t("app.more", "Discover")} />
-        <Tab active={current === "account"} onClick={() => go("account")} icon={<UserRound size={22} />} label={t("nav.account", "Account")} />
+        <Tab active={isSocial(current)} onClick={() => go("profile")} label={t("nav.profile", "Profile")}
+          icon={user?.avatarUrl
+            ? <img src={user.avatarUrl} alt="" className={cn("h-[24px] w-[24px] rounded-full object-cover", isSocial(current) && "ring-2 ring-accent")} />
+            : <UserRound size={22} />} />
+        <Tab active={current === "account"} onClick={() => go("account")} icon={<Settings size={22} />} label={t("nav.account", "Account")} />
       </nav>
       )}
     </div>
@@ -235,5 +260,75 @@ function EyeMark() {
       <circle cx="34" cy="23" r="6.4" fill="#04120A" />
       <circle cx="28" cy="17" r="2.6" fill="#EAFFF2" />
     </svg>
+  );
+}
+
+/**
+ * The language picker in the app's header: a pill with the current language, and a small menu
+ * in the app's own colours. The browser's own select drew a white system list over the dark
+ * header that looked like it came from another app.
+ */
+function LanguageMenu() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: Event) => {
+      if (e instanceof KeyboardEvent && e.key !== "Escape") return;
+      if (e instanceof PointerEvent && (e.target as Element).closest("[data-lang-menu]")) return;
+      setOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", close);
+    return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", close); };
+  }, [open]);
+
+  return (
+    <div className="relative" data-lang-menu>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={t("common.language", "Language")}
+        className={cn(
+          "flex h-8 items-center gap-1.5 rounded-full border bg-surface-raised pl-2.5 pr-2 text-xs font-semibold uppercase tracking-wide text-ink transition-colors",
+          open ? "border-accent" : "border-line",
+        )}
+      >
+        <Globe2 size={14} className="text-accent" aria-hidden />
+        {appLanguage}
+        <ChevronDown size={14} className={cn("text-ink-mute transition-transform", open && "rotate-180")} aria-hidden />
+      </button>
+      {open ? (
+        <ul
+          role="listbox"
+          aria-label={t("common.language", "Language")}
+          className="absolute right-0 top-10 z-50 w-44 overflow-hidden rounded-2xl border border-line bg-surface-raised p-1 shadow-2xl shadow-black/50"
+        >
+          {LANGUAGES.map((code) => {
+            const current = code === appLanguage;
+            return (
+              <li key={code}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={current}
+                  onClick={() => { setOpen(false); if (!current) setAppLanguage(code); }}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
+                    current ? "bg-accent/15 text-accent" : "text-ink hover:bg-surface",
+                  )}
+                >
+                  <span className="w-6 text-xs font-semibold uppercase text-ink-mute">{code}</span>
+                  <span className="flex-1">{languageName(code)}</span>
+                  {current ? <Check size={15} aria-hidden /> : null}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
   );
 }

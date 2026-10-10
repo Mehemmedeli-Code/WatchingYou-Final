@@ -148,7 +148,9 @@
                 var tile = Model.Tiles[i];
                 if (tile.PosterUrl is { } poster)
                 {
-                    <img src="@poster" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                    @* Decorative: never ahead of the headline. The first two rows are on screen, so
+                       lazy-loading them only delayed them until after layout. *@
+                    <img src="@poster" alt="" loading="@(i < 16 ? "eager" : "lazy")" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" />
                 }
                 else
                 {
@@ -175,7 +177,7 @@
             <div class="tools">
                 <label class="lang">
                     <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">@T["welcome.language"]</span>
-                    <select onchange="location.href='/lang/'+this.value+'?returnUrl=@here'">
+                    <select data-lang-select data-return="@here">
                         @foreach (var (code, name) in languages)
                         {
                             <option value="@code" selected="@(code == Model.Language)">@name</option>
@@ -213,7 +215,7 @@
                 <input type="email" name="email" required autocomplete="email" placeholder="@T["welcome.email"]" aria-label="@T["welcome.email"]" />
                 <button type="submit"><span id="start-label">@T["welcome.start"]</span> <span aria-hidden="true">›</span></button>
             </form>
-            <script>
+            <script nonce="@Model.HttpContext.Items["csp-nonce"]">
                 // Only the button text follows the choice. Where the account goes afterwards is
                 // decided by the "plan" field itself, so this works without the script too.
                 (function () {
@@ -224,6 +226,12 @@
                     };
                     document.querySelectorAll("input[name=plan]").forEach(function (radio) {
                         radio.addEventListener("change", function () { label.textContent = words[radio.value]; });
+                    });
+                    // The language menu at the top (no inline onchange: the CSP runs none).
+                    document.querySelectorAll("select[data-lang-select]").forEach(function (select) {
+                        select.addEventListener("change", function () {
+                            location.href = "/lang/" + encodeURIComponent(select.value) + "?returnUrl=" + select.dataset["return"];
+                        });
                     });
                 })();
             </script>

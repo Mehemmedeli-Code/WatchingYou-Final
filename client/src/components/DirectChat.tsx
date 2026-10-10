@@ -7,6 +7,7 @@ import { ChatMessages, type ChatMessage } from "@/components/ui/chat-messages";
 import { get, post, put, ApiError } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { openDirectChats, useRealtime, useRealtimeLive, useTypingIndicator, useTypingSender } from "@/lib/realtime";
+import { askText } from "@/lib/dialog";
 
 interface DirectLine {
   id: string;
@@ -25,6 +26,8 @@ export interface DirectConversation {
   /** Blocked either way, or the other person left the globe. The reason is not distinguished. */
   unreachable: boolean;
   messages: DirectLine[];
+  /** More messages exist above the newest page. */
+  hasOlder?: boolean;
 }
 
 /**
@@ -44,6 +47,21 @@ export function DirectChat({
   onChanged?: () => void;
 }) {
   const [thread, setThread] = useState<DirectConversation | null>(null);
+  // Pages above the newest one, loaded on request. The poll only ever brings the newest page.
+  const [older, setOlder] = useState<DirectLine[]>([]);
+  const [olderMore, setOlderMore] = useState<boolean | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+
+  async function loadOlder() {
+    const first = older[0] ?? thread?.messages[0];
+    if (!first) return;
+    setLoadingOlder(true);
+    const page = await get<DirectConversation>(`/api/messages/${userId}?before=${encodeURIComponent(first.createdAtUtc)}`).catch(() => null);
+    setLoadingOlder(false);
+    if (!page) return;
+    setOlder((list) => [...page.messages, ...list]);
+    setOlderMore(page.hasOlder ?? false);
+  }
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const sending = useRef(false);
@@ -104,7 +122,7 @@ export function DirectChat({
   async function report() {
     if (!thread) return;
     const last = [...thread.messages].reverse().find((m) => !m.mine);
-    const reason = window.prompt(t("dm.reportReason"));
+    const reason = await askText(t("dm.reportReason"));
     if (reason === null) return;
 
     await post(`/api/messages/${userId}/report`, { quote: last?.body ?? "(no message)", reason })
@@ -114,7 +132,10 @@ export function DirectChat({
     onChanged?.();
   }
 
-  const bubbles: ChatMessage[] = (thread?.messages ?? []).map((line) => ({
+  const newest = thread?.messages ?? [];
+  const shown = [...older.filter((o) => !newest.some((n) => n.id === o.id)), ...newest];
+  const canLoadOlder = olderMore ?? thread?.hasOlder ?? false;
+  const bubbles: ChatMessage[] = shown.map((line) => ({
     id: line.id,
     sender: line.mine ? "user" : "desk",
     content: line.body,
@@ -161,6 +182,14 @@ export function DirectChat({
             <div className="mt-3"><Notice tone="info">{t("dm.blockedByMe")}</Notice></div>
           ) : thread?.unreachable ? (
             <div className="mt-3"><Notice tone="info">{t("dm.blocked")}</Notice></div>
+          ) : null}
+
+          {canLoadOlder ? (
+            <div className="mt-3 text-center">
+              <Button size="sm" variant="outline" disabled={loadingOlder} onClick={loadOlder}>
+                {t("dm.older", "Earlier messages")}
+              </Button>
+            </div>
           ) : null}
 
           <div className="mt-4">

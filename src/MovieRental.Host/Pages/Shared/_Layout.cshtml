@@ -9,7 +9,7 @@
 <head>
     @* Runs before the first paint. Reading the saved theme here, rather than once React has
        loaded, is what stops a light-theme page from flashing dark on every load. *@
-    <script>
+    <script nonce="@Context.Items["csp-nonce"]">
         (function () {
             try {
                 var saved = localStorage.getItem("wy.theme");
@@ -45,7 +45,7 @@
     }
     <link rel="stylesheet" href="~/css/shell.css" asp-append-version="true" />
 </head>
-<body class="rr-body @(view.UseShaderBackground ? "has-shader" : null)">
+<body class="rr-body @(view.UseShaderBackground ? "has-shader" : null)" data-signed-in="@(view.IsSignedIn ? "true" : null)">
     @* Its own React root, mounted from main.tsx. Keeping it outside #root means the field
        survives whichever island the page happens to render, and costs one canvas total. *@
     @if (view.UseShaderBackground)
@@ -56,7 +56,7 @@
     <a class="rr-skip" href="#main">@T["nav.skip"]</a>
 
     <header class="rr-header">
-        <a class="rr-wordmark" href="/" aria-label="WatchingYou home">
+        <a class="rr-wordmark" href="/" aria-label="@T["nav.home"]">
             <svg width="30" height="30" viewBox="0 0 64 44" aria-hidden="true" class="rr-eye">
                 <defs>
                     <radialGradient id="rr-iris" cx="42%" cy="38%" r="62%">
@@ -123,6 +123,13 @@
             {
                 <a class="rr-account" href="/account">@(view.IsSignedIn ? T["nav.account"] : T["nav.signIn"])</a>
             }
+            @if (view.IsSignedIn)
+            {
+                @* /api/avatars/me redirects to the picture, or to the eye logo when there is none. *@
+                <a class="rr-avatar" href="/profile" title="@T["nav.profile"]" aria-label="@T["nav.profile"]">
+                    <img src="/api/avatars/me" alt="" width="36" height="36" />
+                </a>
+            }
         </div>
     </header>
 
@@ -130,21 +137,49 @@
         @RenderBody()
     </main>
 
+    @* Laid out like Instagram's: one centred row of links, then the language and the year. *@
     <footer class="rr-footer">
-        <p>@T["footer.note"]</p>
-        <nav class="rr-footer-links" aria-label="@T["privacy.title"]">
+        <nav class="rr-footer-links" aria-label="WatchingYou">
+            <a href="/about">@T["footer.about"]</a>
+            <a href="/blog">@T["footer.blog"]</a>
+            <a href="/careers">@T["footer.careers"]</a>
+            <a href="/help">@T["footer.help"]</a>
+            <a href="/developers">@T["footer.developers"]</a>
             <a href="/privacy">@T["privacy.title"]</a>
+            <a href="/terms">@T["footer.terms"]</a>
+            <a href="/locations">@T["footer.locations"]</a>
+            <a href="/mobile-app">@T["footer.mobile-app"]</a>
+            <a href="/non-users">@T["footer.non-users"]</a>
         </nav>
+        <div class="rr-footer-meta">
+            @* A language menu, as Instagram has; each option is a plain link target, so the
+               choice still works through /lang without any script of its own. *@
+            <label class="rr-footer-lang">
+                <span class="sr-only">@T["common.language"]</span>
+                <select data-nav-select aria-label="@T["common.language"]">
+                    @foreach (var option in view.Languages)
+                    {
+                        <option value="/lang/@option.Code?returnUrl=@(Uri.EscapeDataString(returnUrl))" selected="@option.IsCurrent">@option.Name</option>
+                    }
+                </select>
+            </label>
+            <span>© @DateTime.UtcNow.Year WatchingYou</span>
+        </div>
     </footer>
 
     @* Translations travel with the document so React renders in the right language on the
        first paint rather than flashing keys while a fetch completes. *@
     <script id="rr-i18n" type="application/json">@Html.Raw(view.TranslationsJson)</script>
-    <script>
+    <script nonce="@Context.Items["csp-nonce"]">
         window.__RR__ = {
             lang: "@view.Language",
             t: JSON.parse(document.getElementById("rr-i18n").textContent || "{}")
         };
+        // The footer's language menu goes to the option's link. A listener rather than
+        // onchange="": the Content-Security-Policy runs no inline handlers.
+        document.querySelectorAll("select[data-nav-select]").forEach(function (select) {
+            select.addEventListener("change", function () { location.href = select.value; });
+        });
     </script>
 
     @if (view.Assets.ViteClientUrl is { } viteClient)

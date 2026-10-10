@@ -5,7 +5,7 @@ import { Panel, Spinner, Empty } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { get } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { t, genreName } from "@/lib/i18n";
 
 interface GenreShare { genre: string; mine: number; theirs: number }
 
@@ -85,7 +85,7 @@ export function TasteCompare({
                   {data.genres.map((genre) => (
                     <div key={genre.genre}>
                       <div className="flex items-baseline justify-between text-xs">
-                        <span className="text-ink">{genre.genre}</span>
+                        <span className="text-ink">{genreName(genre.genre)}</span>
                         <span className="text-ink-mute">{genre.mine} · {genre.theirs}</span>
                       </div>
 

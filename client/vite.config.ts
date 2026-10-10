@@ -40,18 +40,20 @@ export default defineConfig(({ command }) => ({
     outDir: "../src/MovieRental.Host/wwwroot/app",
     emptyOutDir: true,
     manifest: false,
-    rollupOptions: {
+    rolldownOptions: {
       input: fileURLToPath(new URL("./src/main.tsx", import.meta.url)),
       output: {
         entryFileNames: "app.js",
-        chunkFileNames: "[name].js",
+        // Everything app.js loads carries a content hash, so the host can cache it for a
+        // year (see Program.cs); only app.js/app.css are revalidated on each load.
+        chunkFileNames: "[name]-[hash].js",
         // The entry stylesheet keeps its fixed name so _Layout.cshtml can hard-code it.
         // A lazily loaded chunk brings its own CSS — MapLibre's, for instance — and Vite
         // injects that link when the chunk loads, so it must not collide with app.css.
         assetFileNames: (asset) =>
           asset.names?.[0] === "main.css" || asset.names?.[0] === "app.css"
             ? "app.css"
-            : "[name].[ext]",
+            : "[name]-[hash][extname]",
       },
     },
   },

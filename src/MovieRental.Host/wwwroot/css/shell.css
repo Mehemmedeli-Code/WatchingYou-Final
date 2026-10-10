@@ -163,7 +163,9 @@ html.rr { background: var(--surface); }
 .rr-lang a.is-current { color: var(--surface); background: var(--accent); }
 
 #main { flex: 1; }
-.rr-stage { min-height: 60vh; }
+/* A full screen, not 60vh: with 60vh the footer was on screen at first paint and got pushed
+   down when the island mounted, a layout shift on every page. */
+.rr-stage { min-height: 100vh; }
 
 /* The canvas sits behind everything and takes no input. The body keeps its solid colour
    as the fallback, so a machine without WebGL simply sees the flat theme. */
@@ -197,16 +199,54 @@ html.rr { background: var(--surface); }
 
 .rr-footer {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
   gap: 1rem;
-  flex-wrap: wrap;
-  padding: 2rem clamp(1rem, 4vw, 3rem);
+  padding: 2.5rem clamp(1rem, 4vw, 3rem) 2rem;
   border-top: 1px solid var(--line);
   color: var(--ink-mute);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  text-align: center;
 }
-.rr-footer a { color: var(--accent); }
+.rr-footer a { color: var(--ink-mute); text-decoration: none; transition: color .15s; }
+.rr-footer a:hover, .rr-footer a.is-current { color: var(--accent); }
+.rr-footer-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .4rem 1.25rem; margin: 0; }
+.rr-footer-lang select {
+  appearance: none; background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2399a399' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right center;
+  border: 0; padding: 0 1rem 0 0; color: var(--ink-mute); font: inherit; cursor: pointer;
+}
+.rr-footer-lang select:hover { color: var(--accent); }
+.rr-footer-lang option { background: var(--surface-raised); color: var(--ink); }
+.rr-footer .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.rr-halls { margin: .25rem 0 .75rem; padding-left: 1.1rem; color: var(--ink-mute); }
+.rr-halls strong { color: var(--ink); font-weight: 600; }
+
+/* The footer pages: tabs across the top, a lede, blog posts as cards, code in panels. */
+/* The same row above the help page, which is a React page with its own width. */
+.rr-info-strip { max-width: 72ch; margin: 0 auto; padding: 2.5rem clamp(1rem, 4vw, 2rem) 0; }
+.rr-info-strip .rr-info-tabs { margin-bottom: 0; }
+.rr-info-tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 2rem; }
+.rr-info-tabs a {
+  padding: .35rem .9rem; border: 1px solid var(--line); border-radius: 999px;
+  color: var(--ink-mute); font-size: .85rem; text-decoration: none;
+}
+.rr-info-tabs a:hover { border-color: var(--accent); color: var(--accent); }
+.rr-info-tabs a.is-current { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.rr-legal .rr-info-lede { font-size: 1.1rem; color: var(--ink); margin-bottom: 1.5rem; }
+.rr-info-post {
+  margin: 1.25rem 0; padding: 1.25rem 1.5rem; border: 1px solid var(--line); border-radius: 1rem;
+  background: var(--surface-raised);
+}
+.rr-info-post h2 { margin-top: .25rem; }
+.rr-legal .rr-info-meta { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; margin: 0; }
+.rr-info pre {
+  overflow-x: auto; padding: 1rem 1.25rem; border: 1px solid var(--line); border-radius: .75rem;
+  background: var(--surface-raised); color: var(--ink); font-size: .8rem; line-height: 1.6;
+}
+.rr-info-cta {
+  display: inline-block; padding: .6rem 1.4rem; border-radius: 999px; background: var(--accent);
+  color: var(--surface) !important; font-weight: 600; text-decoration: none;
+}
 
 .rr-noscript { padding: 4rem clamp(1rem, 4vw, 3rem); }
 .rr-noscript h1 { font-family: var(--display); font-weight: 400; }
@@ -376,4 +416,35 @@ html.rr { background: var(--surface); }
 .rr-legal p { margin: 0 0 .75rem; color: var(--ink-mute); }
 .rr-legal .rr-legal-meta { font-size: .85rem; }
 .rr-legal a { color: var(--accent); }
-.rr-footer-links { display: flex; gap: 1rem; }
+.rr-footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem 1.1rem; max-width: 60rem; }
+
+/* The round profile picture at the top right; the eye logo until one is uploaded. */
+.rr-avatar {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 2px solid var(--accent-dim);
+  background: var(--surface-raised);
+  flex-shrink: 0;
+}
+.rr-avatar:hover { border-color: var(--accent); }
+.rr-avatar img { width: 100%; height: 100%; object-fit: cover; }
+/* Follow requests waiting: a small count on the header picture (set by main.tsx). */
+.rr-avatar { position: relative; overflow: visible; }
+.rr-avatar img { border-radius: 999px; }
+.rr-avatar[data-count]::after {
+  content: attr(data-count);
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ff3b30;
+  color: #fff;
+  font: 700 11px/18px Inter, system-ui, sans-serif;
+  text-align: center;
+}

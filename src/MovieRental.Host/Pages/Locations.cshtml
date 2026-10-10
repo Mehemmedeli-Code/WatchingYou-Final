@@ -1,0 +1,31 @@
+@page "/locations"
+@model LocationsModel
+@inject MovieRental.Host.Infrastructure.Localization.ILanguageContext T
+<article class="rr-legal rr-info">
+    <partial name="_InfoTabs" model="@("locations")" />
+
+    <h1>@T["footer.locations"]</h1>
+    <p class="rr-info-lede">@T["locations.lede"]</p>
+
+    @foreach (var venue in Model.Venues)
+    {
+        <section class="rr-info-post">
+            <p class="rr-info-meta">@venue.City</p>
+            <h2>@venue.Name</h2>
+            @if (!string.IsNullOrWhiteSpace(venue.Address))
+            {
+                <p>@venue.Address</p>
+            }
+            <ul class="rr-halls">
+                @foreach (var hall in venue.Halls)
+                {
+                    <li><strong>@hall.Name</strong>@(hall.Format is { Length: > 0 } f ? $" · {f}" : "") · @hall.Seats @T["locations.seats"]</li>
+                }
+            </ul>
+            <p>
+                <a href="https://www.openstreetmap.org/?mlat=@venue.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture)&mlon=@venue.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture)#map=17/@venue.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture)/@venue.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture)" target="_blank" rel="noopener noreferrer">@T["locations.map"]</a>
+                · <a href="/cinema">@T["locations.shows"]</a>
+            </p>
+        </section>
+    }
+</article>
