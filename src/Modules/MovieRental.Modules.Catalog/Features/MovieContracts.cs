@@ -6,7 +6,10 @@ public sealed record MovieListItem(
     string? PosterUrl, bool IsDeleted,
     // A flag rather than the URL: the list is public, and a card only needs to know whether
     // to enable its Watch button.
-    bool HasVideo);
+    bool HasVideo,
+    // The trailer is public (it is what the Watch button plays for everyone), so the address
+    // itself travels with the card.
+    string? TrailerUrl = null);
 
 public sealed record MovieDetail(
     Guid Id, string Title, string Slug, string Description, string Genre, int ReleaseYear,

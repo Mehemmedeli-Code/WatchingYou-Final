@@ -199,5 +199,5 @@ internal static class MovieMapper
     public static MovieListItem ToListItem(this Movie m) => new(
         m.Id, m.Title, m.Slug, m.Genre, m.ReleaseYear, m.DurationMinutes, m.DailyPrice,
         m.AvailableCopies, m.TotalCopies, m.AverageRating, m.ReviewCount, m.PosterUrl, m.IsDeleted,
-        !string.IsNullOrWhiteSpace(m.VideoUrl));
+        !string.IsNullOrWhiteSpace(m.VideoUrl), m.TrailerUrl);
 }

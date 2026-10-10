@@ -32,7 +32,7 @@ internal sealed class GetWatchlistHandler(CatalogDbContext db, ICurrentUser curr
             .Select(x => new WatchlistEntry(x.w.CreatedAtUtc, new MovieListItem(
                 x.m.Id, x.m.Title, x.m.Slug, x.m.Genre, x.m.ReleaseYear, x.m.DurationMinutes,
                 x.m.DailyPrice, x.m.AvailableCopies, x.m.TotalCopies, x.m.AverageRating, x.m.ReviewCount,
-                x.m.PosterUrl, x.m.IsDeleted, x.m.VideoUrl != null && x.m.VideoUrl != "")))
+                x.m.PosterUrl, x.m.IsDeleted, x.m.VideoUrl != null && x.m.VideoUrl != "", x.m.TrailerUrl)))
             .ToListAsync(ct);
     }
 }
