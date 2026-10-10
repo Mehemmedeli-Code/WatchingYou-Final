@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { t } from "@/lib/i18n";
+import { t, lang } from "@/lib/i18n";
 import { azn } from "./shared";
 
 export interface DayRevenue {
@@ -89,7 +89,7 @@ export function RevenueChart({ data, height = 220 }: { data: DayRevenue[]; heigh
               <line x1={pad.left} x2={width - pad.right} y1={y(tick)} y2={y(tick)}
                 stroke="var(--color-line)" strokeWidth={1} />
               <text x={pad.left - 8} y={y(tick)} dy="0.32em" textAnchor="end" fontSize={11} fill="var(--color-ink-mute)">
-                {tick.toLocaleString()}
+                {tick.toLocaleString(lang)}
               </text>
             </g>
           ))}

@@ -6,10 +6,11 @@ import { RefundPanel } from "@/components/RefundPanel";
 import { Button } from "@/components/ui/button";
 import { Input, Field } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { download, post, ApiError } from "@/lib/api";
+import { accountKey, download, post, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
 import { t, formatWhen, languageName } from "@/lib/i18n";
 import { openExternal } from "@/lib/platform";
+import { brandFor, expiryProblem, groupDigits, issuerFor } from "@/components/CardPayment";
 
 export interface SeatSelection { row: number; number: number }
 
@@ -39,6 +40,8 @@ export interface CheckoutQuote {
   total: number;
   pointsEarned: number;
   stripeEnabled: boolean;
+  /** False in production: the built-in test card checkout takes no money. */
+  cardEnabled: boolean;
 }
 
 interface StripeCheckoutStarted {
@@ -73,47 +76,6 @@ export interface TicketResponse {
 
 const seatLabel = (seat: SeatSelection) => `${String.fromCharCode(64 + seat.row)}${seat.number}`;
 
-/**
- * Issuer, by BIN. Only the name is shown, not the bank's logo — a trademark belongs to its
- * owner and should be dropped in as a licensed asset, not redrawn from memory. Add rows here
- * as you collect more BINs.
- */
-const ISSUERS: { prefix: string; name: string }[] = [
-  { prefix: "41697388", name: "Kapital Bank" },
-];
-
-const issuerFor = (digits: string) =>
-  ISSUERS.find((issuer) => digits.startsWith(issuer.prefix))?.name ?? null;
-
-/** Visa starts with 4; Mastercard is 51–55 or the 2221–2720 range added in 2017. */
-export function brandFor(digits: string): "Visa" | "Mastercard" | null {
-  if (digits.startsWith("4")) return "Visa";
-  const two = Number(digits.slice(0, 2));
-  if (digits.length >= 2 && two >= 51 && two <= 55) return "Mastercard";
-  const four = Number(digits.slice(0, 4));
-  if (digits.length >= 4 && four >= 2221 && four <= 2720) return "Mastercard";
-  return null;
-}
-
-/** Returns a reason the expiry cannot be right, or null. */
-export function expiryProblem(value: string): string | null {
-  const digits = value.replace(/\D/g, "");
-  if (digits.length < 4) return null;                       // still typing
-
-  const month = Number(digits.slice(0, 2));
-  const year = 2000 + Number(digits.slice(2, 4));
-  if (month < 1 || month > 12) return t("book.badMonth");
-
-  const now = new Date();
-  const endOfMonth = new Date(year, month, 0, 23, 59, 59);
-  return endOfMonth < now ? t("book.expired") : null;
-}
-
-/** Groups digits in fours as you type. Nothing is validated here — the server decides. */
-export const groupDigits = (value: string) =>
-  // Sixteen is the ceiling: Visa and Mastercard are both sixteen digits, and anything
-  // longer is a typo rather than a card we accept.
-  value.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
 
 /** What to tell the customer when paying fails. The server's own reason when it gave one; when
  *  it could not be reached at all (no signal, or the site restarting) say exactly that, so
@@ -151,7 +113,7 @@ export function BookingFlow({
   // A reload between paying and confirming used to lose the checkout entirely, leaving the
   // seats held with no way back to them. The handle is small and non-secret — the code
   // itself only ever exists in the customer's inbox — so parking it here is safe.
-  const RESUME_KEY = `wy.checkout.${screeningId}`;
+  const RESUME_KEY = accountKey(`wy.checkout.${screeningId}`);
 
   const [step, setStep] = useState<"payment" | "code" | "ticket">(resume ? "code" : "payment");
   const [checkout, setCheckout] = useState<CheckoutStarted | null>(resume ?? null);
@@ -168,7 +130,7 @@ export function BookingFlow({
   // Discounts. The typed code only counts once "Apply" is pressed, so the price does not
   // jump about with every keystroke.
   // Remembered per show, so leaving the page and coming back keeps an applied code.
-  const DISCOUNT_KEY = `wy.discount.${screeningId}`;
+  const DISCOUNT_KEY = accountKey(`wy.discount.${screeningId}`);
   const [savedDiscount] = useState(() => {
     try { return JSON.parse(localStorage.getItem(DISCOUNT_KEY) ?? "null") as { promo: string; usePoints: boolean } | null; }
     catch { return null; }
@@ -198,6 +160,7 @@ export function BookingFlow({
   }, [screeningId, seats.length, promo, usePoints, step]);
 
   const promoRejected = !!promo && !!quote && !quote.promoApplied;
+  const cardEnabled = quote?.cardEnabled !== false;
 
   const digits = number.replace(/\D/g, "");
   const brand = brandFor(digits);
@@ -394,6 +357,7 @@ export function BookingFlow({
         ) : null}
       </div>
 
+      {cardEnabled ? (
       <div className="mt-5 grid max-w-md gap-3">
         <Field label={t("book.cardNumber")} hint={numberHint}>
           <div className="relative">
@@ -442,14 +406,17 @@ export function BookingFlow({
           <Input value={holder} onChange={(e) => setHolder(e.target.value)} autoComplete="cc-name" />
         </Field>
       </div>
+      ) : null}
 
       {error ? <div className="mt-3"><Notice tone="error">{error}</Notice></div> : null}
-      <div className="mt-3"><Notice tone="info">{t("book.simulated")}</Notice></div>
+      {cardEnabled ? <div className="mt-3"><Notice tone="info">{t("book.simulated")}</Notice></div> : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button disabled={busy || !canPay || promoRejected} onClick={pay}>
-          {busy ? t("book.paying") : `${t("book.pay")} ${formatMoney(total)}`}
-        </Button>
+        {cardEnabled ? (
+          <Button disabled={busy || !canPay || promoRejected} onClick={pay}>
+            {busy ? t("book.paying") : `${t("book.pay")} ${formatMoney(total)}`}
+          </Button>
+        ) : null}
         <Button variant="outline" onClick={abandon}>{t("book.back")}</Button>
       </div>
 

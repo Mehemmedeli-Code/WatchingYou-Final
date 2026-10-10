@@ -112,9 +112,13 @@ internal sealed class SaveScreeningHandler(CinemaDbContext db, ICatalogApi catal
         screening.HallId = hall.Id;
         screening.Hall = hall.Name;
         screening.StartsAtUtc = command.StartsAtUtc;
-        // Snapshotted, so re-fitting the room later never invalidates seats already sold.
-        screening.Rows = hall.Rows;
-        screening.SeatsPerRow = hall.SeatsPerRow;
+        // Snapshotted, so re-fitting the room later never invalidates seats already sold. Only
+        // taken from the hall while nothing is sold: re-copying on every edit undid the snapshot.
+        if (screening.Bookings.Count == 0)
+        {
+            screening.Rows = hall.Rows;
+            screening.SeatsPerRow = hall.SeatsPerRow;
+        }
         screening.SeatPrice = command.SeatPrice;
         screening.AudioLanguage = command.AudioLanguage;
         screening.SubtitleLanguage = command.SubtitleLanguage;
@@ -195,11 +199,16 @@ public static class ManageScreeningsEndpoints
                 };
             }).WithName("CancelScreeningWithId");
 
-        admin.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound>> (
+        admin.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound, Conflict<Error>>> (
             Guid id, CinemaDbContext db, CancellationToken ct) =>
         {
             var screening = await db.Screenings.FirstOrDefaultAsync(s => s.Id == id, ct);
             if (screening is null) return TypedResults.NotFound();
+
+            // Payments are filtered out with their screening, so deleting one with seats held or
+            // sold made those tickets vanish with no way to refund them. Cancel refunds them.
+            if (await db.SeatBookings.AnyAsync(b => b.ScreeningId == id, ct))
+                return TypedResults.Conflict(Error.Conflict("Seats are held or sold for this screening. Cancel it instead, which refunds them."));
 
             db.Screenings.Remove(screening);   // soft delete, so sold seats keep their context
             await db.SaveChangesAsync(ct);

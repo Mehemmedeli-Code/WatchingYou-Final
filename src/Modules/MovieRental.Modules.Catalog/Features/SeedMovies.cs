@@ -27,6 +27,7 @@ public sealed class MovieSeedItem
     [JsonPropertyName("videoUrl")] public string? VideoUrl { get; set; }
     [JsonPropertyName("dailyPrice")] public decimal DailyPrice { get; set; } = 2.50m;
     [JsonPropertyName("copies")] public int Copies { get; set; } = 3;
+    [JsonPropertyName("original")] public bool Original { get; set; }
 }
 
 public sealed record SeedMoviesCommand(IReadOnlyList<MovieSeedItem> Items) : ICommand<Result<SeedSummary>>;
@@ -69,7 +70,8 @@ internal sealed class SeedMoviesHandler(CatalogDbContext db) : ICommandHandler<S
                     VideoUrl = item.VideoUrl,
                     DailyPrice = item.DailyPrice,
                     TotalCopies = item.Copies,
-                    AvailableCopies = item.Copies
+                    AvailableCopies = item.Copies,
+                    IsOriginal = item.Original
                 });
                 inserted++;
             }
@@ -110,7 +112,7 @@ public static class SeedMoviesEndpoint
 
                 var array = document.RootElement.ValueKind == JsonValueKind.Array
                     ? document.RootElement
-                    : document.RootElement.TryGetProperty("movies", out var wrapped) ? wrapped : default;
+                    : document.RootElement.ValueKind == JsonValueKind.Object && document.RootElement.TryGetProperty("movies", out var wrapped) ? wrapped : default;
 
                 if (array.ValueKind != JsonValueKind.Array)
                     return Results.BadRequest(Error.Validation("Send a JSON array, or an object with a \"movies\" array."));

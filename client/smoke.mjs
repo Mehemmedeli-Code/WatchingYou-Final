@@ -50,6 +50,9 @@ const respond = (path) =>
   : /\/api\/movies(\?|$)/.test(path) ? { items: [], page: 1, pageSize: 12, total: 0, totalPages: 0 }
   : /\/api\/bookings\/(mine|pending)/.test(path) ? []
   : /\/api\/recommendations/.test(path) ? { personal: false, items: [] }
+  : /\/api\/messages\/overview/.test(path) ? { sent: [], received: [], blockedByMe: [], blockedMe: [] }
+  : /\/api\/pro\/subscribers/.test(path) ? { active: 0, endingIn3Days: 0, lapsed: 0, revenueThisMonth: 0, revenueTotal: 0, currency: "USD", subscribers: [] }
+  : /\/api\/people\/me/.test(path) ? { followers: 0, following: 0, requests: 0 }
   : /\/api\/(watchlist|messages|admin\/promos)/.test(path) ? []
   : /\/api\/loyalty/.test(path) ? { balance: 0, held: 0, spendable: 0, manatPerPoint: 0.05, pointsPerManat: 1, maxShare: 0.5, history: [] }
   : /\/api\/globe\/members/.test(path) ? { city: "Baku", total: 0, page: 1, pageSize: 24, items: [] }

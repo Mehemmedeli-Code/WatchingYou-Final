@@ -31,14 +31,4 @@ internal sealed class CatalogApi(CatalogDbContext db) : ICatalogApi
         await db.Movies
             .Where(m => m.Id == movieId && m.AvailableCopies < m.TotalCopies)
             .ExecuteUpdateAsync(setters => setters.SetProperty(m => m.AvailableCopies, m => m.AvailableCopies + 1), ct);
-
-    public async Task RecalculateRatingAsync(Guid movieId, CancellationToken ct = default)
-    {
-        var movie = await db.Movies.Include(m => m.Reviews).FirstOrDefaultAsync(m => m.Id == movieId, ct);
-        if (movie is null || movie.Reviews.Count == 0) return;
-
-        movie.ReviewCount = movie.Reviews.Count;
-        movie.AverageRating = Math.Round(movie.Reviews.Average(r => (double)r.Stars), 2);
-        await db.SaveChangesAsync(ct);
-    }
 }

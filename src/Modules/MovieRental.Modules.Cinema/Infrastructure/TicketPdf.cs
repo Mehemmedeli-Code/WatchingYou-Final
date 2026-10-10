@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using MovieRental.Modules.Cinema.Features;
 
@@ -30,16 +30,33 @@ public static class TicketPdf
         return Assemble(pages, $"WatchingYou ticket {ticket.Reference}");
     }
 
+    // The ticket's own words. The standard PDF fonts draw Latin letters only (Azerbaijani and
+    // Turkish ones are mapped to the nearest, see Latin), so a Russian ticket keeps English
+    // labels rather than printing empty boxes.
+    private sealed record Words(string Culture, string Ticket, string Date, string Time, string Baku, string Cinema, string Hall,
+        string Seat, string RowSeat, string Audio, string Subtitles, string Reference, string Footer, string Paid, string Ending);
+
+    private static Words WordsFor(string language) => language switch
+    {
+        "az" => new("az-Latn-AZ", "KİNO BİLETİ", "Tarix", "Saat", "Bakı", "Kinoteatr", "Zal", "Yer", "{0} sırası, {1} yer",
+            "Səs", "altyazı", "Kod", "Bu kodu girişdə göstərin. Hər yerin öz kodu var.", "Ödənilib: {0} AZN", "{0}, son rəqəmlər {1}"),
+        "tr" => new("tr-TR", "SİNEMA BİLETİ", "Tarih", "Saat", "Bakü", "Sinema", "Salon", "Koltuk", "{0} sırası, {1} numara",
+            "Ses", "altyazı", "Kod", "Bu kodu kapıda gösterin. Her koltuğun kendi kodu vardır.", "Ödendi: {0} AZN", "{0}, son haneler {1}"),
+        _ => new("en-GB", "CINEMA TICKET", "Date", "Time", "Baku", "Cinema", "Hall", "Seat", "Row {0}, seat {1}",
+            "Audio", "subtitles", "Reference", "Show this code at the door. Each seat has its own code.", "Paid {0} AZN", "{0} ending {1}"),
+    };
+
     private static string PageContent(TicketResponse ticket, TicketSeat? seat, string? venue)
     {
         var c = new StringBuilder();
         var inv = CultureInfo.InvariantCulture;
+        var w = WordsFor(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
 
         // Header band.
         c.Append("0.07 0.07 0.09 rg\n");
         c.Append(inv, $"0 {PageHeight - 70} {PageWidth} 70 re f\n");
         Text(c, "F2", 16, 24, PageHeight - 38, "WATCHINGYOU", 1f);
-        Text(c, "F1", 9, 24, PageHeight - 56, "CINEMA TICKET", 0.75f);
+        Text(c, "F1", 9, 24, PageHeight - 56, w.Ticket, 0.75f);
         if (seat is not null)
             TextRight(c, "F2", 22, PageWidth - 24, PageHeight - 46, seat.Label, 1f);
 
@@ -53,14 +70,14 @@ public static class TicketPdf
 
         y -= 6;
         var local = ToBaku(ticket.StartsAtUtc);
-        Row(c, ref y, "Date", local.ToString("dddd, d MMMM yyyy", inv));
-        Row(c, ref y, "Time", local.ToString("HH:mm", inv) + " (Baku)");
-        if (!string.IsNullOrWhiteSpace(venue)) Row(c, ref y, "Cinema", venue);
-        Row(c, ref y, "Hall", ticket.Hall);
-        Row(c, ref y, "Seat", seat is null ? string.Join(", ", ticket.Seats.Select(s => s.Label)) : $"Row {(char)('A' + seat.Row - 1)}, seat {seat.Number}");
-        Row(c, ref y, "Audio", ticket.AudioLanguage.ToUpperInvariant()
-            + (string.IsNullOrWhiteSpace(ticket.SubtitleLanguage) ? "" : $" / subtitles {ticket.SubtitleLanguage!.ToUpperInvariant()}"));
-        Row(c, ref y, "Reference", ticket.Reference);
+        Row(c, ref y, w.Date, local.ToString("dddd, d MMMM yyyy", CultureInfo.GetCultureInfo(w.Culture)));
+        Row(c, ref y, w.Time, local.ToString("HH:mm", inv) + $" ({w.Baku})");
+        if (!string.IsNullOrWhiteSpace(venue)) Row(c, ref y, w.Cinema, venue);
+        Row(c, ref y, w.Hall, ticket.Hall);
+        Row(c, ref y, w.Seat, seat is null ? string.Join(", ", ticket.Seats.Select(s => s.Label)) : string.Format(inv, w.RowSeat, (char)('A' + seat.Row - 1), seat.Number));
+        Row(c, ref y, w.Audio, ticket.AudioLanguage.ToUpperInvariant()
+            + (string.IsNullOrWhiteSpace(ticket.SubtitleLanguage) ? "" : $" / {w.Subtitles} {ticket.SubtitleLanguage!.ToUpperInvariant()}"));
+        Row(c, ref y, w.Reference, ticket.Reference);
 
         // QR code, centred in the space that is left.
         if (seat is not null)
@@ -90,10 +107,10 @@ public static class TicketPdf
         // Footer.
         c.Append("0.85 0.85 0.87 RG 0.8 w\n");
         c.Append(inv, $"24 58 m {PageWidth - 24} 58 l S\n");
-        Text(c, "F1", 8, 24, 42, "Show this code at the door. Each seat has its own code.", 0.35f);
+        Text(c, "F1", 8, 24, 42, w.Footer, 0.35f);
         Text(c, "F1", 8, 24, 30,
-            $"Paid {ticket.Amount.ToString("0.00", inv)} AZN" +
-            (string.IsNullOrEmpty(ticket.Last4) ? "" : $" · {ticket.Brand} ending {ticket.Last4}"), 0.35f);
+            string.Format(inv, w.Paid, ticket.Amount.ToString("0.00", inv)) +
+            (string.IsNullOrEmpty(ticket.Last4) ? "" : " · " + string.Format(inv, w.Ending, ticket.Brand, ticket.Last4)), 0.35f);
 
         return c.ToString();
     }

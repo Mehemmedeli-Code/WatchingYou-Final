@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatRuntime, formatUsd } from "@/lib/format";
 import { useAuth } from "@/components/useAuth";
-import { t } from "@/lib/i18n";
+import { t, genreName } from "@/lib/i18n";
 import { isApp } from "@/lib/platform";
 
 export interface MovieListItem {
@@ -23,6 +23,8 @@ export interface MovieListItem {
   posterUrl?: string | null;
   isDeleted: boolean;
   hasVideo: boolean;
+  /** One of our own WatchingYou Originals rather than a released film. */
+  isOriginal?: boolean;
   /** What the Watch button plays when the film itself is not on the site. */
   trailerUrl?: string | null;
 }
@@ -70,7 +72,7 @@ export function MovieCard({
           <GenrePoster genre={movie.genre} />
         )}
         <span className="absolute left-3 top-3 rounded-full bg-surface/85 px-2.5 py-1 text-xs text-ink-mute">
-          {movie.genre}
+          {genreName(movie.genre)}
         </span>
         {onToggleSave ? (
           <button

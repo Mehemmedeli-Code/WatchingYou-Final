@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 export interface ToastMessage {
   id: number;
@@ -44,7 +45,7 @@ export function Toaster({ toast, onDismiss }: { toast: ToastMessage | null; onDi
             ].join(" ")}
           >
             <span className="flex-1">{toast.text}</span>
-            <button onClick={onDismiss} aria-label="Close" className="mt-0.5 opacity-70 hover:opacity-100">
+            <button onClick={onDismiss} aria-label={t("common.close", "Close")} className="mt-0.5 opacity-70 hover:opacity-100">
               <X size={14} aria-hidden />
             </button>
           </motion.div>

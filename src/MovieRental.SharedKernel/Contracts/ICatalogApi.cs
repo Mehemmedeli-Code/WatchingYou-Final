@@ -13,8 +13,6 @@ public interface ICatalogApi
     Task<bool> TryReserveCopyAsync(Guid movieId, CancellationToken ct = default);
 
     Task ReleaseCopyAsync(Guid movieId, CancellationToken ct = default);
-
-    Task RecalculateRatingAsync(Guid movieId, CancellationToken ct = default);
 }
 
 public sealed record MovieSummary(

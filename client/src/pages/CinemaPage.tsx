@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { Section, Panel, Notice, Spinner, Empty } from "@/components/Shell";
 import { BookingFlow, TicketCard, type SeatSelection, type TicketResponse, type CheckoutStarted } from "@/components/BookingFlow";
-import { post, ApiError } from "@/lib/api";
+import { accountKey, post, ApiError } from "@/lib/api";
 import { HallPreview, type PreviewSeat } from "@/components/HallPreview";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/useAuth";
@@ -70,16 +70,16 @@ const seatKey = (row: number, number: number) => `${row}:${number}`;
  *  to paying. Kept so that a trip to another page (or a language switch, which reloads)
  *  brings them back to the same place. Nothing here is secret — no card data, ever. */
 interface BookingDraft { screeningId: string; seats: string[]; atCheckout: boolean; savedAt: number }
-const DRAFT_KEY = "wy.cinema.draft";
+const DRAFT_KEY = () => accountKey("wy.cinema.draft");
 const DRAFT_TTL_MS = 30 * 60_000;
 
 function readDraft(): BookingDraft | null {
   try {
-    const raw = localStorage.getItem(DRAFT_KEY);
+    const raw = localStorage.getItem(DRAFT_KEY());
     if (!raw) return null;
     const draft = JSON.parse(raw) as BookingDraft;
     if (!draft.screeningId || !Array.isArray(draft.seats) || Date.now() - draft.savedAt > DRAFT_TTL_MS) {
-      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem(DRAFT_KEY());
       return null;
     }
     return draft;
@@ -90,8 +90,8 @@ function readDraft(): BookingDraft | null {
 
 function writeDraft(draft: BookingDraft) {
   try {
-    if (draft.seats.length > 0) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-    else localStorage.removeItem(DRAFT_KEY);
+    if (draft.seats.length > 0) localStorage.setItem(DRAFT_KEY(), JSON.stringify(draft));
+    else localStorage.removeItem(DRAFT_KEY());
   } catch { /* storage blocked: the booking still works, it just is not remembered */ }
 }
 
@@ -144,7 +144,8 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
 
         if (!requested) {
           const draftShow = draftRef.current?.screeningId;
-          setActiveId(draftShow && list.some((item) => item.id === draftShow) ? draftShow : list[0]?.id ?? null);
+          const onSale = list.find((item) => new Date(item.startsAtUtc).getTime() > Date.now()) ?? list[0];
+          setActiveId(draftShow && list.some((item) => item.id === draftShow) ? draftShow : onSale?.id ?? null);
           return;
         }
 
@@ -242,7 +243,7 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
     const mine = pending.find((checkout) => {
       if (checkout.provider === "Stripe") return false;
       try {
-        const saved = JSON.parse(sessionStorage.getItem(`wy.checkout.${checkout.screeningId}`) ?? "null");
+        const saved = JSON.parse(sessionStorage.getItem(accountKey(`wy.checkout.${checkout.screeningId}`)) ?? "null");
         return saved?.paymentId === checkout.paymentId;
       } catch { return false; }
     });
@@ -303,6 +304,10 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
   }, [isSignedIn, loadTickets]);
 
   useEffect(() => {
+    // Switching screening mid-checkout used to keep the old seat list and book it on the new
+    // screening. A resume that targets this screening is the one thing kept.
+    setCheckoutSeats(null);
+    setResuming((current) => (current && current.screeningId === activeId ? current : null));
     if (activeId) void loadMap(activeId);
   }, [activeId, loadMap]);
 
@@ -510,8 +515,8 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
                                 whileTap={seat.isTaken ? undefined : { scale: 0.88 }}
                                 animate={{ scale: selected ? 1.08 : 1 }}
                                 transition={{ type: "spring", stiffness: 420, damping: 22 }}
-                                aria-label={`Row ${String.fromCharCode(64 + seat.row)} seat ${seat.number}${
-                                  seat.isTaken ? ", taken" : selected ? ", selected" : ", free"
+                                aria-label={`${t("seat.aria", "Row {0} seat {1}").replace("{0}", String.fromCharCode(64 + seat.row)).replace("{1}", String(seat.number))}, ${
+                                  seat.isTaken ? t("seat.taken", "taken") : selected ? t("seat.selected", "selected") : t("seat.free", "free")
                                 }`}
                                 aria-pressed={selected}
                                 className={`h-8 w-8 shrink-0 rounded-t-md border text-[11px] transition-colors sm:h-7 sm:w-7 sm:text-[10px] ${
@@ -548,6 +553,7 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
                 <div className="mt-6 border-t border-line pt-4">
                   {checkoutSeats || resuming ? (
                     <BookingFlow
+                      key={map.screeningId}
                       screeningId={map.screeningId}
                       seats={resuming ? resuming.seats : checkoutSeats!}
                       seatPrice={map.seatPrice}

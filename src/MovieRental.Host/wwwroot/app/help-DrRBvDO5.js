@@ -1,0 +1,1 @@
+function e(e,t=!1){return e.messages.map(e=>({id:e.id,sender:e.fromDesk===t?`user`:`desk`,content:e.body,authorName:e.authorName,at:e.createdAtUtc}))}export{e as t};

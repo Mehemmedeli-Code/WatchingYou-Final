@@ -12,6 +12,7 @@ using MovieRental.Modules.Identity.Infrastructure;
 using MovieRental.Modules.Identity.Persistence;
 using MovieRental.Modules.Media.Persistence;
 using MovieRental.Modules.Rentals.Persistence;
+using MovieRental.SharedKernel.Persistence;
 using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Host.Infrastructure;
@@ -117,6 +118,51 @@ public static class DevelopmentDatabaseBootstrapper
             """, ct);
     }
 
+    /// <summary>Outside Development: bring every module's schema up to date at start-up. Nothing
+    /// else ever created the tables on a real server. Seeds nothing; real data is never touched.</summary>
+    public static async Task ApplyMigrationsAsync(IServiceProvider services, CancellationToken ct = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DbMigrate");
+        await MigrateAsync(scope.ServiceProvider, logger, ct);
+    }
+
+    /// <summary>
+    /// A database built before migrations existed (EnsureCreated) has every table of the first
+    /// migration but no history row, so Migrate would try to create them again and fail. When a
+    /// module's schema already has tables and no history, record the first migration as applied;
+    /// the ones after it then run as ordinary ALTERs and nothing already stored is lost.
+    /// </summary>
+    private static async Task BaselineAsync(DbContext context, ILogger logger, CancellationToken ct)
+    {
+        // No database yet (a fresh clone): there is nothing to baseline, Migrate creates it.
+        if (!await context.Database.CanConnectAsync(ct)) return;
+        if ((await context.Database.GetAppliedMigrationsAsync(ct)).Any()) return;
+        var first = context.Database.GetMigrations().FirstOrDefault();
+        if (first is null) return;
+
+        var schema = ((ModuleDbContext)context).Schema;
+        var connection = context.Database.GetDbConnection();
+        await context.Database.OpenConnectionAsync(ct);
+        try
+        {
+            await using var probe = connection.CreateCommand();
+            probe.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = @s AND TABLE_NAME <> '__EFMigrations'";
+            var parameter = probe.CreateParameter();
+            parameter.ParameterName = "@s";
+            parameter.Value = schema;
+            probe.Parameters.Add(parameter);
+            if (Convert.ToInt32(await probe.ExecuteScalarAsync(ct)) == 0) return;
+        }
+        finally { await context.Database.CloseConnectionAsync(); }
+
+        var history = context.GetService<Microsoft.EntityFrameworkCore.Migrations.IHistoryRepository>();
+        await context.Database.ExecuteSqlRawAsync(history.GetCreateIfNotExistsScript(), ct);
+        await context.Database.ExecuteSqlRawAsync(history.GetInsertScript(
+            new Microsoft.EntityFrameworkCore.Migrations.HistoryRow(first, ProductInfo.GetVersion())), ct);
+        logger.LogInformation("Baselined {Context} at {Migration}: its tables predate migrations.", context.GetType().Name, first);
+    }
+
     /// <summary>Applies each module's pending migrations. Contexts are migrated one at a time
     /// because each owns its own schema and its own __EFMigrations table — there is no single
     /// history for the solution, and that is the point of the modular split.</summary>
@@ -133,6 +179,7 @@ public static class DevelopmentDatabaseBootstrapper
 
         foreach (var context in contexts)
         {
+            await BaselineAsync(context, logger, ct);
             var pending = (await context.Database.GetPendingMigrationsAsync(ct)).ToArray();
             if (pending.Length == 0) continue;
 
@@ -377,7 +424,7 @@ public static class DevelopmentDatabaseBootstrapper
         }
 
         var cinema = services.GetRequiredService<CinemaDbContext>();
-        if (!await cinema.Screenings.AnyAsync(ct))
+        if (!await cinema.Venues.AnyAsync(ct))
         {
             // Four cinemas, four rooms each. The rooms differ on purpose: a preview that
             // showed the same box everywhere would be decoration rather than information.
@@ -398,8 +445,6 @@ public static class DevelopmentDatabaseBootstrapper
                 ("C100", "IMAX",       10, 8, 22, 30, 11.0, 15.0, 7.0, 26, 8.6, 1.20, 0.50),
                 ("D100", "VIP recliner", 5, 4, 11, 16, 6.6, 6.6, 2.9, 40, 5.4, 1.40, 0.55),
             };
-
-            var halls = new List<Hall>();
 
             foreach (var (name, city, address, lat, lng) in venues)
             {
@@ -428,43 +473,52 @@ public static class DevelopmentDatabaseBootstrapper
                         RowRise = layout.Rise
                     };
                     venue.Halls.Add(hall);
-                    halls.Add(hall);
                 }
                 cinema.Venues.Add(venue);
             }
 
             await cinema.SaveChangesAsync(ct);
+        }
 
-            var showcase = await catalog.Movies.OrderBy(m => m.Title).Take(5).ToListAsync(ct);
-            var slot = DateTime.UtcNow.Date.AddDays(1).AddHours(15);
+        // The schedule. It used to be seeded once, a few days ahead, so after those days passed
+        // the cinema page and the listings were empty until someone scheduled shows by hand.
+        // Now a week of shows is laid out whenever nothing is left on sale.
+        if (!await cinema.Screenings.AnyAsync(s => s.StartsAtUtc > DateTime.UtcNow && !s.IsCancelled, ct))
+        {
+            var halls = await cinema.Halls.AsNoTracking().OrderBy(h => h.VenueId).ThenBy(h => h.Name).ToListAsync(ct);
+            var showcase = await catalog.Movies.AsNoTracking()
+                .Where(m => m.PosterUrl != null && m.PosterUrl != "")
+                .OrderByDescending(m => m.AverageRating).ThenBy(m => m.Title)
+                .Take(8).ToListAsync(ct);
 
             var languages = new[]
             {
                 ("az", (string?)null), ("en", "az"), ("ru", "az"), ("tr", "en"), ("en", "ru")
             };
+            var baku = TimeSpan.FromHours(4);
+            var todayLocal = (DateTime.UtcNow + baku).Date;
+            int[] hours = [12, 15, 18, 21];
 
-            // Spread the films across cinemas and rooms so every hall has something to show.
+            // Each film plays twice a day for a week, rotating through every cinema and room.
+            var n = 0;
+            for (var day = 0; day < 7; day++)
             foreach (var (movie, index) in showcase.Select((m, i) => (m, i)))
+            for (var show = 0; show < 2; show++, n++)
             {
-                for (var slotIndex = 0; slotIndex < 3; slotIndex++)
-                {
-                    var hall = halls[(index * 3 + slotIndex) % halls.Count];
-                    var (audio, subtitles) = languages[(index + slotIndex) % languages.Length];
+                var hour = hours[(index + show * 2 + day) % hours.Length];
+                var startUtc = DateTime.SpecifyKind(todayLocal.AddDays(day).AddHours(hour) - baku, DateTimeKind.Utc);
+                if (startUtc <= DateTime.UtcNow.AddMinutes(30)) continue;
 
-                    cinema.Screenings.Add(new Screening
-                    {
-                        MovieId = movie.Id,
-                        MovieTitle = movie.Title,
-                        HallId = hall.Id,
-                        Hall = hall.Name,
-                        StartsAtUtc = slot.AddDays(slotIndex).AddHours(index * 2),
-                        Rows = hall.Rows,
-                        SeatsPerRow = hall.SeatsPerRow,
-                        SeatPrice = 8.50m + slotIndex,
-                        AudioLanguage = audio,
-                        SubtitleLanguage = subtitles
-                    });
-                }
+                var hall = halls[n % halls.Count];
+                var (audio, subtitles) = languages[(index + show + day) % languages.Length];
+                cinema.Screenings.Add(new Screening
+                {
+                    MovieId = movie.Id, MovieTitle = movie.Title,
+                    HallId = hall.Id, Hall = hall.Name, StartsAtUtc = startUtc,
+                    Rows = hall.Rows, SeatsPerRow = hall.SeatsPerRow,
+                    SeatPrice = hour >= 18 ? 10m : 8m,
+                    AudioLanguage = audio, SubtitleLanguage = subtitles
+                });
             }
 
             await cinema.SaveChangesAsync(ct);

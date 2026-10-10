@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, MessageSquare, Sparkles, Upload } from "lucide-react";
+import { Eye, EyeOff, Film, MessageSquare, Sparkles, Trash2, Upload, X } from "lucide-react";
 import { Section, Panel, Notice, Empty, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Field, Select } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { useAuth } from "@/components/useAuth";
-import { get, post, put, postForm, ApiError } from "@/lib/api";
+import { askConfirm } from "@/lib/dialog";
+import { get, post, put, del, uploadForm, ApiError } from "@/lib/api";
 import { t, formatWhen } from "@/lib/i18n";
 import {
   statusTone, megabytes,
@@ -70,15 +71,22 @@ function UploadForm({ onDone }: { onDone: (message: string) => void }) {
   const [synopsis, setSynopsis] = useState("");
   const [origin, setOrigin] = useState<ShortFilmOrigin>("HandCrafted");
   const [visibility, setVisibility] = useState<ShortFilmVisibility>("Private");
+  // Only a private account chooses: on a public one every approved film is in its gallery.
+  const privateAccount = !!useAuth().user?.isPrivate;
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{ loaded: number; total: number; started: number } | null>(null);
+  const cancel = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function upload() {
     if (!file || !title) return;
     setBusy(true);
     setError(null);
+    const started = Date.now();
+    setProgress({ loaded: 0, total: file.size, started });
+    cancel.current = new AbortController();
 
     const form = new FormData();
     form.append("title", title);
@@ -88,14 +96,17 @@ function UploadForm({ onDone }: { onDone: (message: string) => void }) {
     form.append("file", file);
 
     try {
-      await postForm("/api/shorts", form);
+      await uploadForm("/api/shorts", form, (p) => setProgress({ ...p, started }), cancel.current.signal);
       setTitle(""); setSynopsis(""); setFile(null);
       if (inputRef.current) inputRef.current.value = "";
-      onDone("Submitted. Security reviews it first, then an admin decides — within three days.");
+      onDone(t("studio.submitted", "Submitted. Security reviews it first, then an admin decides — within three days."));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "The upload did not finish.");
+      if (!(err instanceof ApiError && err.code === "aborted"))
+        setError(err instanceof ApiError ? err.message : t("studio.uploadFailed", "The upload did not finish. Try again."));
     } finally {
       setBusy(false);
+      setProgress(null);
+      cancel.current = null;
     }
   }
 
@@ -118,37 +129,82 @@ function UploadForm({ onDone }: { onDone: (message: string) => void }) {
           </Select>
         </Field>
 
-        <Field label={t("studio.visibility")}>
-          <Select value={visibility} onChange={(e) => setVisibility(e.target.value as ShortFilmVisibility)}>
-            <option value="Private">{t("common.private")}</option>
-            <option value="Public">{t("common.public")}</option>
-          </Select>
-        </Field>
+        {privateAccount ? (
+          <Field label={t("studio.visibility")} hint={t("studio.visibilityHint", "Your account is private: choose whether the approved film is also in its gallery for everyone, or for your followers only.")}>
+            <Select value={visibility} onChange={(e) => setVisibility(e.target.value as ShortFilmVisibility)}>
+              <option value="Private">{t("profile.followersOnly", "Followers only")}</option>
+              <option value="Public">{t("profile.showInGallery", "Show in the gallery")}</option>
+            </Select>
+          </Field>
+        ) : null}
 
         <Field label={t("field.videoFile")}>
+          {/* The browser labels its own file button ("Choose File", "No file chosen") in the
+              browser's language, whatever the page is set to; so it stays hidden and this one
+              speaks the page's language. */}
           <input
             ref={inputRef}
             type="file"
             accept="video/mp4,video/quicktime,video/webm,video/x-matroska"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-sm text-ink-mute file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2 file:text-sm file:font-medium file:text-surface"
+            className="sr-only"
+            tabIndex={-1}
           />
+          <span className="flex flex-wrap items-center gap-3">
+            <Button type="button" size="sm" disabled={busy} onClick={() => inputRef.current?.click()}>
+              <Film size={14} aria-hidden /> {t("studio.chooseFile", "Choose a video")}
+            </Button>
+            <span className="min-w-0 truncate text-sm text-ink-mute">{file ? file.name : t("studio.noFile", "No video chosen yet")}</span>
+          </span>
         </Field>
 
         {file ? <p className="text-xs text-ink-mute">{file.name} · {megabytes(file.size)}</p> : null}
+        {progress ? <UploadBar {...progress} onCancel={() => cancel.current?.abort()} /> : null}
         {error ? <Notice tone="error">{error}</Notice> : null}
 
         <Button disabled={!file || !title || busy} onClick={upload}>
           <Upload size={15} aria-hidden />
-          {busy ? t("common.loading") : t("common.send")}
+          {busy ? t("studio.uploading", "Uploading…") : t("common.send")}
         </Button>
       </div>
     </Panel>
   );
 }
 
+/** How far the upload is, how fast it goes, and roughly how long is left. */
+function UploadBar({ loaded, total, started, onCancel }: { loaded: number; total: number; started: number; onCancel: () => void }) {
+  const percent = total ? Math.min(100, Math.round((loaded / total) * 100)) : 0;
+  const seconds = (Date.now() - started) / 1000;
+  const speed = seconds > 0.5 ? loaded / seconds : 0;          // bytes per second
+  const left = speed > 0 ? (total - loaded) / speed : null;    // seconds
+  const done = loaded >= total;
+  const eta = left === null ? t("studio.estimating", "estimating…")
+    : left < 60 ? t("studio.secondsLeft", "{n} s left").replace("{n}", String(Math.max(1, Math.ceil(left))))
+    : t("studio.minutesLeft", "about {n} min left").replace("{n}", String(Math.ceil(left / 60)));
+  return (
+    <div className="space-y-2 rounded-xl border border-line bg-surface p-3" role="status" aria-live="polite">
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="font-medium text-ink">{done ? t("studio.processing", "Saving on the server…") : `${percent}%`}</span>
+        {!done ? (
+          <button onClick={onCancel} className="inline-flex items-center gap-1 text-xs text-ink-mute hover:text-bad">
+            <X size={13} aria-hidden /> {t("common.cancel", "Cancel")}
+          </button>
+        ) : null}
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+        <div className={`h-full rounded-full bg-accent transition-[width] duration-300 ${done ? "animate-pulse" : ""}`} style={{ width: `${percent}%` }} />
+      </div>
+      <p className="flex flex-wrap justify-between gap-2 text-xs text-ink-mute">
+        <span>{megabytes(loaded)} / {megabytes(total)}{speed ? ` · ${megabytes(speed)}/s` : ""}</span>
+        {!done ? <span>{eta}</span> : null}
+      </p>
+    </div>
+  );
+}
+
 function SubmissionCard({ entry, onChanged }: { entry: ShortFilmDetail; onChanged: () => void }) {
   const { film, report, comments } = entry;
+  const privateAccount = !!useAuth().user?.isPrivate;
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -158,6 +214,15 @@ function SubmissionCard({ entry, onChanged }: { entry: ShortFilmDetail; onChange
     setBusy(true);
     await put(`/api/shorts/${film.id}/visibility`, { visibility: isPublic ? "Private" : "Public" })
       .catch(() => null);
+    setBusy(false);
+    onChanged();
+  }
+
+  // Takes back a submission that has not been approved: the wrong file, a change of mind.
+  async function withdraw() {
+    if (!(await askConfirm(t("studio.withdrawConfirm", "Withdraw this film? It is removed from review and deleted."), { danger: true, confirmLabel: t("studio.withdrawYes", "Yes, withdraw it"), cancelLabel: t("profile.no", "No") }))) return;
+    setBusy(true);
+    await del(`/api/shorts/${film.id}`).catch(() => null);
     setBusy(false);
     onChanged();
   }
@@ -184,17 +249,24 @@ function SubmissionCard({ entry, onChanged }: { entry: ShortFilmDetail; onChange
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Badge tone={statusTone(film.status)}>{t(`status.${lower(film.status)}`, film.status)}</Badge>
             <Badge>{film.origin === "AiGenerated" ? t("studio.originAi") : t("studio.originHuman")}</Badge>
-            <Badge tone={isPublic ? "good" : undefined}>{isPublic ? t("common.public") : t("common.private")}</Badge>
+            {privateAccount ? <Badge tone={isPublic ? "good" : undefined}>{isPublic ? t("profile.inGallery", "In the gallery") : t("profile.followersOnly", "Followers only")}</Badge> : null}
             {film.status === "Approved" ? <Badge>{film.viewCount} {t("common.views")}</Badge> : null}
             {film.status !== "Approved" && film.status !== "Rejected" ? (
               <span className="text-xs text-ink-mute">{film.hoursLeft} {t("studio.hoursLeft")}</span>
             ) : null}
           </div>
 
-          <Button className="mt-4" size="sm" variant="outline" disabled={busy} onClick={toggleVisibility}>
-            {isPublic ? <EyeOff size={14} aria-hidden /> : <Eye size={14} aria-hidden />}
-            {isPublic ? t("studio.makePrivate") : t("studio.makePublic")}
-          </Button>
+          {film.status !== "Approved" ? (
+            <Button className="mr-2 mt-4" size="sm" variant="danger" disabled={busy} onClick={withdraw}>
+              <Trash2 size={14} aria-hidden /> {t("studio.withdraw", "Withdraw submission")}
+            </Button>
+          ) : null}
+          {privateAccount ? (
+            <Button className="mt-4" size="sm" variant="outline" disabled={busy} onClick={toggleVisibility}>
+              {isPublic ? <EyeOff size={14} aria-hidden /> : <Eye size={14} aria-hidden />}
+              {isPublic ? t("profile.makeFollowersOnly", "Followers only") : t("profile.showInGallery", "Show in the gallery")}
+            </Button>
+          ) : null}
         </div>
 
         <div>
@@ -233,7 +305,7 @@ function SubmissionCard({ entry, onChanged }: { entry: ShortFilmDetail; onChange
           <div className="mt-2 space-y-2">
             {comments.map((c) => (
               <div key={c.id} className="rounded-lg border border-line p-3">
-                <p className="text-xs text-ink-mute">{c.authorName} · {c.authorRole} · {formatWhen(c.createdAtUtc)}</p>
+                <p className="text-xs text-ink-mute">{c.authorName} · {t(`role.${c.authorRole}`, c.authorRole)} · {formatWhen(c.createdAtUtc)}</p>
                 <p className="mt-1 text-sm text-ink">{c.body}</p>
               </div>
             ))}

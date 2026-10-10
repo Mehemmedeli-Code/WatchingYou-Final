@@ -6,7 +6,7 @@
 <!DOCTYPE html>
 <html lang="@view.Language" class="rr" data-theme="dark" style="color-scheme: dark">
 <head>
-    <script>
+    <script nonce="@Context.Items["csp-nonce"]">
         (function () {
             try {
                 var saved = localStorage.getItem("wy.theme");
@@ -37,7 +37,7 @@
     @RenderBody()
 
     <script id="rr-i18n" type="application/json">@Html.Raw(view.TranslationsJson)</script>
-    <script>
+    <script nonce="@Context.Items["csp-nonce"]">
         window.__RR__ = {
             lang: "@view.Language",
             t: JSON.parse(document.getElementById("rr-i18n").textContent || "{}"),

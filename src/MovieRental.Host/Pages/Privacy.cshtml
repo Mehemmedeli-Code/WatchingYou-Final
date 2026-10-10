@@ -1,7 +1,8 @@
 @page
 @model PrivacyModel
 @* Plain server-rendered text: store reviewers and search engines read it without JavaScript. *@
-<article class="rr-legal">
+<article class="rr-legal rr-info">
+    <partial name="_InfoTabs" model="@("privacy")" />
     <h1>@Model.Text.Title</h1>
     <p class="rr-legal-meta">@Model.Text.UpdatedLabel: @Model.Updated · @Model.Company</p>
 

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { get, put, query, ApiError } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/lib/format";
+import { askText } from "@/lib/dialog";
 
 interface AdminUser {
   id: string;
@@ -69,9 +70,9 @@ export function UserAdmin() {
     return run(user.id, () => put(`/api/admin/users/${user.id}/roles`, { roles: next }), `${user.email} → ${next.join(", ")}`);
   }
 
-  function toggleSuspension(user: AdminUser) {
+  async function toggleSuspension(user: AdminUser) {
     const suspending = !user.isSuspended;
-    const reason = suspending ? window.prompt(t("admin.suspendReason")) : null;
+    const reason = suspending ? await askText(t("admin.suspendReason")) : null;
     if (suspending && reason === null) return;      // cancelled the prompt
 
     return run(
@@ -85,6 +86,7 @@ export function UserAdmin() {
     <>
       <div className="mb-4 max-w-sm">
         <SearchField value={search} onChange={setSearch} />
+      {!search.trim() ? <p className="text-xs text-ink-mute">{t("admin.staffOnly", "Showing staff only. Search by e-mail or name to find a customer and give them a role.")}</p> : null}
       </div>
 
       {message ? <div className="mb-4"><Notice tone={message.tone}>{message.text}</Notice></div> : null}

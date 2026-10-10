@@ -18,6 +18,7 @@ export function GlobeMembersMap(props: {
   cities: GlobeMapCity[];
   selectedCity?: string | null;
   onSelect: (city: GlobeMapCity) => void;
+  onCountryChange?: (code: string | null) => void;
 }) {
   return (
     <ErrorBoundary

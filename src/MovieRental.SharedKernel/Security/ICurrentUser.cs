@@ -40,6 +40,10 @@ public static class AppPolicies
     public const string AuthRateLimit = "auth";
     public const string CodeRateLimit = "codes";
 
+    /// <summary>Things one person writes that land on someone else's screen or disk: messages,
+    /// follows, blocks, reports, comments, uploads. Per account, so one member cannot flood another.</summary>
+    public const string WriteRateLimit = "writes";
+
     /// <summary>Output-cache policies for public reads. Named here so modules can mark an
     /// endpoint cacheable without knowing how the host caches it.</summary>
     public const string CatalogueCache = "cache-catalogue";

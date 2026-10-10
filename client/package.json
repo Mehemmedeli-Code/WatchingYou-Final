@@ -13,7 +13,7 @@
     "build:mobile": "tsc -b && vite build -c vite.mobile.config.ts",
     "cap:sync": "npm run build:mobile && cap sync",
     "cap:android": "npm run cap:sync && cap open android",
-    "cap:assets": "capacitor-assets generate --iconBackgroundColor #0A0C0A --iconBackgroundColorDark #0A0C0A --splashBackgroundColor #0A0C0A --splashBackgroundColorDark #0A0C0A"
+    "cap:assets": "npx --yes @capacitor/assets@3.0.5 generate --iconBackgroundColor #0A0C0A --iconBackgroundColorDark #0A0C0A --splashBackgroundColor #0A0C0A --splashBackgroundColorDark #0A0C0A"
   },
   "dependencies": {
     "@capacitor-mlkit/barcode-scanning": "^7.5.0",
@@ -29,27 +29,26 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "gsap": "^3.15.0",
-    "lucide-react": "^0.468.0",
-    "maplibre-gl": "^6.9.0",
-    "motion": "^11.15.0",
+    "lucide-react": "^1.49.0",
+    "maplibre-gl": "^6.11.2",
+    "motion": "^13.5.0",
     "qrcode": "^1.5.4",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "tailwind-merge": "^2.6.0",
-    "three": "^0.186.0"
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tailwind-merge": "^3.7.0",
+    "three": "^0.186.1"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^7.6.9",
     "@tailwindcss/vite": "^4.0.0",
     "@types/qrcode": "^1.5.6",
-    "@types/react": "^18.3.17",
-    "@types/react-dom": "^18.3.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@types/three": "^0.186.0",
-    "@vitejs/plugin-react": "^4.3.4",
-    "jsdom": "^30.0.1",
+    "@vitejs/plugin-react": "^6.1.1",
+    "jsdom": "^30.1.1",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.2",
-    "vite": "^6.0.5"
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2"
   }
 }

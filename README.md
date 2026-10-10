@@ -441,8 +441,8 @@ message and the rest of the page keeps working.
 ## Tests
 
 ```bash
-dotnet test                                  # everything
-dotnet test --filter Category!=Integration   # unit tests only, no database needed
+dotnet test --project tests/MovieRental.Tests                                               # everything
+dotnet test --project tests/MovieRental.Tests -- --filter-not-trait "Category=Integration"   # unit tests only, no database needed
 ```
 
 | File | What it pins down |
@@ -637,10 +637,6 @@ The Earth texture is generated into `wwwroot/globe/` rather than pulled from a C
 silently turns into a grey ball when somebody else's CDN moves is worse than no map. It is a
 coarse land/ocean map, which is all a texture at this scale can show.
 
-**Not built: messaging.** Finding someone is not talking to them. A chat worth shipping needs
-delivery, moderation, blocking and abuse reporting, and bolting a message box onto this without
-those would be worse than leaving it out.
-
 ## The map
 
 Movies on Display opens with the four cinemas pinned on a dark MapLibre basemap. Clicking a
@@ -745,9 +741,10 @@ Fixed windows, partitioned by client address:
 | `codes` | send/confirm code, forgot/reset password | 12 per five minutes |
 
 Rejections return 429 with a `Retry-After` header, because a user who mistyped twice deserves
-a straight answer rather than a silent wall. Behind a proxy the socket address is the proxy's,
-so `X-Forwarded-For` is preferred when present — configure `ForwardedHeaders` before trusting
-it in production.
+a straight answer rather than a silent wall. Limits key on the socket address.
+`UseForwardedHeaders` replaces it with `X-Forwarded-For` only when the request came through a
+proxy on this machine; a proxy elsewhere must be added to `KnownProxies`, or every visitor
+shares the proxy's address and its limit.
 
 ## Refunds
 
@@ -891,6 +888,39 @@ Motion elsewhere is deliberate and sparse: one staggered entrance for the catalo
 - The API client keeps the access token in memory and the refresh token in `localStorage`, and retries a 401 once after refreshing. Keeping the short-lived token out of `localStorage` limits what an XSS bug can reach.
 
 ---
+
+## On a real domain: how messages travel
+
+The network layers below HTTP (cables, IP routing, TCP) belong to the operating system and the
+host; the application owns the top of the stack, and that part is already in place:
+
+| Layer | What carries it here |
+|---|---|
+| Application | JSON over HTTPS for sending (`POST /api/messages/...`, saved before anyone is told); SignalR on `/hubs/chat` to push "something new arrived" and typing notices |
+| Transport into the app | WebSockets, falling back to Server-Sent Events or long polling when a network blocks them; the page also polls, so a dropped socket loses nothing |
+| Security | TLS: HTTPS + HSTS for pages and API, WSS for the socket. The access token rides `?access_token=` only on `/hubs` (browsers cannot set headers on a WebSocket upgrade) |
+
+What a deployment has to get right:
+
+- **TLS certificate** for the domain (Let's Encrypt, or the proxy's). Set `App:PublicUrl` and `AllowedHosts` to it.
+- **Reverse proxy passes WebSocket upgrades.** For nginx:
+  ```nginx
+  location /hubs/ {
+      proxy_pass         http://127.0.0.1:5139;
+      proxy_http_version 1.1;
+      proxy_set_header   Upgrade $http_upgrade;
+      proxy_set_header   Connection "upgrade";
+      proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header   X-Forwarded-Proto $scheme;
+      proxy_read_timeout 120s;
+  }
+  ```
+  IIS needs the WebSocket Protocol feature turned on; Cloudflare passes WebSockets by default.
+- **Trust the proxy, and only the proxy**: a proxy on another machine goes in
+  `ForwardedHeaders:KnownProxies` (IP) or `:KnownNetworks` (CIDR). Otherwise rate limits see
+  every visitor as the proxy, or (if headers were trusted blindly) anyone could fake an address.
+- **One server is enough.** More than one behind a load balancer needs a SignalR backplane
+  (Redis or Azure SignalR) so a nudge sent on one server reaches a user connected to another.
 
 ## Before this goes anywhere real
 

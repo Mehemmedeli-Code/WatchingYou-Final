@@ -1,15 +1,14 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "@/styles/app.css";
+import { t } from "@/lib/i18n";
 
 import { restoreSession } from "@/lib/api";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { ShaderBackground } from "@/components/ui/shader-background";
-import { LiveNotifications } from "@/components/LiveNotifications";
-import { stopRealtime } from "@/lib/realtime";
 import { clearOfflineTickets } from "@/lib/offlineTickets";
-import { auth } from "@/lib/api";
+import { auth, get } from "@/lib/api";
 import type { ComponentType } from "react";
 
 /**
@@ -45,6 +44,9 @@ const ISLANDS: Record<string, () => Promise<IslandModule>> = {
   humanCraft: () => import("@/pages/HumanCraftPage"),
   security: () => import("@/pages/SecurityPage"),
   globe: () => import("@/pages/GlobePage"),
+  people: () => import("@/pages/PeoplePage"),
+  profile: () => import("@/pages/ProfilePage"),
+  profileEdit: () => import("@/pages/ProfileEditPage"),
   help: () => import("@/pages/HelpPage"),
   backoffice: () => import("@/backoffice/BackOfficeApp"),
   favourites: () => import("@/pages/FavouritesPage"),
@@ -89,22 +91,37 @@ async function bootstrap() {
     // The server could not be reached even after retrying: say so, with a way to try again,
     // instead of leaving an empty page.
     container.innerHTML = `<div style="max-width:560px;margin:80px auto;padding:24px;text-align:center;font-family:Inter,sans-serif">
-      <p style="font-size:18px;margin:0 0 16px">${document.documentElement.lang === "az" ? "Səhifə yüklənmədi. Bağlantını yoxlayın." : "The page could not be loaded. Check your connection."}</p>
-      <button onclick="location.reload()" style="background:#22E07A;color:#03140A;border:0;border-radius:999px;padding:10px 22px;font-weight:600;cursor:pointer">${document.documentElement.lang === "az" ? "Yenidən yüklə" : "Reload"}</button></div>`;
+      <p style="font-size:18px;margin:0 0 16px">${t("common.loadFailed", "The page could not be loaded. Check your connection.")}</p>
+      <button type="button" data-reload style="background:#22E07A;color:#03140A;border:0;border-radius:999px;padding:10px 22px;font-weight:600;cursor:pointer">${t("common.reload", "Reload")}</button></div>`;
+    // A listener, not onclick="": the Content-Security-Policy runs no inline handlers.
+    container.querySelector("[data-reload]")?.addEventListener("click", () => location.reload());
     return;
   }
   const Island = module.default;
 
   // Site-wide message pop-ups: their own root, appended to <body>, so no Razor page has to
   // make room for them. Mounted after the session refresh so the socket starts signed in.
-  const liveSlot = document.createElement("div");
-  liveSlot.id = "rr-live";
-  document.body.appendChild(liveSlot);
-  createRoot(liveSlot).render(<ErrorBoundary label="live"><LiveNotifications /></ErrorBoundary>);
+  // Loaded on demand and only when signed in: it brings SignalR, motion and the chat window,
+  // which used to sit in app.js and be parsed before every page's own island.
+  if (auth.user) {
+    // Follow requests waiting: a count on the header picture, so nobody has to go looking.
+    void get<{ requests: number }>("/api/people/me").then(({ requests }) => {
+      const avatar = document.querySelector<HTMLElement>(".rr-avatar");
+      if (avatar && requests > 0) avatar.dataset.count = requests > 9 ? "9+" : String(requests);
+    }).catch(() => null);
+
+    void import("@/components/LiveNotifications").then(({ LiveNotifications }) => {
+      const liveSlot = document.createElement("div");
+      liveSlot.id = "rr-live";
+      document.body.appendChild(liveSlot);
+      createRoot(liveSlot).render(<ErrorBoundary label="live"><LiveNotifications /></ErrorBoundary>);
+    });
+  }
   auth.subscribe((user) => {
     if (user) return;
     // Signed out: close the socket and forget anything this device kept for that account.
-    stopRealtime();
+    // Lazy: SignalR is only needed by signed-in pages, so it stays out of app.js.
+    void import("@/lib/realtime").then(({ stopRealtime }) => stopRealtime());
     clearOfflineTickets();
     navigator.serviceWorker?.controller?.postMessage("clear-pages");
   });

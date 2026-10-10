@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { useId, useState, type ReactNode } from "react";
 
 /**
@@ -452,14 +453,14 @@ function Photo({ id, alt, fallback }: { id: string; alt: string; fallback: React
 // Card order follows the scatter in stack-spread.tsx: small top-left, tall top-right, tall
 // left, wide top-centre, tall right, wide bottom-left, bottom-centre, small bottom-right.
 export const POSTERS: { key: string; alt: string; render: () => ReactNode }[] = [
-  { key: "neon", alt: "Cinema neon sign", render: () => <Photo id="1674473191471-126ceaf72e95" alt="Cinema neon sign" fallback={<Musical />} /> },
-  { key: "beam", alt: "Projector beam in a dark hall", render: () => <Photo id="1478720568477-152d9b164e26" alt="Projector beam in a dark hall" fallback={<Hall />} /> },
-  { key: "clapper", alt: "Clapperboard on set", render: () => <Photo id="1485846234645-a62644f84728" alt="Clapperboard on set" fallback={<Reel />} /> },
-  { key: "audience", alt: "Audience facing the screen", render: () => <Photo id="1485095329183-d0797cdc5676" alt="Audience facing the screen" fallback={<Hall />} /> },
-  { key: "camera", alt: "Cinema camera", render: () => <Photo id="1574304904744-2e6919c5a2a9" alt="Cinema camera" fallback={<Noir />} /> },
-  { key: "theatre", alt: "Cinema auditorium", render: () => <Photo id="1561722798-9a732d141027" alt="Cinema auditorium" fallback={<SciFi />} /> },
-  { key: "reels", alt: "Film reels", render: () => <Photo id="1440404653325-ab127d49abc1" alt="Film reels" fallback={<Reel />} /> },
-  { key: "projector", alt: "Film projector", render: () => <Photo id="1568876694728-451bbf694b83" alt="Film projector" fallback={<Western />} /> },
+  { key: "neon", get alt() { return t("poster.neon", "Cinema neon sign"); }, render: () => <Photo id="1674473191471-126ceaf72e95" alt={t("poster.neon", "Cinema neon sign")} fallback={<Musical />} /> },
+  { key: "beam", get alt() { return t("poster.beam", "Projector beam in a dark hall"); }, render: () => <Photo id="1478720568477-152d9b164e26" alt={t("poster.beam", "Projector beam in a dark hall")} fallback={<Hall />} /> },
+  { key: "clapper", get alt() { return t("poster.clapper", "Clapperboard on set"); }, render: () => <Photo id="1485846234645-a62644f84728" alt={t("poster.clapper", "Clapperboard on set")} fallback={<Reel />} /> },
+  { key: "audience", get alt() { return t("poster.audience", "Audience facing the screen"); }, render: () => <Photo id="1485095329183-d0797cdc5676" alt={t("poster.audience", "Audience facing the screen")} fallback={<Hall />} /> },
+  { key: "camera", get alt() { return t("poster.camera", "Cinema camera"); }, render: () => <Photo id="1574304904744-2e6919c5a2a9" alt={t("poster.camera", "Cinema camera")} fallback={<Noir />} /> },
+  { key: "theatre", get alt() { return t("poster.theatre", "Cinema auditorium"); }, render: () => <Photo id="1561722798-9a732d141027" alt={t("poster.theatre", "Cinema auditorium")} fallback={<SciFi />} /> },
+  { key: "reels", get alt() { return t("poster.reels", "Film reels"); }, render: () => <Photo id="1440404653325-ab127d49abc1" alt={t("poster.reels", "Film reels")} fallback={<Reel />} /> },
+  { key: "projector", get alt() { return t("poster.projector", "Film projector"); }, render: () => <Photo id="1568876694728-451bbf694b83" alt={t("poster.projector", "Film projector")} fallback={<Western />} /> },
 ];
 
 /** The drawn posters on their own, for anywhere that must not depend on a remote image. */

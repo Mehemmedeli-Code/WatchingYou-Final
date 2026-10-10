@@ -33,6 +33,22 @@ interface GlobeMember {
   joinedAtUtc: string;
 }
 
+interface OnlineMember {
+  userId: string;
+  displayName: string;
+  username?: string | null;
+  avatarUrl?: string | null;
+  city?: string | null;
+}
+
+interface OnlinePage {
+  country: string;
+  total: number;
+  page: number;
+  pageSize: number;
+  items: OnlineMember[];
+}
+
 interface GlobeMemberPage {
   city: string;
   total: number;
@@ -52,6 +68,38 @@ export default function GlobePage() {
   const [compareWith, setCompareWith] = useState<GlobeMember | null>(null);
   const [writeTo, setWriteTo] = useState<GlobeMember | null>(null);
   const [messagesKey, setMessagesKey] = useState(0);
+  // The country open on the map, its online count, and (once clicked) its online people.
+  const [country, setCountry] = useState<string | null>(null);
+  const [onlineCount, setOnlineCount] = useState<number | null>(null);
+  const [onlineOpen, setOnlineOpen] = useState(false);
+  const [online, setOnline] = useState<OnlinePage | null>(null);
+
+  useEffect(() => {
+    setOnlineOpen(false);
+    setOnline(null);
+    setOnlineCount(null);
+    if (!country || !isSignedIn) return;
+    const load = () => get<{ online: number }>("/api/globe/online" + query({ country }))
+      .then((r) => setOnlineCount(r.online)).catch(() => setOnlineCount(0));
+    void load();
+    const timer = window.setInterval(load, 30_000);   // "now" should stay roughly now
+    return () => window.clearInterval(timer);
+  }, [country, isSignedIn]);
+
+  const openOnline = useCallback(async (code: string, pageNo: number) => {
+    setOpen(null);
+    setOnlineOpen(true);
+    const next = await get<OnlinePage>("/api/globe/online/members" + query({ country: code, page: pageNo })).catch(() => null);
+    if (!next) return;
+    setOnline((current) => pageNo > 1 && current ? { ...next, items: [...current.items, ...next.items] } : next);
+  }, []);
+
+  // Someone is online in the chosen country: show who, without a click.
+  const anyoneOnline = !!onlineCount;
+  useEffect(() => {
+    if (country && anyoneOnline) void openOnline(country, 1);
+    else setOnlineOpen(false);
+  }, [country, anyoneOnline, openOnline]);
 
   const loadCities = useCallback(async () => {
     if (!isSignedIn) { setCities([]); return; }
@@ -105,7 +153,7 @@ export default function GlobePage() {
         <div className="rounded-xl border border-line bg-surface-raised p-6">
           {/* The real Earth: the members, pinned to the cities they chose. The decorative
               globe and the city list below stay as they were. */}
-          <GlobeMembersMap cities={cities ?? []} selectedCity={open?.city} onSelect={openCity} />
+          <GlobeMembersMap cities={cities ?? []} selectedCity={open?.city} onSelect={openCity} onCountryChange={setCountry} />
 
           {/* The decorative globe. */}
           <div className="flex justify-center py-6">
@@ -114,42 +162,24 @@ export default function GlobePage() {
             </ErrorBoundary>
           </div>
 
+          {/* Under the globe: only the country chosen on the map above, and only how many of its
+              people are online now. A row per city stopped working long before a million users;
+              the people themselves come as a paged list when the number is clicked. */}
           {cities === null ? (
             <Spinner label={t("common.loading")} />
-          ) : cities.length === 0 ? (
-            <p className="py-6 text-center text-sm text-ink-mute">{t("globe.empty")}</p>
+          ) : !country ? (
+            <p className="py-4 text-center text-sm text-ink-mute">{t("globe.pickCountry", "Pick a country on the map to see who is online there.")}</p>
           ) : (
-            // The globe is a disc with no projection behind it, so a pin would be decoration
-            // pointing at nowhere. The cities are a list instead — same click, honest position.
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {cities.map((city) => {
-                const active = city.city === open?.city;
-                return (
-                  <button
-                    key={`${city.city}-${city.latitude}`}
-                    onClick={() => openCity(city)}
-                    aria-pressed={active}
-                    className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                      active ? "border-accent bg-accent-dim text-surface" : "border-line text-ink hover:border-accent-dim"
-                    }`}
-                  >
-                    <span className="flex -space-x-1.5">
-                      {city.faces.map((face) =>
-                        face.avatarUrl ? (
-                          <img key={face.userId} src={face.avatarUrl} alt="" className="h-5 w-5 rounded-full border border-surface object-cover" />
-                        ) : (
-                          <span key={face.userId} className="flex h-5 w-5 items-center justify-center rounded-full border border-surface bg-surface text-[10px] text-ink-mute">
-                            {face.displayName.slice(0, 1).toUpperCase()}
-                          </span>
-                        ),
-                      )}
-                    </span>
-                    <Flag country={city.countryCode ?? findCity(city.city)?.country} />
-                    {city.city}
-                    <span className="text-xs text-ink-mute">{city.memberCount}</span>
-                  </button>
-                );
-              })}
+            // Just a reading, not a control: the list beside it opens on its own when anyone is online.
+            <div className="mt-2 flex justify-center">
+              <div role="status" className="flex items-center gap-3 rounded-full border border-line bg-surface px-5 py-2.5 text-sm text-ink">
+                <Flag country={country} className="h-4 w-[22px]" />
+                <span className="font-medium">{countryName(country, lang)}</span>
+                <span className="flex items-center gap-1.5 text-ink-mute">
+                  <span className="h-2 w-2 rounded-full bg-good" aria-hidden />
+                  {onlineCount ?? "…"} {t("globe.onlineNow", "online now")}
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -157,7 +187,68 @@ export default function GlobePage() {
         {/* The panel the pin opens. Kept beside the globe rather than over it, so the map
             stays usable while you read. */}
         <div className="space-y-4">
-          {open ? (
+          {onlineOpen && country ? (
+            <Panel className="max-h-[540px] overflow-y-auto">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="flex items-center gap-1.5 font-display text-xl text-ink">
+                    <Flag country={country} />
+                    {countryName(country, lang)}
+                  </p>
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-mute">
+                    <span className="h-2 w-2 rounded-full bg-good" aria-hidden />
+                    {online?.total ?? onlineCount ?? 0} {t("globe.onlineNow", "online now")}
+                  </p>
+                </div>
+                <button onClick={() => setOnlineOpen(false)} aria-label={t("common.cancel")} className="text-ink-mute hover:text-ink">
+                  <X size={18} aria-hidden />
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                {online === null ? <Spinner label={t("common.loading")} /> : null}
+                {online && online.items.length === 0 ? (
+                  <p className="text-sm text-ink-mute">{t("globe.nobodyOnline", "Nobody from here is online right now.")}</p>
+                ) : null}
+                {online?.items.map((member) => (
+                  <div key={member.userId} className="flex items-center justify-between gap-3 rounded-lg border border-line p-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      {member.avatarUrl ? (
+                        <img src={member.avatarUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface text-xs text-ink-mute">
+                          {member.displayName.slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm text-ink">{member.displayName}</span>
+                        <span className="block truncate text-xs text-ink-mute">
+                          {member.username ? `@${member.username}` : ""}{member.city ? ` · ${member.city}` : ""}
+                        </span>
+                      </span>
+                    </div>
+                    {member.userId === user?.id ? (
+                      <Badge>{t("globe.you")}</Badge>
+                    ) : (
+                      <div className="flex shrink-0 gap-1.5">
+                        <Button size="sm" variant="outline" onClick={() => setCompareWith({ ...member, joinedAtUtc: "" })}>
+                          {t("globe.match")}
+                        </Button>
+                        <Button size="sm" onClick={() => setWriteTo({ ...member, joinedAtUtc: "" })}>
+                          {t("dm.message")}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {online && online.items.length < online.total ? (
+                  <Button className="w-full" size="sm" variant="outline" onClick={() => void openOnline(country, online.page + 1)}>
+                    {`${t("globe.loadMore")} (${online.total - online.items.length})`}
+                  </Button>
+                ) : null}
+              </div>
+            </Panel>
+          ) : open ? (
             <Panel className="max-h-[540px] overflow-y-auto">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -399,7 +490,7 @@ function CityPicker({ value, onChange }: { value: WorldCity | null; onChange: (c
           role="combobox"
           aria-expanded={open}
           aria-autocomplete="list"
-          placeholder="Baku"
+          placeholder={t("globe.cityPlaceholder", "Baku")}
           className={value && value.name === text ? "pl-11" : undefined}
           onFocus={() => setOpen(true)}
           onChange={(e) => {

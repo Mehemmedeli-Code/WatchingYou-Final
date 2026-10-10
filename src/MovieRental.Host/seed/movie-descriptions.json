@@ -1,0 +1,722 @@
+{
+  "12-angry-men-1957": {
+    "az": "Bir andlı iclasçının şübhəsi digər on bir nəfəri sadə sandıqları qətl işinə yenidən baxmağa məcbur edir.",
+    "ru": "Сомнение одного присяжного заставляет одиннадцать других заново взглянуть на дело об убийстве, казавшееся простым.",
+    "tr": "Bir jüri üyesinin şüphesi, diğer on bir kişiyi basit sandıkları cinayet davasına yeniden bakmaya zorlar."
+  },
+  "2001-a-space-odyssey-1968": {
+    "az": "Sirli monolit bəşəriyyəti insanın ilk çağlarından Yupiterə səyahətə qədər istiqamətləndirir.",
+    "ru": "Таинственный монолит ведёт человечество от зари времён до путешествия к Юпитеру.",
+    "tr": "Gizemli bir monolit insanlığı ilk çağlardan Jüpiter'e yolculuğa kadar yönlendirir."
+  },
+  "a-beautiful-mind-2001": {
+    "az": "Parlaq riyaziyyatçının işi və evliliyi şizofreniya ilə sınağa çəkilir.",
+    "ru": "Работа и брак гениального математика проходят испытание шизофренией.",
+    "tr": "Parlak bir matematikçinin işi ve evliliği şizofreniyle sınanır."
+  },
+  "a-clockwork-orange-1971": {
+    "az": "Zorakı gənc cinayətkar eksperimental islah terapiyasına məruz qalır.",
+    "ru": "Жестокого юного хулигана подвергают экспериментальной исправительной терапии.",
+    "tr": "Şiddet yanlısı genç bir suçlu deneysel bir ıslah terapisine tabi tutulur."
+  },
+  "alien-1979": {
+    "az": "Yük gəmisinin ekipajını göyərtəyə özləri gətirdikləri ölümcül məxluq ovlayır.",
+    "ru": "Экипаж грузового корабля становится добычей смертоносного существа, которое сам же взял на борт.",
+    "tr": "Bir kargo gemisinin mürettebatı, gemiye kendi getirdikleri ölümcül bir yaratık tarafından avlanır."
+  },
+  "aliens-1986": {
+    "az": "Ripli hər şeyin başladığı peykə bu dəfə dəniz piyadaları dəstəsi ilə qayıdır.",
+    "ru": "Рипли возвращается на луну, где всё началось, — на этот раз с отрядом морпехов.",
+    "tr": "Ripley her şeyin başladığı aya bu kez bir deniz piyadesi birliğiyle döner."
+  },
+  "amelie-2001": {
+    "az": "Utancaq parisli ofisiant ətrafındakı insanların həyatını gizlicə yaxşılaşdırır.",
+    "ru": "Застенчивая парижская официантка тайком меняет к лучшему жизнь окружающих.",
+    "tr": "Utangaç bir Parisli garson, çevresindeki insanların hayatını gizlice güzelleştirir."
+  },
+  "apocalypse-now-1979": {
+    "az": "Ordu kapitanı itaətdən çıxmış polkovniki tapmaq üçün çay boyu Kambocaya üzür.",
+    "ru": "Армейский капитан поднимается вверх по реке в Камбоджу, чтобы найти полковника-отступника.",
+    "tr": "Bir ordu yüzbaşısı, asi bir albayı bulmak için nehir boyunca Kamboçya'ya ilerler."
+  },
+  "a-quiet-place-2018": {
+    "az": "Bir ailə səsə hücum edən məxluqların ovladığı dünyada səssizlik içində sağ qalmağa çalışır.",
+    "ru": "Семья выживает в тишине в мире, где существа нападают на любой звук.",
+    "tr": "Bir aile, sese saldıran yaratıkların avladığı bir dünyada sessizlik içinde hayatta kalır."
+  },
+  "arrival-2016": {
+    "az": "Dilçi alim gəmiləri dünyanın müxtəlif yerlərinə enən yadplanetlilərlə ünsiyyət qurmaq üçün işə cəlb olunur.",
+    "ru": "Лингвиста привлекают к общению с пришельцами, чьи корабли приземлились по всему миру.",
+    "tr": "Bir dilbilimci, gemileri dünyanın dört bir yanına inen uzaylılarla iletişim kurmak için göreve çağrılır."
+  },
+  "avatar-2009": {
+    "az": "İflic olmuş dəniz piyadası Pandorada yadplanetli bədənə köçür və tərəfini dəyişir.",
+    "ru": "Парализованный морпех вселяется в инопланетное тело на Пандоре и переходит на другую сторону.",
+    "tr": "Felçli bir deniz piyadesi Pandora'da bir uzaylı bedenine geçer ve taraf değiştirir."
+  },
+  "avengers-endgame-2019": {
+    "az": "Sağ qalan qəhrəmanlar bütün canlıların yarısını yox edən fəlakəti geri qaytarmağa çalışır.",
+    "ru": "Выжившие герои пытаются отменить катастрофу, уничтожившую половину всего живого.",
+    "tr": "Hayatta kalan kahramanlar, tüm canlıların yarısını yok eden felaketi geri almaya çalışır."
+  },
+  "back-to-the-future-1985": {
+    "az": "Yeniyetmə təsadüfən 1955-ci ilə düşür və valideynlərinin bir-birinə aşiq olmasını təmin etməlidir.",
+    "ru": "Подросток случайно попадает в 1955 год и должен проследить, чтобы его родители влюбились друг в друга.",
+    "tr": "Bir genç yanlışlıkla 1955'e gider ve anne babasının birbirine âşık olmasını sağlamak zorundadır."
+  },
+  "before-sunrise-1995": {
+    "az": "Qatarda tanış olan iki yad bir gecəni Vyana küçələrində gəzərək keçirir.",
+    "ru": "Двое незнакомцев знакомятся в поезде и проводят одну ночь, гуляя по Вене.",
+    "tr": "Trende tanışan iki yabancı, bir geceyi Viyana sokaklarında yürüyerek geçirir."
+  },
+  "black-panther-2018": {
+    "az": "Vakandanın yeni kralı taxta iddiası olan rəqibdən öz hakimiyyətini qorumalıdır.",
+    "ru": "Новый король Ваканды должен защитить трон от претендента, у которого есть на него права.",
+    "tr": "Wakanda'nın yeni kralı, tahtta hak iddia eden bir rakibe karşı tahtını savunmak zorundadır."
+  },
+  "blade-runner-1982": {
+    "az": "Yorğun detektiv yağışlı Los-Ancelesdə qaçmış replikantları ovlayır.",
+    "ru": "Выгоревший детектив охотится на беглых репликантов в залитом дождём Лос-Анджелесе.",
+    "tr": "Tükenmiş bir dedektif, yağmurlu Los Angeles'ta kaçak replikantların peşine düşer."
+  },
+  "blade-runner-2049-2017": {
+    "az": "Yeni blade runner cəmiyyəti xaosa sürükləyə biləcək sirri üzə çıxarır.",
+    "ru": "Новый бегущий по лезвию раскрывает тайну, способную погрузить общество в хаос.",
+    "tr": "Yeni bir blade runner, toplumu kaosa sürükleyebilecek bir sırrı ortaya çıkarır."
+  },
+  "blue-hour-2023": {
+    "az": "Gecə növbəsində işləyən tibb bacısı və taksi sürücüsü sübhdən əvvəlki iyirmi dəqiqədə təkrar-təkrar qarşılaşır.",
+    "ru": "Медсестра ночной смены и таксист снова и снова встречаются в двадцать минут перед рассветом.",
+    "tr": "Gece vardiyasındaki bir hemşire ile bir taksi şoförü, şafaktan önceki yirmi dakikada tekrar tekrar karşılaşır."
+  },
+  "casablanca-1942": {
+    "az": "Kinli gecə klubu sahibi sevgi ilə köhnə sevgilisinin qaçmasına kömək etmək arasında seçim etməlidir.",
+    "ru": "Циничный владелец ночного клуба должен выбрать между любовью и помощью бывшей возлюбленной в побеге.",
+    "tr": "Alaycı bir gece kulübü sahibi, aşkı ile eski sevgilisinin kaçmasına yardım etmek arasında seçim yapmalıdır."
+  },
+  "catch-me-if-you-can-2002": {
+    "az": "Gənc fırıldaqçı özünü pilot, həkim və vəkil kimi təqdim edir, FTB agenti isə onu təqib edir.",
+    "ru": "Молодой мошенник выдаёт себя за пилота, врача и адвоката, а агент ФБР идёт по его следу.",
+    "tr": "Genç bir dolandırıcı pilot, doktor ve avukat kılığına girerken bir FBI ajanı peşini bırakmaz."
+  },
+  "cinema-paradiso-1988": {
+    "az": "Kinorejissor ona kinonu sevməyi öyrədən kənd kinomexanikini xatırlayır.",
+    "ru": "Кинорежиссёр вспоминает деревенского киномеханика, научившего его любить кино.",
+    "tr": "Bir film yönetmeni, ona sinemayı sevmeyi öğreten köy makinistini hatırlar."
+  },
+  "citizen-kane-1941": {
+    "az": "Jurnalistlər qəzet maqnatının həyatını onun son sözündən çıxış edərək bir araya gətirir.",
+    "ru": "Журналисты восстанавливают жизнь газетного магната, отталкиваясь от его последнего слова.",
+    "tr": "Gazeteciler, bir gazete patronunun hayatını son sözünden yola çıkarak bir araya getirir."
+  },
+  "city-of-god-2002": {
+    "az": "Gənc fotoqraf Rio-de-Janeyro favelasının dəstə müharibələri arasında böyüyür.",
+    "ru": "Юный фотограф взрослеет среди войн банд в фавеле Рио-де-Жанейро.",
+    "tr": "Genç bir fotoğrafçı, Rio de Janeiro'daki bir favelanın çete savaşları arasında büyür."
+  },
+  "coco-2017": {
+    "az": "Musiqi arzulayan oğlan Ölülər Günündə Ölülər Diyarına keçir.",
+    "ru": "Мальчик, мечтающий о музыке, в День мёртвых попадает в Страну мёртвых.",
+    "tr": "Müzik hayali kuran bir çocuk, Ölüler Günü'nde Ölüler Diyarı'na geçer."
+  },
+  "cold-open-2025": {
+    "az": "Canlı xəbər qrupu kameraları üçün səhnələşdirilən girov hadisəsini işıqlandırır.",
+    "ru": "Съёмочная группа новостей в прямом эфире освещает захват заложников, разыгранный специально для их камер.",
+    "tr": "Canlı yayın yapan bir haber ekibi, kameraları için sahnelenen bir rehine olayını izler."
+  },
+  "cousins-at-the-border-2018": {
+    "az": "Evə gedən yol bir həftəlik bağlananda ailə görüşü gözlənilməz məcraya düşür.",
+    "ru": "Семейная встреча идёт наперекосяк, когда дорогу домой закрывают на неделю.",
+    "tr": "Eve giden yol bir haftalığına kapanınca aile buluşması beklenmedik bir hâl alır."
+  },
+  "dead-poets-society-1989": {
+    "az": "Qeyri-adi ədəbiyyat müəllimi şagirdlərini anı yaşamağa ruhlandırır.",
+    "ru": "Необычный учитель литературы вдохновляет учеников ловить момент.",
+    "tr": "Sıra dışı bir edebiyat öğretmeni öğrencilerine anı yakalamayı aşılar."
+  },
+  "die-hard-1988": {
+    "az": "Nyu-Yorklu polis Los-Ancelesdə göydələni ələ keçirmiş terrorçularla vuruşur.",
+    "ru": "Нью-йоркский полицейский сражается с террористами, захватившими небоскрёб в Лос-Анджелесе.",
+    "tr": "New Yorklu bir polis, Los Angeles'ta bir gökdeleni ele geçiren teröristlere karşı savaşır."
+  },
+  "django-unchained-2012": {
+    "az": "Azad edilmiş qul və muzdlu ovçu onun arvadını plantasiya sahibinin əlindən xilas etməyə yollanır.",
+    "ru": "Освобождённый раб и охотник за головами отправляются спасать его жену от плантатора.",
+    "tr": "Özgürlüğüne kavuşmuş bir köle ve bir ödül avcısı, karısını bir plantasyon sahibinden kurtarmak için yola çıkar."
+  },
+  "dune-2021": {
+    "az": "Zadəgan varis kainatın ən qiymətli sərvətinə sahib səhra planetinə göndərilir.",
+    "ru": "Знатного наследника отправляют на пустынную планету, где добывают самый ценный ресурс во вселенной.",
+    "tr": "Soylu bir varis, evrenin en değerli kaynağını barındıran çöl gezegenine gönderilir."
+  },
+  "dune-part-two-2024": {
+    "az": "Pol fremenlərə qoşulur və ailəsini məhv edən nəslə qarşı müharibəyə başlayır.",
+    "ru": "Пол присоединяется к фрименам и начинает войну с домом, уничтожившим его семью.",
+    "tr": "Paul, Fremenlere katılır ve ailesini yok eden haneye savaş açar."
+  },
+  "dunkirk-2017": {
+    "az": "1940-cı ildə əsgərlər, dənizçilər və pilotlar qoşunları Fransa sahilindən təxliyə etmək üçün vaxtla yarışır.",
+    "ru": "В 1940 году солдаты, моряки и лётчики спешат эвакуировать войска с французского пляжа.",
+    "tr": "1940'ta askerler, denizciler ve pilotlar birlikleri bir Fransız kumsalından tahliye etmek için zamanla yarışır."
+  },
+  "dust-and-copper-2017": {
+    "az": "Mədən şəhərciyində iki axtarışçı eyni saxta sənədi bir-birinə satıb durur.",
+    "ru": "Два старателя в шахтёрском городке без конца перепродают друг другу одну и ту же поддельную купчую.",
+    "tr": "Bir maden kasabasındaki iki arayıcı, aynı sahte tapuyu birbirine satıp durur."
+  },
+  "eternal-sunshine-of-the-spotless-mind-2004": {
+    "az": "Bir cüt bir-birini yaddaşından silir, sonra yenidən bir-birinin yolunu tapır.",
+    "ru": "Пара стирает друг друга из памяти, а затем снова находит дорогу друг к другу.",
+    "tr": "Bir çift birbirlerini hafızalarından siler, sonra yeniden birbirlerini bulur."
+  },
+  "e-t-the-extra-terrestrial-1982": {
+    "az": "Tənha oğlan yolda qalmış yadplanetli ilə dostlaşır və evinə qayıtmasına kömək edir.",
+    "ru": "Одинокий мальчик дружится с застрявшим на Земле инопланетянином и помогает ему вернуться домой.",
+    "tr": "Yalnız bir çocuk, Dünya'da mahsur kalan bir uzaylıyla arkadaş olur ve evine dönmesine yardım eder."
+  },
+  "fargo-1996": {
+    "az": "Hamilə polis rəisi pis nəticələnən oğurlanma planını araşdırır.",
+    "ru": "Беременная начальница полиции расследует план похищения, пошедший совсем не так.",
+    "tr": "Hamile bir polis şefi, ters giden bir adam kaçırma planını soruşturur."
+  },
+  "fight-club-1999": {
+    "az": "Yuxusuzluqdan əziyyət çəkən ofis işçisi və ehtiyatsız sabun ustası nəzarətdən çıxan gizli klub yaradır.",
+    "ru": "Офисный работник, страдающий бессонницей, и безбашенный мыловар создают подпольный клуб, который выходит из-под контроля.",
+    "tr": "Uykusuzluk çeken bir ofis çalışanı ile pervasız bir sabun üreticisi kontrolden çıkan bir yeraltı kulübü kurar."
+  },
+  "finding-nemo-2003": {
+    "az": "Qorxaq kloun balığı tutulmuş oğlunu tapmaq üçün okeanı keçir.",
+    "ru": "Робкая рыба-клоун пересекает океан, чтобы найти пойманного сына.",
+    "tr": "Ürkek bir palyaço balığı, yakalanan oğlunu bulmak için okyanusu geçer."
+  },
+  "forrest-gump-1994": {
+    "az": "Mehriban bir adam bir qadını sevə-sevə Amerika tarixinin onilliklərindən keçir.",
+    "ru": "Добрый человек проходит сквозь десятилетия американской истории, всю жизнь любя одну женщину.",
+    "tr": "İyi kalpli bir adam, tek bir kadını severken Amerikan tarihinin onlarca yılından geçer."
+  },
+  "full-metal-jacket-1987": {
+    "az": "Dəniz piyadası çağırışçıları amansız təlim düşərgəsindən Vyetnam müharibəsində Hue küçələrinə düşür.",
+    "ru": "Новобранцы морской пехоты проходят путь от жестокой учебки до улиц Хюэ во время войны во Вьетнаме.",
+    "tr": "Deniz piyadesi acemileri, acımasız eğitim kampından Vietnam Savaşı'nda Hue sokaklarına uzanır."
+  },
+  "get-out-2017": {
+    "az": "Gəncin sevgilisinin ailə malikanəsinə səfəri kabusa çevrilir.",
+    "ru": "Поездка молодого человека в загородный дом семьи его девушки превращается в кошмар.",
+    "tr": "Genç bir adamın kız arkadaşının aile malikânesine ziyareti bir kâbusa dönüşür."
+  },
+  "gladiator-2000": {
+    "az": "Xəyanətə uğramış Roma generalı ona haqsızlıq edən imperatora qədər arenada vuruşaraq irəliləyir.",
+    "ru": "Преданный римский полководец пробивается через арену к императору, который его погубил.",
+    "tr": "İhanete uğrayan bir Romalı general, kendisine haksızlık eden imparatora ulaşmak için arenada savaşır."
+  },
+  "gone-girl-2014": {
+    "az": "Arvadı ildönümlərində yoxa çıxanda ər əsas şübhəliyə çevrilir.",
+    "ru": "Когда жена исчезает в годовщину свадьбы, главным подозреваемым становится муж.",
+    "tr": "Karısı evlilik yıl dönümlerinde ortadan kaybolunca koca baş şüpheli olur."
+  },
+  "goodfellas-1990": {
+    "az": "Mafiya ilə bağlı bir adamın həyatından otuz il: həvəsli tapşırıq oğlanından xəbərçiyə qədər.",
+    "ru": "Тридцать лет из жизни человека из мафии — от рьяного мальчика на побегушках до осведомителя.",
+    "tr": "Bir mafya adamının hayatından otuz yıl: hevesli ayak işlerine bakan çocuktan muhbirliğe."
+  },
+  "good-will-hunting-1997": {
+    "az": "Riyaziyyat dahisi olan problemli xadiməyə yas tutan psixoterapevt kömək edir.",
+    "ru": "Трудному уборщику с гениальными способностями к математике помогает скорбящий психотерапевт.",
+    "tr": "Matematik dehası olan sorunlu bir hademeye yas tutan bir terapist yardım eder."
+  },
+  "gravity-2013": {
+    "az": "Qırıntılar kosmik gəmilərini məhv edəndən sonra iki astronavt orbitdə qalıb.",
+    "ru": "Двое астронавтов оказываются в ловушке на орбите после того, как обломки разрушили их шаттл.",
+    "tr": "Enkaz mekiklerini yok edince iki astronot yörüngede mahsur kalır."
+  },
+  "groundhog-day-1993": {
+    "az": "Kinli hava proqnozçusu kiçik şəhərdə eyni günü təkrar-təkrar yaşayır.",
+    "ru": "Циничный синоптик снова и снова проживает один и тот же день в маленьком городке.",
+    "tr": "Alaycı bir hava durumu sunucusu, küçük bir kasabada aynı günü tekrar tekrar yaşar."
+  },
+  "guardians-of-the-galaxy-2014": {
+    "az": "Uyğunsuzlardan ibarət dəstə güclü kürəni amansız sərkərdədən qorumaq üçün birləşir.",
+    "ru": "Команда изгоев объединяется, чтобы защитить могущественную сферу от безжалостного военачальника.",
+    "tr": "Uyumsuzlardan oluşan bir ekip, güçlü bir küreyi acımasız bir savaş lordundan korumak için bir araya gelir."
+  },
+  "harry-potter-and-the-philosopher-s-stone-2001": {
+    "az": "Yetim oğlan sehrbaz olduğunu öyrənir və Hoqvartsda ilk ilinə başlayır.",
+    "ru": "Сирота узнаёт, что он волшебник, и начинает первый год в Хогвартсе.",
+    "tr": "Yetim bir çocuk büyücü olduğunu öğrenir ve Hogwarts'taki ilk yılına başlar."
+  },
+  "harry-potter-and-the-prisoner-of-azkaban-2004": {
+    "az": "Harrinin üçüncü ilinə onu ovladığı düşünülən qaçaq məhbusun kölgəsi düşür.",
+    "ru": "Третий год Гарри омрачает сбежавший узник, который, как считают, охотится за ним.",
+    "tr": "Harry'nin üçüncü yılına, onun peşinde olduğu sanılan kaçak bir mahkûmun gölgesi düşer."
+  },
+  "heat-1995": {
+    "az": "Usta oğru və inadkar detektiv Los-Ancelesdə bir-birinin ətrafında dövrə vurur.",
+    "ru": "Мастер-грабитель и одержимый детектив кружат друг вокруг друга по всему Лос-Анджелесу.",
+    "tr": "Usta bir hırsız ile azimli bir dedektif, Los Angeles'ta birbirinin etrafında dolanır."
+  },
+  "her-2013": {
+    "az": "Tənha yazıçı ağıllı əməliyyat sisteminə aşiq olur.",
+    "ru": "Одинокий писатель влюбляется в умную операционную систему.",
+    "tr": "Yalnız bir yazar, akıllı bir işletim sistemine âşık olur."
+  },
+  "hereditary-2018": {
+    "az": "Nənənin ölümündən sonra ailə öz əcdadları haqqında qaranlıq sirləri açır.",
+    "ru": "После смерти бабушки семья раскрывает мрачные тайны своих предков.",
+    "tr": "Büyükannenin ölümünün ardından aile, atalarıyla ilgili karanlık sırları ortaya çıkarır."
+  },
+  "home-alone-1990": {
+    "az": "Milad bayramında evdə unudulan oğlan evini iki oğrudan qoruyur.",
+    "ru": "Мальчик, которого забыли дома на Рождество, защищает дом от двух грабителей.",
+    "tr": "Noel'de evde unutulan bir çocuk, evini iki hırsıza karşı savunur."
+  },
+  "howl-s-moving-castle-2004": {
+    "az": "Yaşlı qadına çevrilmiş gənc papaqçı qız sehrbazın yeriyən qəsrində sığınacaq tapır.",
+    "ru": "Юная шляпница, превращённая в старуху, находит приют в ходячем замке волшебника.",
+    "tr": "Yaşlı bir kadına dönüştürülen genç bir şapkacı, bir büyücünün yürüyen şatosunda sığınak bulur."
+  },
+  "inception-2010": {
+    "az": "Yuxular vasitəsilə sirr oğurlayan oğru bu dəfə bir ideyanı yerləşdirmək üçün işə götürülür.",
+    "ru": "Вора, крадущего секреты через сны, нанимают, чтобы на этот раз внедрить идею.",
+    "tr": "Rüyalar aracılığıyla sır çalan bir hırsız, bu kez bir fikir yerleştirmek için tutulur."
+  },
+  "inglourious-basterds-2009": {
+    "az": "Müttəfiq əsgərləri və kinoteatr sahibi bir-birindən xəbərsiz Parisdə nasist rəhbərliyinə qarşı plan qurur.",
+    "ru": "Союзные солдаты и владелица кинотеатра порознь готовят покушение на нацистскую верхушку в Париже.",
+    "tr": "Müttefik askerler ve bir sinema sahibi, Paris'te Nazi liderlerine karşı birbirinden habersiz planlar kurar."
+  },
+  "inside-out-2015": {
+    "az": "On bir yaşlı qızın beynindəki duyğular ailənin köçü zamanı onu idarə etməyə çalışır.",
+    "ru": "Эмоции в голове одиннадцатилетней девочки пытаются провести её через переезд семьи.",
+    "tr": "On bir yaşındaki bir kızın zihnindeki duygular, ailenin taşınması sırasında ona yön vermeye çalışır."
+  },
+  "interstellar-2014": {
+    "az": "Yer kürəsində məhsullar məhv olarkən astronavtlar yeni ev tapmaq üçün qurd dəliyindən keçir.",
+    "ru": "Пока на Земле гибнут урожаи, астронавты отправляются через червоточину на поиски нового дома.",
+    "tr": "Dünya'da ekinler kururken astronotlar yeni bir yuva bulmak için bir solucan deliğinden geçer."
+  },
+  "jaws-1975": {
+    "az": "Polis rəisi, alim və balıqçı yay adasının sahillərində böyük ağ köpəkbalığını ovlayır.",
+    "ru": "Шеф полиции, учёный и рыбак охотятся на большую белую акулу у курортного острова.",
+    "tr": "Bir polis şefi, bir bilim insanı ve bir balıkçı, bir yaz adasının açıklarında büyük beyaz bir köpekbalığını avlar."
+  },
+  "john-wick-2014": {
+    "az": "Təqaüdə çıxmış qatil ondan alınanların qisasını almaq üçün yeraltı dünyaya qayıdır.",
+    "ru": "Отошедший от дел наёмный убийца возвращается в преступный мир, чтобы отомстить за отнятое.",
+    "tr": "Emekli bir tetikçi, kendisinden alınanların intikamını almak için yeraltı dünyasına döner."
+  },
+  "jurassic-park-1993": {
+    "az": "Klonlanmış dinozavrlar parkı ilk yoxlama turu zamanı nəzarətdən çıxır.",
+    "ru": "Парк клонированных динозавров выходит из строя во время первой инспекционной экскурсии.",
+    "tr": "Klonlanmış dinozorlardan oluşan bir tema parkı, ilk denetim turunda çöker."
+  },
+  "kill-bill-vol-1-2003": {
+    "az": "Keçmiş qatil komadan ayılır və qisas yoluna çıxır.",
+    "ru": "Бывшая наёмная убийца выходит из комы и отправляется мстить.",
+    "tr": "Eski bir suikastçı komadan uyanır ve intikam yoluna çıkar."
+  },
+  "knives-out-2019": {
+    "az": "Detektiv detektiv romanları müəllifinin ailə malikanəsindəki ölümünü araşdırır.",
+    "ru": "Детектив расследует смерть автора криминальных романов в его родовом поместье.",
+    "tr": "Bir dedektif, bir polisiye yazarının aile malikânesindeki ölümünü soruşturur."
+  },
+  "la-la-land-2016": {
+    "az": "Caz pianoçusu və aktrisa olmaq istəyən qız Los-Ancelesdə arzularının ardınca gedərkən bir-birinə aşiq olur.",
+    "ru": "Джазовый пианист и начинающая актриса влюбляются, преследуя свои мечты в Лос-Анджелесе.",
+    "tr": "Bir caz piyanisti ile oyuncu olmak isteyen bir kadın, Los Angeles'ta hayallerinin peşinde koşarken âşık olur."
+  },
+  "life-is-beautiful-1997": {
+    "az": "Ata konsentrasiya düşərgəsində oğlunu yumor və təxəyyüllə qoruyur.",
+    "ru": "Отец с помощью юмора и воображения оберегает сына в концлагере.",
+    "tr": "Bir baba, bir toplama kampında oğlunu mizah ve hayal gücüyle korur."
+  },
+  "low-tide-chorus-2020": {
+    "az": "Balıqçı kəndinin xoru limanlarının satıldığı il ölkə müsabiqəsinə qatılır.",
+    "ru": "Хор рыбацкой деревни участвует в национальном конкурсе в год, когда продают их гавань.",
+    "tr": "Bir balıkçı köyünün korosu, limanlarının satıldığı yıl ulusal bir yarışmaya katılır."
+  },
+  "mad-max-fury-road-2015": {
+    "az": "Səyyah və üsyançı komandir səhra tiranından çöllər boyu qaçır.",
+    "ru": "Бродяга и мятежная командирша бегут от пустынного тирана через пустошь.",
+    "tr": "Bir serseri ile asi bir komutan, çöl tiranından çorak topraklar boyunca kaçar."
+  },
+  "memento-2000": {
+    "az": "Yeni xatirələr yarada bilməyən adam qeydlər və döymələrin köməyi ilə arvadının qatilini axtarır.",
+    "ru": "Человек, не способный запоминать новое, ищет убийцу жены с помощью записок и татуировок.",
+    "tr": "Yeni anılar oluşturamayan bir adam, notlar ve dövmelerle karısının katilini arar."
+  },
+  "mission-impossible-fallout-2018": {
+    "az": "Tapşırıq uğursuz alınandan sonra Itan Hant oğurlanmış plutoniumu geri qaytarmaq üçün vaxtla yarışır.",
+    "ru": "После провала миссии Итан Хант спешит вернуть украденный плутоний.",
+    "tr": "Bir görev ters gidince Ethan Hunt, çalınan plütonyumu geri almak için zamanla yarışır."
+  },
+  "my-neighbor-totoro-1988": {
+    "az": "Kəndə köçən iki bacı yaxınlıqdakı mehriban meşə ruhları ilə tanış olur.",
+    "ru": "Две сестры, переехавшие в деревню, знакомятся с добрыми лесными духами.",
+    "tr": "Kırsala taşınan iki kız kardeş, yakındaki sevimli orman ruhlarıyla tanışır."
+  },
+  "no-country-for-old-men-2007": {
+    "az": "Narkotik pulunu götürən ovçunu amansız qatil Texas boyu təqib edir.",
+    "ru": "Охотника, присвоившего деньги наркоторговцев, по всему Техасу преследует безжалостный убийца.",
+    "tr": "Uyuşturucu parasını alan bir avcı, acımasız bir katil tarafından Teksas boyunca takip edilir."
+  },
+  "north-by-northwest-1959": {
+    "az": "Casusla səhv salınan reklamçı bütün ABŞ boyu təqib olunur.",
+    "ru": "Рекламщика, которого приняли за шпиона, преследуют по всем Соединённым Штатам.",
+    "tr": "Casus sanılan bir reklamcı, Amerika Birleşik Devletleri boyunca kovalanır."
+  },
+  "oldboy-2003": {
+    "az": "İzahatsız on beş il həbsdə saxlanılan adam birdən azadlığa buraxılır.",
+    "ru": "Человека, без объяснений продержанного взаперти пятнадцать лет, внезапно отпускают на свободу.",
+    "tr": "On beş yıl boyunca nedensiz yere hapsedilen bir adam aniden serbest bırakılır."
+  },
+  "once-upon-a-time-in-the-west-1968": {
+    "az": "Sirli qarmon çalan dul qadına torpağını amansız qatildən qorumaqda kömək edir.",
+    "ru": "Таинственный человек с губной гармошкой помогает вдове защитить свою землю от безжалостного убийцы.",
+    "tr": "Gizemli bir mızıkacı, bir dul kadına toprağını acımasız bir katile karşı savunmasında yardım eder."
+  },
+  "oppenheimer-2023": {
+    "az": "Atom bombası layihəsinə rəhbərlik edən fizik onun nəticələri ilə yaşayır.",
+    "ru": "Физик, руководивший созданием атомной бомбы, живёт с последствиями своего труда.",
+    "tr": "Atom bombası projesini yöneten fizikçi, sonuçlarıyla yaşamak zorunda kalır."
+  },
+  "orbit-of-small-things-2021": {
+    "az": "Stansiya mühəndisi qırx illik missiyalarda kosmosda itən hər bir əşyanı qeydə alır.",
+    "ru": "Инженер станции составляет каталог всех предметов, потерянных в космосе за сорок лет полётов.",
+    "tr": "Bir istasyon mühendisi, kırk yıllık görevlerde uzayda kaybolan her nesneyi kataloglar."
+  },
+  "pan-s-labyrinth-2006": {
+    "az": "Müharibədən sonrakı İspaniyada bir qız tapşırıq və sınaqlarla dolu qaranlıq nağıl dünyasına qaçır.",
+    "ru": "В послевоенной Испании девочка убегает в мрачный сказочный мир заданий и испытаний.",
+    "tr": "Savaş sonrası İspanya'da bir kız, görevler ve sınavlarla dolu karanlık bir peri dünyasına kaçar."
+  },
+  "paper-lanterns-2021": {
+    "az": "Təqaüdə çıxmış iki mayak gözətçisi uzun bir qış ərzində bağlanmış kinoteatrı bərpa edir.",
+    "ru": "Двое отставных смотрителей маяка за одну долгую зиму восстанавливают закрытый кинотеатр.",
+    "tr": "Emekli iki deniz feneri bekçisi, uzun bir kış boyunca kapanmış bir sinemayı onarır."
+  },
+  "paperweight-2022": {
+    "az": "Ölmək istəməyən ofis bitkisi haqqında əl ilə çəkilmiş qısa animasiya.",
+    "ru": "Рисованная от руки короткая лента об офисном растении, которое отказывается умирать.",
+    "tr": "Ölmeyi reddeden bir ofis bitkisi hakkında elle çizilmiş kısa bir animasyon."
+  },
+  "parasite-2019": {
+    "az": "Kasıb ailə hiylə ilə varlı evə yol tapır — ta ki gizli sirr üzə çıxana qədər.",
+    "ru": "Бедная семья хитростью проникает в богатый дом — пока не всплывает скрытая тайна.",
+    "tr": "Yoksul bir aile hileyle zengin bir eve sızar — ta ki gizli bir sır ortaya çıkana kadar."
+  },
+  "pirates-of-the-caribbean-the-curse-of-the-black-pearl-2003": {
+    "az": "Dəmirçi və qəribə pirat qubernatorun qızını xilas etmək üçün lənətlənmiş ekipajı təqib edir.",
+    "ru": "Кузнец и эксцентричный пират преследуют проклятую команду, чтобы спасти дочь губернатора.",
+    "tr": "Bir demirci ve tuhaf bir korsan, valinin kızını kurtarmak için lanetli bir mürettebatın peşine düşer."
+  },
+  "pride-and-prejudice-2005": {
+    "az": "Elizabet Bennet və mister Darsi Regentlik dövrü İngiltərəsində qürur və yanlış mühakiməni aşır.",
+    "ru": "Элизабет Беннет и мистер Дарси преодолевают гордость и предубеждение в Англии эпохи Регентства.",
+    "tr": "Elizabeth Bennet ve Bay Darcy, Regency dönemi İngiltere'sinde gururu ve yanlış yargıları aşar."
+  },
+  "princess-mononoke-1997": {
+    "az": "Lənətlənmiş şahzadə mədən şəhəri ilə meşə tanrıları arasındakı müharibənin ortasında qalır.",
+    "ru": "Проклятый принц оказывается посреди войны между шахтёрским городом и лесными богами.",
+    "tr": "Lanetlenmiş bir prens, bir maden kasabası ile orman tanrıları arasındaki savaşın ortasında kalır."
+  },
+  "psycho-1960": {
+    "az": "Qaçan katibə gecələmək üçün əsəbi gəncin idarə etdiyi tənha motelə düşür.",
+    "ru": "Сбежавшая секретарша останавливается на ночь в уединённом мотеле, которым заправляет нервный молодой человек.",
+    "tr": "Kaçmakta olan bir sekreter, geceyi geçirmek için gergin bir gencin işlettiği ıssız bir motelde durur."
+  },
+  "pulp-fiction-1994": {
+    "az": "Kiralıq qatillər, boksçu və qanqsterin arvadının yolları Los-Ancelesin bir-birinə bağlı hekayələrində kəsişir.",
+    "ru": "Наёмные убийцы, боксёр и жена гангстера пересекаются в переплетённых историях Лос-Анджелеса.",
+    "tr": "Tetikçiler, bir boksör ve bir gangsterin karısının yolları, birbirine bağlı Los Angeles hikâyelerinde kesişir."
+  },
+  "quiet-signal-2023": {
+    "az": "Radioastronom heç kimin təkrarlaya bilmədiyi siqnal eşidir və bunu sübut etmək üçün on bir günü var.",
+    "ru": "Радиоастроном слышит сигнал, который никто не может воспроизвести, и у неё есть одиннадцать дней, чтобы это доказать.",
+    "tr": "Bir radyo astronomu, kimsenin tekrarlayamadığı bir örüntü duyar ve bunu kanıtlamak için on bir günü vardır."
+  },
+  "raiders-of-the-lost-ark-1981": {
+    "az": "Arxeoloq Əhd sandığını tapmaq üçün nasist agentləri ilə yarışır.",
+    "ru": "Археолог соревнуется с нацистскими агентами в поисках Ковчега Завета.",
+    "tr": "Bir arkeolog, Ahit Sandığı'nı bulmak için Nazi ajanlarıyla yarışır."
+  },
+  "rear-window-1954": {
+    "az": "Mənzilinə qapanmış fotoqraf həyətin qarşı tərəfində qətlin şahidi olduğuna inanır.",
+    "ru": "Прикованный к квартире фотограф уверен, что стал свидетелем убийства в доме напротив.",
+    "tr": "Dairesine kapanmış bir fotoğrafçı, avlunun karşısında bir cinayete tanık olduğuna inanır."
+  },
+  "return-of-the-jedi-1983": {
+    "az": "Üsyançılar ikinci Ölüm Ulduzuna zərbə endirir, Lük isə atası ilə üz-üzə gəlir.",
+    "ru": "Повстанцы атакуют вторую Звезду смерти, а Люк противостоит своему отцу.",
+    "tr": "Asiler ikinci Ölüm Yıldızı'na saldırırken Luke babasıyla yüzleşir."
+  },
+  "saving-private-ryan-1998": {
+    "az": "D-Day-dən sonra bir dəstə bir paraşütçünü evə qaytarmaq üçün işğal olunmuş Fransanı keçir.",
+    "ru": "После высадки в Нормандии отряд пересекает оккупированную Францию, чтобы вернуть домой одного десантника.",
+    "tr": "D-Day'in ardından bir tim, tek bir paraşütçüyü eve götürmek için işgal altındaki Fransa'yı geçer."
+  },
+  "schindler-s-list-1993": {
+    "az": "Alman sənayeçi Holokost zamanı yəhudi işçiləri xilas etmək üçün tədricən hər şeyini riskə atır.",
+    "ru": "Немецкий промышленник постепенно рискует всем, чтобы спасти еврейских рабочих во время Холокоста.",
+    "tr": "Alman bir sanayici, Holokost sırasında Yahudi işçileri kurtarmak için yavaş yavaş her şeyini riske atar."
+  },
+  "se7en-1995": {
+    "az": "İki detektiv qətlləri yeddi ölümcül günaha görə səhnələşdirən qatili ovlayır.",
+    "ru": "Двое детективов охотятся на убийцу, который обставляет убийства по семи смертным грехам.",
+    "tr": "İki dedektif, cinayetlerini yedi ölümcül günaha göre sahneleyen bir katilin peşine düşer."
+  },
+  "seven-samurai-1954": {
+    "az": "Kasıb kənd özünü quldurlardan qorumaq üçün ağasız yeddi samurayı işə götürür.",
+    "ru": "Бедная деревня нанимает семерых самураев без господина, чтобы защититься от бандитов.",
+    "tr": "Yoksul bir köy, kendini haydutlardan korumak için efendisiz yedi samurayı tutar."
+  },
+  "shutter-island-2010": {
+    "az": "ABŞ marşalı ağır cinayətkar ruhi xəstələr üçün ada xəstəxanasında bir itkini araşdırır.",
+    "ru": "Федеральный маршал расследует исчезновение в островной больнице для душевнобольных преступников.",
+    "tr": "Bir ABD şerifi, akıl hastası suçlular için bir ada hastanesindeki kaybolmayı soruşturur."
+  },
+  "singin-in-the-rain-1952": {
+    "az": "Hollivud ulduzları səsli kinonun gəlişi ilə büdrəyə-büdrəyə uyğunlaşır.",
+    "ru": "Голливудские звёзды неуклюже переживают приход звукового кино.",
+    "tr": "Hollywood yıldızları sesli filmlerin gelişine tökezleyerek ayak uydurur."
+  },
+  "spider-man-into-the-spider-verse-2018": {
+    "az": "Bruklinli yeniyetmə Hörümçək-adam olur və başqa ölçülərdən olan tayları ilə tanış olur.",
+    "ru": "Бруклинский подросток становится Человеком-пауком и встречает своих двойников из других измерений.",
+    "tr": "Brooklynli bir genç Örümcek-Adam olur ve diğer boyutlardaki benzerleriyle tanışır."
+  },
+  "spirited-away-2001": {
+    "az": "Ruhlar dünyasında ilişib qalan qız valideynlərini azad etmək üçün hamamda işləyir.",
+    "ru": "Девочка, попавшая в мир духов, работает в купальне, чтобы освободить родителей.",
+    "tr": "Ruhlar dünyasında mahsur kalan bir kız, anne babasını kurtarmak için bir hamamda çalışır."
+  },
+  "star-wars-a-new-hope-1977": {
+    "az": "Fermer oğlan şahzadəni xilas etmək və Ölüm Ulduzunu məhv etmək üçün üsyana qoşulur.",
+    "ru": "Фермерский парень присоединяется к восстанию, чтобы спасти принцессу и уничтожить Звезду смерти.",
+    "tr": "Çiftçi bir genç, bir prensesi kurtarmak ve Ölüm Yıldızı'nı yok etmek için isyana katılır."
+  },
+  "taxi-driver-1976": {
+    "az": "Nyu-Yorkda gecələr taksi sürən yuxusuz veteran tədricən zorakılığa sürüklənir.",
+    "ru": "Ветеран, страдающий бессонницей и работающий ночным таксистом в Нью-Йорке, постепенно скатывается к насилию.",
+    "tr": "New York'ta geceleri taksi süren uykusuz bir gazi, giderek şiddete sürüklenir."
+  },
+  "terminator-2-judgment-day-1991": {
+    "az": "Yenidən proqramlaşdırılmış kiborq bəşəriyyətə maşınlara qarşı rəhbərlik etməli olan oğlanı qoruyur.",
+    "ru": "Перепрограммированный киборг защищает мальчика, которому суждено повести человечество против машин.",
+    "tr": "Yeniden programlanmış bir siborg, insanlığı makinelere karşı yönetecek olan çocuğu korur."
+  },
+  "the-big-lebowski-1998": {
+    "az": "Rahat boulinq həvəskarı milyonçu ilə eyni adı daşıdığı üçün oğurlanma planına qarışır.",
+    "ru": "Беспечного любителя боулинга втягивают в историю с похищением из-за того, что его зовут так же, как миллионера.",
+    "tr": "Rahat bir bowling oyuncusu, bir milyonerle aynı adı taşıdığı için bir fidye planına sürüklenir."
+  },
+  "the-dark-knight-2008": {
+    "az": "Betmen hər kəsin xaosa sürüklənə biləcəyini sübut etmək istəyən anarxist cinayətkarla üz-üzə gəlir.",
+    "ru": "Бэтмен противостоит преступнику-анархисту, который хочет доказать, что любого можно довести до хаоса.",
+    "tr": "Batman, herkesin kaosa itilebileceğini kanıtlamak isteyen anarşist bir suçluyla karşı karşıya gelir."
+  },
+  "the-departed-2006": {
+    "az": "Gizli polis və polisdəki köstəbək Bostonda bir-birini ifşa etmək üçün yarışır.",
+    "ru": "Полицейский под прикрытием и «крот» в полиции наперегонки пытаются разоблачить друг друга в Бостоне.",
+    "tr": "Gizli bir polis ile polis içindeki bir köstebek, Boston'da birbirlerini ifşa etmek için yarışır."
+  },
+  "the-empire-strikes-back-1980": {
+    "az": "Üsyançılar dağılır, Lük Yoda ilə məşq edir, Veyder isə yaxınlaşır.",
+    "ru": "Повстанцы рассеяны, Люк тренируется у Йоды, а Вейдер подбирается всё ближе.",
+    "tr": "Asiler dağılırken Luke, Yoda ile eğitim alır ve Vader giderek yaklaşır."
+  },
+  "the-exorcist-1973": {
+    "az": "İki keşiş iblis qüvvəsinin ələ keçirdiyi qızı xilas etməyə çalışır.",
+    "ru": "Двое священников пытаются спасти девочку, одержимую демонической силой.",
+    "tr": "İki rahip, şeytani bir gücün ele geçirdiği bir kızı kurtarmaya çalışır."
+  },
+  "the-godfather-1972": {
+    "az": "Nyu-Yorkdakı cinayət ailəsinin yaşlı başçısı imperiyasını heç vaxt bunu istəməyən oğluna təhvil verir.",
+    "ru": "Стареющий глава нью-йоркской мафиозной семьи передаёт империю сыну, который никогда её не хотел.",
+    "tr": "New York'taki bir suç ailesinin yaşlanan reisi, imparatorluğunu bunu hiç istemeyen oğluna devreder."
+  },
+  "the-godfather-part-ii-1974": {
+    "az": "Maykl ailə üzərində nəzarəti gücləndirir, paralel olaraq gənc Vitonun 1910-cu illərin Nyu-Yorkunda yüksəlişi göstərilir.",
+    "ru": "Майкл укрепляет власть над семьёй, а параллельно разворачивается восхождение молодого Вито в Нью-Йорке 1910-х.",
+    "tr": "Michael aile üzerindeki gücünü sağlamlaştırırken, genç Vito'nun 1910'ların New York'undaki yükselişi paralel olarak anlatılır."
+  },
+  "the-good-the-bad-and-the-ugly-1966": {
+    "az": "Vətəndaş müharibəsi zamanı üç silahlı konfederasiya qızılından ibarət sərvətə çatmaq üçün yarışır.",
+    "ru": "Во время Гражданской войны трое стрелков наперегонки ищут клад золота Конфедерации.",
+    "tr": "İç Savaş sırasında üç silahşor, Konfederasyon altınından oluşan bir servete ulaşmak için yarışır."
+  },
+  "the-grand-budapest-hotel-2014": {
+    "az": "Əfsanəvi konsyerj və onun foye oğlanı qiymətsiz rəsm əsərinin oğurlanmasına qarışır.",
+    "ru": "Легендарный консьерж и его посыльный оказываются втянуты в кражу бесценной картины.",
+    "tr": "Efsanevi bir konsiyerj ve lobi çocuğu, paha biçilmez bir tablonun çalınmasına karışır."
+  },
+  "the-green-mile-1999": {
+    "az": "Ölüm kamerası gözətçisi himayəsindəki mülayim nəhəngin möcüzəvi qabiliyyətə malik olduğuna inanmağa başlayır.",
+    "ru": "Надзиратель камеры смертников начинает верить, что у кроткого великана под его охраной есть чудесный дар.",
+    "tr": "İdam koğuşundaki bir gardiyan, gözetimindeki uysal devin mucizevi bir yeteneği olduğuna inanmaya başlar."
+  },
+  "the-intouchables-2011": {
+    "az": "Varlı iflic adam şəhər kənarından olan gənci özünə baxıcı götürür.",
+    "ru": "Богатый парализованный аристократ нанимает в сиделки парня из предместья.",
+    "tr": "Varlıklı, felçli bir adam banliyöden bir genci bakıcısı olarak işe alır."
+  },
+  "the-lion-king-1994": {
+    "az": "Şir balası atasının ölümündən sonra qaçır və yerini almaq üçün geri qayıtmalıdır.",
+    "ru": "Львёнок бежит после гибели отца и должен вернуться, чтобы занять своё место.",
+    "tr": "Bir aslan yavrusu babasının ölümünden sonra kaçar ve yerini almak için geri dönmek zorundadır."
+  },
+  "the-long-count-2016": {
+    "az": "Təqaüdə çıxmış boksçu karyerasını bitirən adamın nəvəsini məşq etdirir.",
+    "ru": "Бывший боксёр тренирует внука человека, который завершил его карьеру.",
+    "tr": "Emekli bir boksör, kariyerini bitiren adamın torununu çalıştırır."
+  },
+  "the-lord-of-the-rings-the-fellowship-of-the-ring-2001": {
+    "az": "Hobbit dəhşətli gücə malik üzüyü məhv etmək üçün səkkiz yoldaşı ilə yola çıxır.",
+    "ru": "Хоббит с восемью спутниками отправляется уничтожить кольцо страшной силы.",
+    "tr": "Bir hobbit, korkunç güçteki bir yüzüğü yok etmek için sekiz yol arkadaşıyla yola çıkar."
+  },
+  "the-lord-of-the-rings-the-return-of-the-king-2003": {
+    "az": "Frodo üzüyü Qiyamət dağına aparanda Orta Dünya son döyüşünü verir.",
+    "ru": "Последняя битва за Средиземье, пока Фродо несёт кольцо к Роковой горе.",
+    "tr": "Frodo yüzüğü Hüküm Dağı'na taşırken Orta Dünya son savaşını verir."
+  },
+  "the-lord-of-the-rings-the-two-towers-2002": {
+    "az": "Rohana müharibə gəlir, Frodo Mordora yaxınlaşır, birlik isə dağılır.",
+    "ru": "Братство рассеяно, на Рохан надвигается война, а Фродо приближается к Мордору.",
+    "tr": "Kardeşlik dağılırken Rohan'a savaş gelir ve Frodo Mordor'a yaklaşır."
+  },
+  "the-martian-2015": {
+    "az": "Marsda unudulan astronavt sağ qalmaq üçün elmdən və zəkasından istifadə edir.",
+    "ru": "Астронавт, оставленный на Марсе, выживает благодаря науке и смекалке.",
+    "tr": "Mars'ta geride bırakılan bir astronot, hayatta kalmak için bilimi ve zekâsını kullanır."
+  },
+  "the-matrix-1999": {
+    "az": "Haker tanıdığı dünyanın bəşəriyyəti yuxuda saxlamaq üçün qurulmuş simulyasiya olduğunu öyrənir.",
+    "ru": "Хакер узнаёт, что привычный мир — симуляция, созданная, чтобы держать человечество во сне.",
+    "tr": "Bir hacker, bildiği dünyanın insanlığı uyutmak için kurulmuş bir simülasyon olduğunu öğrenir."
+  },
+  "the-notebook-2004": {
+    "az": "Qoca kişi qocalar evində bir qadına köhnəlmiş dəftərdən sevgi hekayəsi oxuyur.",
+    "ru": "Старик читает женщине в доме престарелых историю любви из выцветшей тетради.",
+    "tr": "Yaşlı bir adam, bakımevindeki bir kadına solmuş bir defterden bir aşk hikâyesi okur."
+  },
+  "the-pianist-2002": {
+    "az": "Polşalı yəhudi pianoçu Varşava gettosunun məhvi zamanı sağ qalmağa çalışır.",
+    "ru": "Польский пианист-еврей пытается выжить при уничтожении Варшавского гетто.",
+    "tr": "Polonyalı Yahudi bir piyanist, Varşova gettosunun yok edilişinde hayatta kalmaya çalışır."
+  },
+  "the-prestige-2006": {
+    "az": "Viktoriya dövrü Londonunda iki rəqib sehrbaz mükəmməl fokus üçün hər şeyi qurban verir.",
+    "ru": "Два соперничающих фокусника в викторианском Лондоне жертвуют всем ради идеального трюка.",
+    "tr": "Viktorya dönemi Londra'sında iki rakip sihirbaz, kusursuz numara için her şeyi feda eder."
+  },
+  "the-salt-road-2019": {
+    "az": "Abşeron düzlərini keçən karvan sürücüsü daşıdığı yükün duz olmadığını aşkar edir.",
+    "ru": "Водительница каравана, пересекающая Апшеронские равнины, обнаруживает, что везёт вовсе не соль.",
+    "tr": "Abşeron düzlüklerini geçen bir kervan sürücüsü, taşıdığı yükün tuz olmadığını keşfeder."
+  },
+  "the-shawshank-redemption-1994": {
+    "az": "Törətmədiyinə and içdiyi qətlə görə məhkum edilən bankir həbsxana divarları arxasında dostluq və səbir tapır.",
+    "ru": "Банкир, осуждённый за убийство, которого, по его словам, не совершал, обретает за тюремными стенами дружбу и терпение.",
+    "tr": "İşlemediğine yemin ettiği bir cinayetten hüküm giyen bir bankacı, hapishane duvarları ardında dostluk ve sabır bulur."
+  },
+  "the-shining-1980": {
+    "az": "Tənha oteldə qışı keçirən yazıçı tədricən öz ailəsinə qarşı çıxır.",
+    "ru": "Писатель, зимующий в уединённом отеле, постепенно обращается против собственной семьи.",
+    "tr": "Issız bir otelde kışı geçiren bir yazar, yavaş yavaş kendi ailesine karşı döner."
+  },
+  "the-silence-of-the-lambs-1991": {
+    "az": "Gənc FTB kursantı başqa qatili tutmaq üçün həbsdəki adamyeyəndən kömək istəyir.",
+    "ru": "Молодая курсантка ФБР обращается за помощью к заключённому людоеду, чтобы поймать другого убийцу.",
+    "tr": "Genç bir FBI stajyeri, başka bir katili yakalamak için hapisteki bir yamyamdan yardım ister."
+  },
+  "the-sixth-sense-1999": {
+    "az": "Uşaq psixoloqu ölüləri gördüyünü deyən oğlanı müalicə edir.",
+    "ru": "Детский психолог лечит мальчика, который утверждает, что видит мёртвых.",
+    "tr": "Bir çocuk psikoloğu, ölüleri gördüğünü söyleyen bir çocuğu tedavi eder."
+  },
+  "the-social-network-2010": {
+    "az": "Harvard tələbəsi dünyanı dəyişən, ona isə dostlarını itirtdirən sayt qurur.",
+    "ru": "Студент Гарварда создаёт сайт, который меняет мир и стоит ему друзей.",
+    "tr": "Bir Harvard öğrencisi, dünyayı değiştiren ve ona arkadaşlarını kaybettiren bir site kurar."
+  },
+  "the-sound-of-music-1965": {
+    "az": "Gənc dayə Avstriyada dul kapitanın ailəsinə musiqini geri qaytarır.",
+    "ru": "Молодая гувернантка возвращает музыку в семью овдовевшего капитана в Австрии.",
+    "tr": "Genç bir mürebbiye, Avusturya'da dul bir kaptanın ailesine müziği geri getirir."
+  },
+  "the-truman-show-1998": {
+    "az": "Sığorta agenti bütün həyatının televiziya şousu olduğunu kəşf edir.",
+    "ru": "Страховой агент обнаруживает, что вся его жизнь — телешоу.",
+    "tr": "Bir sigorta satıcısı, tüm hayatının bir televizyon şovu olduğunu keşfeder."
+  },
+  "the-understudy-2024": {
+    "az": "Səhnə işçisi baş rola çıxır və əvvəlki aktyorun əslində heç getmədiyini görür.",
+    "ru": "Рабочий сцены выходит в главной роли и понимает, что прежний актёр так и не ушёл.",
+    "tr": "Bir sahne görevlisi başrole çıkar ve önceki oyuncunun aslında hiç gitmediğini fark eder."
+  },
+  "the-usual-suspects-1995": {
+    "az": "Xırda fırıldaqçı polisə bir soyğun və əfsanəvi cinayət başçısı haqqında danışır.",
+    "ru": "Мелкий мошенник рассказывает полиции историю ограбления и легендарного криминального босса.",
+    "tr": "Küçük çaplı bir dolandırıcı, polise bir soygunun ve efsanevi bir suç babasının hikâyesini anlatır."
+  },
+  "the-wolf-of-wall-street-2013": {
+    "az": "Fırıldaq və ifrat həyat tərzi üzərində sərvət quran birja makleri yüksəlib-enir.",
+    "ru": "Взлёт и падение биржевого брокера, сколотившего состояние на мошенничестве и излишествах.",
+    "tr": "Servetini dolandırıcılık ve aşırılık üzerine kuran bir borsacının yükselişi ve düşüşü."
+  },
+  "thirty-six-frames-2022": {
+    "az": "Arxivçi dörd ölkədə saxlanan parçalardan itmiş səssiz filmi yenidən bir araya gətirir.",
+    "ru": "Архивистка собирает утраченный немой фильм из фрагментов, хранящихся в четырёх странах.",
+    "tr": "Bir arşivci, dört ülkede saklanan parçalardan kayıp bir sessiz filmi yeniden bir araya getirir."
+  },
+  "titanic-1997": {
+    "az": "Gənc rəssam və nişanlı aristokrat qız məhv olmağa məhkum laynerdə bir-birinə aşiq olur.",
+    "ru": "Молодой художник и помолвленная аристократка влюбляются друг в друга на обречённом лайнере.",
+    "tr": "Genç bir ressam ile nişanlı bir aristokrat, batmaya mahkûm gemide birbirine âşık olur."
+  },
+  "top-gun-maverick-2022": {
+    "az": "Təcrübəli hərbi dəniz pilotu gənc komandanı demək olar ki, mümkünsüz tapşırığa hazırlayır.",
+    "ru": "Опытный пилот ВМС готовит молодую команду к почти невыполнимой миссии.",
+    "tr": "Deneyimli bir deniz kuvvetleri pilotu, genç bir ekibi neredeyse imkânsız bir göreve hazırlar."
+  },
+  "toy-story-1995": {
+    "az": "Kovboy kuklanın sevimli oyuncaq yerini yeni kosmos reyncer təhlükə altına alır.",
+    "ru": "Место ковбоя-куклы как любимой игрушки оказывается под угрозой из-за нового космического рейнджера.",
+    "tr": "Bir kovboy oyuncağın en sevilen oyuncak olma yeri, yeni bir uzay korucusu yüzünden tehlikeye girer."
+  },
+  "two-weeks-in-seki-2024": {
+    "az": "Şəhərli memar bir kəndi tədqiq etməyə göndərilir və hesabatı heç vaxt təqdim etmir.",
+    "ru": "Городского архитектора отправляют обследовать деревню, и он так и не сдаёт отчёт.",
+    "tr": "Şehirli bir mimar bir köyü incelemeye gönderilir ve raporu hiç teslim etmez."
+  },
+  "unforgiven-1992": {
+    "az": "Təqaüdə çıxmış silahlı son bir işə razılaşır və keçmişdəki özü ilə üz-üzə gəlir.",
+    "ru": "Отошедший от дел стрелок берётся за последнее дело и сталкивается с тем, кем был раньше.",
+    "tr": "Emekli bir silahşor son bir işi kabul eder ve eskiden kim olduğuyla yüzleşir."
+  },
+  "up-2009": {
+    "az": "Yaşlı dul kişi evinə şarlar bağlayıb uçur — gözlənilməz qaçaq sərnişinlə birlikdə.",
+    "ru": "Пожилой вдовец привязывает к дому воздушные шары и улетает — с неожиданным безбилетником.",
+    "tr": "Yaşlı bir dul adam evine balonlar bağlayıp uçar — beklenmedik bir kaçak yolcuyla."
+  },
+  "vertigo-1958": {
+    "az": "Hündürlük qorxusu olan təqaüdçü detektiv izləmək üçün tutulduğu qadına vurulur.",
+    "ru": "Отставной детектив, боящийся высоты, становится одержим женщиной, за которой его наняли следить.",
+    "tr": "Yükseklik korkusu olan emekli bir dedektif, takip etmesi için tutulduğu kadına takıntılı hâle gelir."
+  },
+  "wall-e-2008": {
+    "az": "Tullantı yığan tənha robot zərif zondun ardınca kosmosa gedir.",
+    "ru": "Одинокий робот-мусорщик отправляется в космос вслед за изящным зондом.",
+    "tr": "Çöp toplayan yalnız bir robot, zarif bir sondanın peşinden uzaya gider."
+  },
+  "whiplash-2014": {
+    "az": "Gənc caz nağaraçısını qəddar musiqi müəllimi son həddə qədər sıxışdırır.",
+    "ru": "Молодого джазового барабанщика свирепый преподаватель доводит до предела.",
+    "tr": "Genç bir caz davulcusu, acımasız bir müzik öğretmeni tarafından sınırlarına kadar zorlanır."
+  },
+  "zodiac-2007": {
+    "az": "Karikaturaçı Zodiak qatilini müəyyənləşdirmək fikrinə qapılır.",
+    "ru": "Карикатурист одержим идеей вычислить убийцу по прозвищу Зодиак.",
+    "tr": "Bir karikatürist, Zodyak katilinin kimliğini bulmaya takıntılı hâle gelir."
+  }
+}

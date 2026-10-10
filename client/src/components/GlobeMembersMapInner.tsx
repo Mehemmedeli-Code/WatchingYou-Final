@@ -69,12 +69,16 @@ function GlobeMembersMap({
   cities,
   selectedCity,
   onSelect,
+  onCountryChange,
 }: {
   cities: GlobeMapCity[];
   selectedCity?: string | null;
   onSelect: (city: GlobeMapCity) => void;
+  /** Told whenever a country is opened on the map (or the map goes back to the whole Earth). */
+  onCountryChange?: (code: string | null) => void;
 }) {
   const [countryCode, setCountryCode] = useState<string | null>(null);
+  useEffect(() => { onCountryChange?.(countryCode); }, [countryCode, onCountryChange]);
   const placed = cities.filter((c) => c.latitude !== 0 || c.longitude !== 0);
 
   // Members per country, for the badges on the flags.

@@ -32,11 +32,12 @@ export default defineConfig({
   define: {
     __WY_API_BASE__: JSON.stringify(process.env.WY_API_BASE ?? "https://localhost:7139"),
   },
-  server: { port: 5174, strictPort: true },
+  // host: true so a phone on the same Wi-Fi can open it at http://<this computer>:5174.
+  server: { port: 5174, strictPort: true, host: true },
   build: {
     outDir,
     emptyOutDir: true,
-    rollupOptions: {
+    rolldownOptions: {
       input: fileURLToPath(new URL("./mobile.html", import.meta.url)),
     },
   },

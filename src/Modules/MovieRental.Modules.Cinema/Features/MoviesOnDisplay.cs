@@ -46,8 +46,10 @@ internal sealed class GetOnDisplayHandler(CinemaDbContext db)
 
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
+            // Contains escapes % and _; a LIKE pattern built from the text did not.
             var term = filter.Search.Trim();
-            screenings = screenings.Where(s => EF.Functions.Like(s.MovieTitle, $"%{term}%"));
+            if (term.Length > 100) term = term[..100];
+            screenings = screenings.Where(s => s.MovieTitle.Contains(term));
         }
 
         // Seats left comes from the same filtered booking set the seat map uses, so the two

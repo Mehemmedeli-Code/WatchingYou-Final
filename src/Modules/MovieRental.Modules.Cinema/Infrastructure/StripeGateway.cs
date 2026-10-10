@@ -102,10 +102,12 @@ internal sealed class StripeGateway(
             ["payment_intent"] = paymentIntentId,
             ["amount"] = ToMinorUnits(amount).ToString(CultureInfo.InvariantCulture)
         };
-        using var _ = await SendAsync(HttpMethod.Post, "v1/refunds", form, ct);
+        // Same key for the same payment: a retry after a timeout or a failed save here cannot
+        // refund twice. Stripe remembers keys for 24 hours.
+        using var _ = await SendAsync(HttpMethod.Post, "v1/refunds", form, ct, idempotencyKey: $"refund-{paymentIntentId}");
     }
 
-    private async Task<JsonDocument> SendAsync(HttpMethod method, string path, Dictionary<string, string>? form, CancellationToken ct)
+    private async Task<JsonDocument> SendAsync(HttpMethod method, string path, Dictionary<string, string>? form, CancellationToken ct, string? idempotencyKey = null)
     {
         if (!Enabled) throw new InvalidOperationException("Stripe is not configured (Payments:Stripe:SecretKey).");
 
@@ -113,6 +115,7 @@ internal sealed class StripeGateway(
         using var message = new HttpRequestMessage(method, new Uri(new Uri("https://api.stripe.com/"), path));
         message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.SecretKey);
         if (form is not null) message.Content = new FormUrlEncodedContent(form);
+        if (idempotencyKey is not null) message.Headers.Add("Idempotency-Key", idempotencyKey);
 
         using var response = await client.SendAsync(message, ct);
         var body = await response.Content.ReadAsStringAsync(ct);

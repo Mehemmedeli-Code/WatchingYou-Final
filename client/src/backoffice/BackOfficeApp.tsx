@@ -115,7 +115,7 @@ export default function BackOfficeApp() {
   })();
 
   async function signOut() {
-    await post("/api/auth/logout", { refreshToken: localStorage.getItem("rr.refresh") }).catch(() => null);
+    await post("/api/auth/logout", auth.logoutBody()).catch(() => null);
     auth.clear();
     window.location.href = "/account";
   }

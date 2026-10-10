@@ -55,7 +55,13 @@ public interface IPageShellFactory
 internal sealed class PageShellFactory(
     IConfiguration configuration, ILanguageContext language, ICurrentUser currentUser) : IPageShellFactory
 {
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    // Letters left as they are: the default encoder wrote every Cyrillic or Azerbaijani letter
+    // as \uXXXX, which more than doubled the inlined Russian dictionary. HTML-significant
+    // characters (<, >, &, quotes) are still escaped, so it stays safe inside a script tag.
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Create(System.Text.Unicode.UnicodeRanges.All)
+    };
 
     public AppPageViewModel Create(string titleKey, string taglineKey, string activeNav, string reactMount)
     {
@@ -84,6 +90,7 @@ internal sealed class PageShellFactory(
             // reason to open a conversation with themselves, so they do not get the link.
             if (!isSecurity) nav.Add(new NavItem("help", "/help", language["nav.help"]));
             nav.Add(new NavItem("globe", "/globe", language["nav.globe"]));
+            nav.Add(new NavItem("people", "/people", language["nav.people"]));
             nav.Add(new NavItem("favourites", "/favourites", language["nav.favourites"]));
             nav.Add(new NavItem("rentals", "/rentals", language["nav.rentals"]));
             nav.Add(new NavItem("studio", "/studio", language["nav.studio"]));

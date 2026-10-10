@@ -1,0 +1,34 @@
+@page "/{slug:regex(^(about|blog|careers|developers|terms|mobile-app|non-users)$)}"
+@model InfoModel
+@inject MovieRental.Host.Infrastructure.Localization.ILanguageContext T
+@* Plain server-rendered text, like the privacy policy: readable without JavaScript. *@
+<article class="rr-legal rr-info">
+    <partial name="_InfoTabs" model="Model.Slug" />
+
+    <h1>@Model.Text.Title</h1>
+    <p class="rr-info-lede">@Model.Text.Lede</p>
+
+    @foreach (var part in Model.Text.Sections)
+    {
+        <section class="@(part.Meta is not null ? "rr-info-post" : null)">
+            @if (part.Meta is not null)
+            {
+                <p class="rr-info-meta">@part.Meta</p>
+            }
+            <h2>@part.Heading</h2>
+            @foreach (var paragraph in part.Paragraphs)
+            {
+                <p>@paragraph</p>
+            }
+            @if (part.Code is { Count: > 0 })
+            {
+                <pre><code>@string.Join("\n", part.Code)</code></pre>
+            }
+        </section>
+    }
+
+    @if (Model.Slug == "careers" && !string.IsNullOrWhiteSpace(Model.ContactEmail))
+    {
+        <p><a class="rr-info-cta" href="mailto:@Model.ContactEmail">@Model.ContactEmail</a></p>
+    }
+</article>

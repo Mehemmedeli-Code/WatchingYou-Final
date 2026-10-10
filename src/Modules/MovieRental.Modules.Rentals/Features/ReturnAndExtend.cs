@@ -14,9 +14,10 @@ namespace MovieRental.Modules.Rentals.Features;
 
 // Feature 3 (continued) — when the paid three days are over: three more for $0.50, or return.
 // ExtraDays is kept in the request for older clients and ignored; a period is always three days.
-public sealed record ExtendRentalCommand(Guid RentalId, int ExtraDays = RentalPricing.PeriodDays) : ICommand<Result<RentalResponse>>;
+public sealed record ExtendRentalCommand(Guid RentalId, int ExtraDays = RentalPricing.PeriodDays, ProCard? Card = null) : ICommand<Result<RentalResponse>>;
 
-internal sealed class ExtendRentalHandler(RentalsDbContext db, ICurrentUser currentUser, LateFeePolicy policy)
+internal sealed class ExtendRentalHandler(RentalsDbContext db, ICurrentUser currentUser, LateFeePolicy policy,
+    Microsoft.Extensions.Configuration.IConfiguration configuration)
     : ICommandHandler<ExtendRentalCommand, Result<RentalResponse>>
 {
     public async Task<Result<RentalResponse>> Handle(ExtendRentalCommand command, CancellationToken ct)
@@ -33,15 +34,27 @@ internal sealed class ExtendRentalHandler(RentalsDbContext db, ICurrentUser curr
         if (now < rental.DueAtUtc)
             return Result.Failure<RentalResponse>(Error.Conflict("You can add three more days once the current three are over."));
 
+        var paid = CardPayment.Check(command.Card, configuration);
+        if (paid.IsFailure) return Result.Failure<RentalResponse>(paid.Error);
+
         // Counted from the moment they say yes. The time they took to decide was free and
         // does not eat into the days they are now paying for.
-        rental.DueAtUtc = now.AddDays(RentalPricing.PeriodDays);
-        rental.BasePrice = Math.Round(rental.BasePrice + RentalPricing.PeriodPrice, 2);
-        rental.ExtensionCount++;
-        rental.DueSoonNotified = false;
-        rental.OverdueNotified = false;   // the next "keep or return?" gets its own e-mail
+        // Conditional on the due date still being the one read above: of two requests at once
+        // (a double tap) only one extends and is charged; the other is told it is done.
+        var due = rental.DueAtUtc;
+        var newDue = now.AddDays(RentalPricing.PeriodDays);
+        var extended = await db.Rentals
+            .Where(r => r.Id == rental.Id && r.ReturnedAtUtc == null && r.DueAtUtc == due)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(r => r.DueAtUtc, newDue)
+                .SetProperty(r => r.BasePrice, r => r.BasePrice + RentalPricing.PeriodPrice)
+                .SetProperty(r => r.ExtensionCount, r => r.ExtensionCount + 1)
+                .SetProperty(r => r.DueSoonNotified, false)
+                .SetProperty(r => r.OverdueNotified, false), ct);
+        if (extended == 0)
+            return Result.Failure<RentalResponse>(Error.Conflict("You can add three more days once the current three are over."));
 
-        await db.SaveChangesAsync(ct);
+        await db.Entry(rental).ReloadAsync(ct);
         return Result.Success(rental.ToResponse(policy, DateTime.UtcNow));
     }
 }
@@ -62,10 +75,19 @@ internal sealed class ReturnRentalHandler(
             return Result.Failure<RentalResponse>(Error.Conflict("This rental was already returned."));
 
         var now = DateTime.UtcNow;
-        rental.ReturnedAtUtc = now;
-        rental.LateFee = policy.Calculate(rental, now);
+        var fee = policy.Calculate(rental, now);
 
-        await db.SaveChangesAsync(ct);
+        // One conditional UPDATE decides who returns it. Read-then-save let several requests at
+        // once all see "not returned" and each put a copy back on the shelf — copies that were
+        // still out with other customers.
+        var closed = await db.Rentals
+            .Where(r => r.Id == rental.Id && r.ReturnedAtUtc == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.ReturnedAtUtc, now).SetProperty(r => r.LateFee, fee), ct);
+        if (closed == 0)
+            return Result.Failure<RentalResponse>(Error.Conflict("This rental was already returned."));
+
+        rental.ReturnedAtUtc = now;
+        rental.LateFee = fee;
         await catalog.ReleaseCopyAsync(rental.MovieId, ct);
 
         return Result.Success(rental.ToResponse(policy, now));

@@ -20,7 +20,7 @@ internal sealed class LoginValidator : AbstractValidator<LoginCommand>
     public LoginValidator()
     {
         RuleFor(x => x.Email).NotEmpty().EmailAddress();
-        RuleFor(x => x.Password).NotEmpty();
+        RuleFor(x => x.Password).NotEmpty().MaximumLength(128);
     }
 }
 
@@ -35,7 +35,10 @@ internal sealed class LoginHandler(
 
         // Same message for "no such user" and "wrong password" — anything else is an
         // account-enumeration oracle.
-        if (user is null || !hasher.Verify(command.Password, user.PasswordHash))
+        // The hash is checked even when there is no such user, against a fixed one, so both
+        // answers take the same time; a fast "no" used to give away which e-mails exist.
+        var passwordOk = hasher.Verify(command.Password, user?.PasswordHash ?? TimingDummy.Value.Value);
+        if (user is null || !passwordOk)
             return Result.Failure<AuthResponse>(Error.Unauthorized("E-mail or password is incorrect."));
 
         // Distinct code so the client can send them to the confirm screen instead of
@@ -50,7 +53,7 @@ internal sealed class LoginHandler(
             return Result.Failure<AuthResponse>(new Error("email_unconfirmed",
                 "Confirm your e-mail address before signing in."));
 
-        var refresh = tokens.CreateRefreshToken(user.Id, http.HttpContext?.Connection.RemoteIpAddress?.ToString());
+        var (refresh, refreshValue) = tokens.CreateRefreshToken(user.Id, http.HttpContext?.Connection.RemoteIpAddress?.ToString());
         db.RefreshTokens.Add(refresh);
         user.LastLoginAtUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
@@ -58,8 +61,14 @@ internal sealed class LoginHandler(
         await AuthCookie.SignInAsync(http.HttpContext, user);
 
         var access = tokens.CreateAccessToken(user);
-        return Result.Success(new AuthResponse(access.Value, access.ExpiresAtUtc, refresh.Token, user.ToProfile()));
+        var handedOut = RefreshCookie.Issue(http.HttpContext, user.Id, refreshValue, refresh.ExpiresAtUtc);
+        return Result.Success(new AuthResponse(access.Value, access.ExpiresAtUtc, handedOut, user.ToProfile()));
     }
+}
+
+internal static class TimingDummy
+{
+    public static readonly Lazy<string> Value = new(() => new BCryptPasswordHasher().Hash(Guid.NewGuid().ToString()));
 }
 
 public static class LoginEndpoint

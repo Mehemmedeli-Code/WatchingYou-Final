@@ -1,10 +1,11 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
-  ({ className, ...props }, ref) => (
+// React 19 passes ref as an ordinary prop, so these are plain components (no forwardRef).
+
+export function Input({ className, ...props }: React.ComponentProps<"input">) {
+  return (
     <input
-      ref={ref}
       className={cn(
         "h-10 w-full rounded-md border border-line bg-surface-raised px-3 text-sm text-ink",
         "placeholder:text-ink-mute/70 focus:border-accent focus:outline-none",
@@ -12,14 +13,12 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
       )}
       {...props}
     />
-  ),
-);
-Input.displayName = "Input";
+  );
+}
 
-export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(
-  ({ className, children, ...props }, ref) => (
+export function Select({ className, children, ...props }: React.ComponentProps<"select">) {
+  return (
     <select
-      ref={ref}
       className={cn(
         "h-10 w-full rounded-md border border-line bg-surface-raised px-3 text-sm text-ink",
         "focus:border-accent focus:outline-none",
@@ -29,14 +28,12 @@ export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttrib
     >
       {children}
     </select>
-  ),
-);
-Select.displayName = "Select";
+  );
+}
 
-export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
-  ({ className, ...props }, ref) => (
+export function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
+  return (
     <textarea
-      ref={ref}
       className={cn(
         "min-h-24 w-full rounded-md border border-line bg-surface-raised p-3 text-sm text-ink",
         "placeholder:text-ink-mute/70 focus:border-accent focus:outline-none",
@@ -44,9 +41,8 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTML
       )}
       {...props}
     />
-  ),
-);
-Textarea.displayName = "Textarea";
+  );
+}
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (

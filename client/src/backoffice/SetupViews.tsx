@@ -10,6 +10,7 @@ import { PromoAdmin } from "@/components/admin/PromoAdmin";
 import { Alert, Card, Kpi, Loading, Page, Table, Td, azn, bakuDate, dateTime, errorText, pct, tariffName, useLoad } from "./shared";
 import { CATEGORIES, categoryLabel, type BarItem, type Category } from "./BarView";
 import type { TicketType } from "./BoxOfficeView";
+import { askConfirm, askText } from "@/lib/dialog";
 
 interface FilmOption { id: string; title: string }
 
@@ -39,7 +40,7 @@ export function ScheduleView() {
   const upcoming = (screenings.data ?? []).filter((s) => new Date(s.startsAtUtc).getTime() > now - 3 * 3600_000);
 
   async function cancel(s: AdminScreening) {
-    const reason = window.prompt(t("bo.cancelReason", "Why is it cancelled? Customers will be told."));
+    const reason = await askText(t("bo.cancelReason", "Why is it cancelled? Customers will be told."));
     if (!reason) return;
     try {
       await post(`/api/admin/screenings/${s.id}/cancel`, { reason });
@@ -144,7 +145,7 @@ export function PricingView() {
               <Td>{ty.isActive ? <Badge tone="good">{t("bo.active", "On sale")}</Badge> : <Badge>{t("bo.inactive", "Off")}</Badge>}</Td>
               <Td numeric>
                 <Button size="sm" variant="ghost" aria-label={t("bo.edit", "Edit")} onClick={() => edit(ty)}><Pencil size={14} /></Button>
-                <Button size="sm" variant="ghost" aria-label={t("bo.delete", "Delete")} onClick={async () => { if (window.confirm(`${tariffName(ty)}?`)) { await del(`/api/backoffice/ticket-types/${ty.id}`); void types.reload(); } }}><Trash2 size={14} /></Button>
+                <Button size="sm" variant="ghost" aria-label={t("bo.delete", "Delete")} onClick={async () => { if (await askConfirm(`${t("bo.delete", "Delete")}: ${tariffName(ty)}?`, { danger: true })) { await del(`/api/backoffice/ticket-types/${ty.id}`); void types.reload(); } }}><Trash2 size={14} /></Button>
               </Td>
             </tr>
           ))}
@@ -208,7 +209,7 @@ export function MenuView() {
   }
 
   async function restock(item: BarItem) {
-    const answer = window.prompt(`${item.name}: ${t("bo.restockHowMany", "how many arrived?")}`, "24");
+    const answer = await askText(`${item.name}: ${t("bo.restockHowMany", "how many arrived?")}`, "24");
     const quantity = Number(answer);
     if (!answer || !Number.isFinite(quantity) || quantity <= 0) return;
     try { await post(`/api/backoffice/bar/items/${item.id}/restock`, { quantity }); void items.reload(); }
@@ -270,7 +271,7 @@ export function MenuView() {
               <Td numeric>
                 <Button size="sm" variant="outline" onClick={() => void restock(i)}>+ {t("bo.restock", "Restock")}</Button>
                 <Button size="sm" variant="ghost" aria-label={t("bo.edit", "Edit")} onClick={() => edit(i)}><Pencil size={14} /></Button>
-                <Button size="sm" variant="ghost" aria-label={t("bo.delete", "Delete")} onClick={async () => { if (window.confirm(`${i.name}?`)) { await del(`/api/backoffice/bar/items/${i.id}`); void items.reload(); } }}><Trash2 size={14} /></Button>
+                <Button size="sm" variant="ghost" aria-label={t("bo.delete", "Delete")} onClick={async () => { if (await askConfirm(`${t("bo.delete", "Delete")}: ${i.name}?`, { danger: true })) { await del(`/api/backoffice/bar/items/${i.id}`); void items.reload(); } }}><Trash2 size={14} /></Button>
               </Td>
             </tr>
           ))}
@@ -378,7 +379,7 @@ export function DistributorsView() {
               <Td className="text-ink-mute">{d.note ?? ""}</Td>
               <Td numeric>
                 <Button size="sm" variant="ghost" aria-label={t("bo.edit", "Edit")} onClick={() => setDraft({ movieId: d.movieId, distributor: d.distributor, sharePercent: String(d.sharePercent), note: d.note ?? "" })}><Pencil size={14} /></Button>
-                <Button size="sm" variant="ghost" aria-label={t("bo.delete", "Delete")} onClick={async () => { if (window.confirm(`${d.movieTitle}?`)) { await del(`/api/backoffice/deals/${d.id}`); void deals.reload(); void report.reload(); } }}><Trash2 size={14} /></Button>
+                <Button size="sm" variant="ghost" aria-label={t("bo.delete", "Delete")} onClick={async () => { if (await askConfirm(`${t("bo.delete", "Delete")}: ${d.movieTitle}?`, { danger: true })) { await del(`/api/backoffice/deals/${d.id}`); void deals.reload(); void report.reload(); } }}><Trash2 size={14} /></Button>
               </Td>
             </tr>
           ))}

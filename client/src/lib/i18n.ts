@@ -38,6 +38,16 @@ const azHasCalendar = (() => {
 
 /** Intl.DateTimeFormat in the interface language, with the Azerbaijani gap filled. */
 export function formatDateIn(date: Date, options: Intl.DateTimeFormatOptions): string {
+  // dateStyle hides the month from the check below, so "medium" printed "2026 M10 3" where
+  // the engine has no Azerbaijani calendar. Spelled out, it goes through the same repair.
+  if (options.dateStyle || options.timeStyle) {
+    const { dateStyle, timeStyle, ...rest } = options;
+    options = {
+      ...rest,
+      ...(dateStyle ? { day: "numeric", month: dateStyle === "long" || dateStyle === "full" ? "long" : "short", year: "numeric" } : {}),
+      ...(timeStyle ? { hour: "2-digit", minute: "2-digit" } : {}),
+    } as Intl.DateTimeFormatOptions;
+  }
   if (lang !== "az" || azHasCalendar || (!options.month && !options.weekday)) {
     return new Intl.DateTimeFormat(lang, options).format(date);
   }
@@ -77,4 +87,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   az: "Azərbaycan", en: "English", ru: "Русский", tr: "Türkçe",
 };
 
-export const languageName = (code: string) => LANGUAGE_NAMES[code] ?? code.toUpperCase();
+/** A genre as the catalogue stores it ("Science Fiction") in the page's language. */
+export const genreName = (genre: string) => t(`genre.${genre.replace(/\s+/g, "")}`, genre);
+
+export const languageName =(code: string) => LANGUAGE_NAMES[code] ?? code.toUpperCase();

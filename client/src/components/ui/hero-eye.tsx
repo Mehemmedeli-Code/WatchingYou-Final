@@ -6,7 +6,7 @@ import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } fro
  * the scattered posters kept covering: the eye says "WatchingYou" without a word, and it
  * cannot be half-hidden the way a line of text could.
  *
- * It watches: the pupil follows the pointer, and every few seconds the eye blinks. Both stop
+ * It watches: the pupil follows the pointer, and every two seconds the eye blinks. Both stop
  * under reduced motion. The whole eye is a link down to the catalogue.
  */
 export function HeroEye({ href = "#catalogue", label }: { href?: string; label: string }) {
@@ -32,20 +32,15 @@ export function HeroEye({ href = "#catalogue", label }: { href?: string; label: 
     return () => window.removeEventListener("pointermove", move);
   }, [reduce, rawX, rawY]);
 
-  // A blink every four to seven seconds — irregular, the way a real one is.
+  // A blink every two seconds.
   const [blink, setBlink] = useState(false);
   useEffect(() => {
     if (reduce) return;
-    let timer: number;
-    const schedule = () => {
-      timer = window.setTimeout(() => {
-        setBlink(true);
-        window.setTimeout(() => setBlink(false), 140);
-        schedule();
-      }, 4000 + Math.random() * 3000);
-    };
-    schedule();
-    return () => window.clearTimeout(timer);
+    const timer = window.setInterval(() => {
+      setBlink(true);
+      window.setTimeout(() => setBlink(false), 140);
+    }, 2000);
+    return () => window.clearInterval(timer);
   }, [reduce]);
 
   const lid = "M4 44C4 44 26 8 64 8s60 36 60 36-22 36-60 36S4 44 4 44Z";

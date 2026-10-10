@@ -1,0 +1,14 @@
+﻿@model string
+@inject MovieRental.Host.Infrastructure.Localization.ILanguageContext T
+@* The row of footer pages at the top of each of them, the current one highlighted. The model is
+   the current page's path without the slash ("privacy", "about", ...). *@
+@{
+    var links = InfoPages.Slugs.Select(s => (Slug: s, Label: T[$"footer.{s}"]))
+        .Concat([("help", T["footer.help"]), ("privacy", T["privacy.title"]), ("locations", T["footer.locations"])]);
+}
+<nav class="rr-info-tabs" aria-label="WatchingYou">
+    @foreach (var (slug, label) in links)
+    {
+        <a href="/@slug" class="@(slug == Model ? "is-current" : null)" aria-current="@(slug == Model ? "page" : null)">@label</a>
+    }
+</nav>

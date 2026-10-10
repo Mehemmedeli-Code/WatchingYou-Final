@@ -11,7 +11,7 @@ import { Spinner } from "@/components/Shell";
 import { get } from "@/lib/api";
 import { formatRuntime, formatUsd } from "@/lib/format";
 import { useAuth } from "@/components/useAuth";
-import { t, formatWhen } from "@/lib/i18n";
+import { t, formatWhen, genreName, lang } from "@/lib/i18n";
 import { isApp } from "@/lib/platform";
 import { TrailerPlayer } from "@/components/TrailerPlayer";
 
@@ -20,6 +20,8 @@ export interface MovieDetail {
   title: string;
   slug: string;
   description: string;
+  /** The description in az / ru / tr, when it has been translated. */
+  descriptions?: Record<string, string> | null;
   genre: string;
   releaseYear: number;
   durationMinutes: number;
@@ -185,7 +187,7 @@ export function MovieDialog({
                 <div>
                   <h2 className="font-display text-2xl text-ink">{detail.title}</h2>
                   <p className="mt-1 text-xs text-ink-mute">
-                    {detail.genre} · {detail.releaseYear} · {formatRuntime(detail.durationMinutes)}
+                    {genreName(detail.genre)} · {detail.releaseYear} · {formatRuntime(detail.durationMinutes)}
                     {detail.director ? ` · ${detail.director}` : null}
                   </p>
                 </div>
@@ -213,7 +215,7 @@ export function MovieDialog({
                   {detail.posterUrl ? (
                     <img src={detail.posterUrl} alt="" className="h-40 w-28 shrink-0 rounded-lg object-cover" />
                   ) : null}
-                  <p className="text-sm leading-relaxed text-ink-mute">{detail.description}</p>
+                  <p className="text-sm leading-relaxed text-ink-mute">{detail.descriptions?.[lang] ?? detail.description}</p>
                 </div>
               )}
 

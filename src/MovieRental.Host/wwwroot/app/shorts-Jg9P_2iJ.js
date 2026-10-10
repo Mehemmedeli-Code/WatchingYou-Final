@@ -1,0 +1,1 @@
+var e=[`Copyright`,`SexualContent`,`GraphicViolence`,`MinorsWithoutConsent`,`HateOrExtremism`,`PersonalData`,`FileIntegrity`,`OriginDeclaration`],t=e=>e===`Approved`?`good`:e===`Rejected`||e===`SecurityFlagged`?`bad`:`warn`,n=e=>`${(e/1048576).toFixed(1)} MB`;export{n,t as r,e as t};

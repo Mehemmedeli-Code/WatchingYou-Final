@@ -4,7 +4,7 @@ import { GenrePoster } from "@/components/PosterArt";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { MovieListItem } from "@/components/MovieCard";
-import { t } from "@/lib/i18n";
+import { t, genreName } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
@@ -13,6 +13,11 @@ import { cn } from "@/lib/utils";
  * Every card carries the *same* rotation rather than mirroring around the middle — that is
  * what makes it read as one long ribbon seen at an angle instead of a symmetric fan. Depth
  * follows the signed offset, so the left end stands near and the right end falls away.
+ *
+ * The film named under the ribbon is the card at its near end — the one fully in view. It used
+ * to be the card in the middle, which the nearer cards to its left partly covered, so the
+ * poster people saw and the title they read were two different films. Cards that have passed
+ * the near end fade out to the left instead of standing in front of it.
  *
  * It moves only when asked to: a held mouse drag, a two-finger swipe on a trackpad, or a finger
  * on a phone. It used to follow the pointer on hover, which meant it slid away whenever the
@@ -159,7 +164,8 @@ export function MovieCarousel({
         <div className="absolute inset-0" style={{ transformStyle: "preserve-3d" }}>
           {movies.map((movie, index) => {
             const offset = offsetOf(index);
-            if (Math.abs(offset) > VISIBLE) return null;
+            // Only the active card and those behind it; one that has just passed fades out.
+            if (offset <= -0.95 || offset > VISIBLE) return null;
 
             const isCentre = Math.abs(offset) < 0.5;
 
@@ -168,6 +174,7 @@ export function MovieCarousel({
                 key={movie.id}
                 type="button"
                 aria-hidden={!isCentre}
+                aria-label={isCentre ? movie.title : undefined}
                 tabIndex={-1}
                 onClick={() => {
                   if (drag.current?.moved) return;
@@ -176,7 +183,7 @@ export function MovieCarousel({
                 }}
                 // Taller than the frame on purpose: the ribbon runs off the top and bottom
                 // rather than sitting inside a box, which is what gives it scale.
-                className="absolute left-1/2 top-1/2 h-[520px] w-[280px] origin-center overflow-hidden rounded-lg border border-line/60 bg-surface-raised shadow-2xl sm:h-[640px] sm:w-[330px]"
+                className="absolute left-[30%] top-1/2 h-[520px] w-[280px] origin-center overflow-hidden rounded-lg border border-line/60 bg-surface-raised shadow-2xl sm:h-[640px] sm:w-[330px]"
                 style={{
                   transform: [
                     "translate(-50%, -50%)",
@@ -189,12 +196,12 @@ export function MovieCarousel({
                   zIndex: 200 - Math.round(offset * 10),
                   // Solid, so no poster shows through the one in front of it; only the last
                   // card at each end fades in or out as the ribbon turns.
-                  opacity: Math.min(1, Math.max(0, VISIBLE + 0.5 - Math.abs(offset))),
+                  opacity: offset < 0 ? 1 + offset : Math.min(1, Math.max(0, VISIBLE + 0.5 - offset)),
                   transition: dragging ? "none" : "opacity 300ms",
                 }}
               >
                 {movie.posterUrl ? (
-                  <img src={movie.posterUrl} alt="" className="h-full w-full object-cover" draggable={false} />
+                  <img src={movie.posterUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" draggable={false} />
                 ) : (
                   <GenrePoster genre={movie.genre} />
                 )}
@@ -215,7 +222,7 @@ export function MovieCarousel({
         <div className="min-w-0">
           <p className="truncate font-display text-2xl text-ink">{current.title}</p>
           <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ink-mute">
-            <Badge>{current.genre}</Badge>
+            <Badge>{genreName(current.genre)}</Badge>
             <span>{current.releaseYear}</span>
             <span>·</span>
             <span>{current.durationMinutes} {t("movie.min")}</span>

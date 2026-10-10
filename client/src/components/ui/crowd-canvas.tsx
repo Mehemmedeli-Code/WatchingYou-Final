@@ -1,6 +1,10 @@
 import { gsap } from "gsap";
 import { useEffect, useRef } from "react";
 
+// Capped: full device resolution (up to 3x on phones) redrew a full-width canvas every frame
+// at up to nine times the pixels, for flat cartoon figures that look the same at 1.5x.
+const DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+
 /**
  * Skiper 39 Canvas_Landing_004 — React + Canvas
  * Inspired by and adapted from https://codepen.io/zadvorsky/pen/xxwbBQV
@@ -140,7 +144,7 @@ export function CrowdCanvas({ src, rows = 15, cols = 7, className }: CrowdCanvas
     const render = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.save();
-      ctx.scale(devicePixelRatio, devicePixelRatio);
+      ctx.scale(DPR, DPR);
       crowd.forEach((peep) => peep.render(ctx));
       ctx.restore();
     };
@@ -148,8 +152,8 @@ export function CrowdCanvas({ src, rows = 15, cols = 7, className }: CrowdCanvas
     const resize = () => {
       stage.width = canvas.clientWidth;
       stage.height = canvas.clientHeight;
-      canvas.width = stage.width * devicePixelRatio;
-      canvas.height = stage.height * devicePixelRatio;
+      canvas.width = stage.width * DPR;
+      canvas.height = stage.height * DPR;
 
       // A figure stands at most three quarters of the band's height; never enlarged past the
       // artwork's own size, which would only blur it.
