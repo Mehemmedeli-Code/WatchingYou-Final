@@ -25,16 +25,16 @@ public sealed class DeleteAccountTests : IAsyncLifetime
     private readonly IPasswordHasher _hasher = new BCryptPasswordHasher();
 
     private IdentityDbContext NewContext() => new(new DbContextOptionsBuilder<IdentityDbContext>()
-        .UseSqlServer($"Server=(localdb)\\MSSQLLocalDB;Database={_database};Trusted_Connection=True;TrustServerCertificate=True")
+        .UseSqlServer(TestDb.ConnectionString(_database))
         .Options);
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         await using var db = NewContext();
         await db.Database.EnsureCreatedAsync();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         await using var db = NewContext();
         await db.Database.EnsureDeletedAsync();
