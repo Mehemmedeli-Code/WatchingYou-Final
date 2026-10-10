@@ -33,7 +33,9 @@ internal sealed class GetScreeningsHandler(CinemaDbContext db)
 {
     public async Task<IReadOnlyList<ScreeningListItem>> Handle(GetScreeningsQuery query, CancellationToken ct) =>
         await db.Screenings.AsNoTracking()
-            .Where(s => s.StartsAtUtc > DateTime.UtcNow.AddHours(-2))
+            // Only shows still on sale: the page picks the first one, and listing shows that had
+            // started (or were cancelled) opened it on a seat map nobody could click.
+            .Where(s => s.StartsAtUtc > DateTime.UtcNow && !s.IsCancelled)
             .OrderBy(s => s.StartsAtUtc)
             .Select(s => new ScreeningListItem(
                 s.Id, s.MovieId, s.MovieTitle, s.Hall, s.StartsAtUtc, s.SeatPrice,
@@ -51,7 +53,7 @@ internal sealed class GetSeatMapHandler(CinemaDbContext db, ICurrentUser current
     {
         var screening = await db.Screenings
             .Include(s => s.HallRoom!).ThenInclude(h => h.Venue).AsNoTracking()
-            .Include(s => s.Bookings)
+            .Include(s => s.Bookings).ThenInclude(b => b.Payment)
             .FirstOrDefaultAsync(s => s.Id == query.ScreeningId, ct);
 
         if (screening is null) return null;
@@ -62,7 +64,9 @@ internal sealed class GetSeatMapHandler(CinemaDbContext db, ICurrentUser current
         // there — the sweeper deletes it within the minute, and the map should not lie in
         // the meantime.
         var live = screening.Bookings
-            .Where(b => b.ConfirmedAtUtc is not null || b.CreatedAtUtc.AddMinutes(15) > DateTime.UtcNow)
+            // The payment's own expiry, not a fixed 15 minutes: Stripe holds last 45, and a seat
+            // shown free while still held only fails later, at checkout.
+            .Where(b => b.ConfirmedAtUtc is not null || b.Payment is null || b.Payment.ExpiresAtUtc > DateTime.UtcNow)
             .ToDictionary(b => (b.Row, b.Number), b => b);
 
         // The full grid is materialised server-side so the client renders one array

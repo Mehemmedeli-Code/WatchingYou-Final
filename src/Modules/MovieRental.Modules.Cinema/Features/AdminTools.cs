@@ -42,7 +42,8 @@ internal sealed class BulkScheduleValidator : AbstractValidator<BulkScheduleComm
             .WithMessage("First day must be a date (yyyy-MM-dd).");
         RuleFor(x => x.Days).InclusiveBetween(1, 28);
         RuleFor(x => x.Times).NotEmpty().WithMessage("Add at least one start time.");
-        RuleFor(x => x.Times.Count).LessThanOrEqualTo(8);
+        // Guarded: a body without "times" is a 400 from NotEmpty, not a crash in this rule.
+        RuleFor(x => x.Times.Count).LessThanOrEqualTo(8).When(x => x.Times is not null);
         RuleForEach(x => x.Times).Must(t => TimeOnly.TryParseExact(t, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
             .WithMessage("Times are written HH:mm, e.g. 19:30.");
         RuleFor(x => x.SeatPrice).GreaterThan(0);
@@ -174,14 +175,13 @@ internal sealed class ExportBookingsHandler(CinemaDbContext db, IUserDirectory u
             .Take(MaxRows)
             .ToListAsync(ct);
 
-        // One directory lookup per customer, not per row.
-        var emails = new Dictionary<Guid, string>();
-        foreach (var userId in payments.Select(p => p.UserId).Distinct())
-            emails[userId] = (await users.GetContactAsync(userId, ct))?.Email ?? "";
+        // One directory lookup for every customer at once, not one query per row.
+        var contacts = await users.GetContactsAsync([.. payments.Select(p => p.UserId).Distinct()], ct);
+        string Email(Guid id) => contacts.GetValueOrDefault(id)?.Email ?? "";
 
         var rows = payments.Select(p => (IReadOnlyList<object?>)new object?[]
         {
-            p.Reference, p.Status.ToString(), p.ConfirmedAtUtc, emails.GetValueOrDefault(p.UserId),
+            p.Reference, p.Status.ToString(), p.ConfirmedAtUtc, Email(p.UserId),
             p.Screening?.MovieTitle, p.Screening?.Hall, p.Screening?.StartsAtUtc,
             string.Join(" ", p.Seats.OrderBy(s => s.Row).ThenBy(s => s.Number).Select(s => $"{(char)('A' + s.Row - 1)}{s.Number}")),
             p.Seats.Count, p.Subtotal, p.PromoCode, p.PromoDiscount, p.PointsRedeemed, p.PointsDiscount,

@@ -78,6 +78,18 @@ internal sealed class RefundBookingHandler(
         if (!quote.Allowed)
             return Result.Failure<RefundTerms>(Error.Conflict(Explain(quote, screening)));
 
+        // Claim the refund before any money moves. Two refund requests at once both passed the
+        // checks above; only the one whose conditional UPDATE hits the row goes on, so points are
+        // restored and Stripe is asked once.
+        var refundedAt = DateTime.UtcNow;
+        var claimed = await db.SeatPayments.IgnoreQueryFilters()
+            .Where(p => p.Id == payment.Id && p.Status == PaymentStatus.Confirmed)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(p => p.Status, PaymentStatus.Refunded)
+                .SetProperty(p => p.RefundedAtUtc, refundedAt), ct);
+        if (claimed == 0)
+            return Result.Failure<RefundTerms>(Error.Conflict("This booking has already been refunded."));
+
         // Money paid through Stripe has to go back through Stripe, and before anything here
         // changes: if Stripe refuses, the booking must stay exactly as it was.
         if (payment.Provider == PaymentProvider.Stripe && quote.Refund > 0)
@@ -90,12 +102,18 @@ internal sealed class RefundBookingHandler(
             }
             catch (Exception ex) when (ex is StripeException or HttpRequestException or TaskCanceledException)
             {
+                // Stripe refused: give the booking back exactly as it was.
+                await db.SeatPayments.IgnoreQueryFilters()
+                    .Where(p => p.Id == payment.Id)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(p => p.Status, PaymentStatus.Confirmed)
+                        .SetProperty(p => p.RefundedAtUtc, (DateTime?)null), CancellationToken.None);
                 return Result.Failure<RefundTerms>(Error.Conflict($"Stripe could not refund the payment: {ex.Message}"));
             }
         }
 
         payment.Status = PaymentStatus.Refunded;
-        payment.RefundedAtUtc = DateTime.UtcNow;
+        payment.RefundedAtUtc = refundedAt;
         payment.RefundedAmount = quote.Refund;
         payment.RefundReason = command.Reason?.Trim();
 
@@ -140,7 +158,7 @@ internal sealed class RefundBookingHandler(
         await email.SendAsync(new EmailRequest(contact.Email,
             $"Refunded — {payment.Reference}",
             $"""
-             <p>Hi {contact.FullName},</p>
+             <p>Hi {System.Net.WebUtility.HtmlEncode(contact.FullName)},</p>
              <p>Your booking for <strong>{screening.MovieTitle}</strong> has been cancelled.</p>
              <p><strong>{quote.Refund:0.00}</strong> is on its way back to {(payment.Provider == PaymentProvider.Stripe ? "the card you paid with through Stripe" : $"the card ending {payment.Last4}")}.</p>
              {feeLine}

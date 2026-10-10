@@ -1,65 +1,23 @@
 using MovieRental.Modules.Cinema.Domain;
+using MovieRental.SharedKernel.Payments;
 
 namespace MovieRental.Modules.Cinema.Infrastructure;
 
-/// <summary>
-/// Card checks that can be done without an acquirer: the Luhn checksum, the brand prefix,
-/// an expiry in the future and a CVC of the right length. These catch typos, which is what
-/// most failed payments actually are. They prove nothing about funds.
-/// </summary>
+/// <summary>The shared card rules (<see cref="CardRules"/>), with the brand as this module's enum.</summary>
 internal static class CardValidation
 {
-    public static string Digits(string? value) =>
-        new(value?.Where(char.IsDigit).ToArray() ?? []);
+    public static string Digits(string? value) => CardRules.Digits(value);
 
-    /// <summary>Luhn: double every second digit from the right, subtract 9 when that goes
-    /// above nine, and the total must divide by ten.</summary>
-    public static bool PassesLuhn(string digits)
+    public static bool PassesLuhn(string digits) => CardRules.PassesLuhn(digits);
+
+    public static CardBrand BrandOf(string digits) => CardRules.BrandName(digits) switch
     {
-        if (digits.Length is < 12 or > 19) return false;
+        "Visa" => CardBrand.Visa,
+        "Mastercard" => CardBrand.Mastercard,
+        _ => CardBrand.Unknown
+    };
 
-        var sum = 0;
-        var doubling = false;
+    public static bool ExpiryIsFuture(int month, int year) => CardRules.ExpiryIsFuture(month, year);
 
-        for (var i = digits.Length - 1; i >= 0; i--)
-        {
-            var digit = digits[i] - '0';
-            if (doubling)
-            {
-                digit *= 2;
-                if (digit > 9) digit -= 9;
-            }
-            sum += digit;
-            doubling = !doubling;
-        }
-
-        return sum % 10 == 0;
-    }
-
-    public static CardBrand BrandOf(string digits)
-    {
-        if (digits.StartsWith('4')) return CardBrand.Visa;
-
-        if (digits.Length >= 2 && int.TryParse(digits[..2], out var two) && two is >= 51 and <= 55)
-            return CardBrand.Mastercard;
-
-        // Mastercard's 2-series, added in 2017 and still missed by a lot of naive checks.
-        if (digits.Length >= 4 && int.TryParse(digits[..4], out var four) && four is >= 2221 and <= 2720)
-            return CardBrand.Mastercard;
-
-        return CardBrand.Unknown;
-    }
-
-    public static bool ExpiryIsFuture(int month, int year)
-    {
-        if (month is < 1 or > 12) return false;
-        if (year < 100) year += 2000;
-
-        var lastDay = new DateTime(year, month, DateTime.DaysInMonth(year, month), 23, 59, 59, DateTimeKind.Utc);
-        return lastDay >= DateTime.UtcNow;
-    }
-
-    /// <summary>Three digits. Four belongs to American Express, which this checkout refuses
-    /// anyway, so accepting it would only let a typo through.</summary>
-    public static bool CvcLooksRight(string cvc) => cvc.Length == 3 && cvc.All(char.IsDigit);
+    public static bool CvcLooksRight(string cvc) => CardRules.CvcLooksRight(cvc);
 }

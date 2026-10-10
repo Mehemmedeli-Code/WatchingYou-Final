@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using MovieRental.Modules.Cinema.Domain;
 using MovieRental.Modules.Cinema.Infrastructure;
 using MovieRental.Modules.Cinema.Persistence;
@@ -33,6 +34,16 @@ internal sealed class CheckoutPricing(CinemaDbContext db)
                 Error.Validation(Pricing.Explain(PromoRejection.Unknown)));
         }
 
+        // A capped code counts the checkouts still holding it, not only the confirmed ones:
+        // otherwise every open checkout saw "0 of 1 used" and all of them got the discount.
+        if (promo is { MaxRedemptions: not null })
+        {
+            var now = DateTime.UtcNow;
+            var held = await db.SeatPayments.CountAsync(p => p.PromoCode == code
+                && p.Status == PaymentStatus.AwaitingCode && p.ExpiresAtUtc > now, ct);
+            promo.Redemptions += held;
+        }
+
         var spendable = usePoints ? await LoyaltyLedger.SpendableAsync(db, userId, ct) : 0;
         var price = Pricing.Calculate(screening.SeatPrice, seats, promo, DateTime.UtcNow, spendable, usePoints);
 
@@ -41,6 +52,31 @@ internal sealed class CheckoutPricing(CinemaDbContext db)
         return price.PromoRejection != PromoRejection.None
             ? (price, Error.Validation(Pricing.Explain(price.PromoRejection)))
             : (price, null);
+    }
+
+    /// <summary>
+    /// Run after a checkout holding a capped code is saved. Checkouts started at the same moment
+    /// all passed the count above; ranking the holds by when they were made keeps the earliest
+    /// ones and releases this one if it came too late. Returns false when it was released.
+    /// </summary>
+    public async Task<bool> KeepPromoHoldAsync(SeatPayment payment, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(payment.PromoCode)) return true;
+        var promo = await db.PromoCodes.AsNoTracking().FirstOrDefaultAsync(p => p.Code == payment.PromoCode, ct);
+        if (promo?.MaxRedemptions is not { } max) return true;
+
+        var now = DateTime.UtcNow;
+        var holds = await db.SeatPayments.AsNoTracking()
+            .Where(p => p.PromoCode == payment.PromoCode && p.Status == PaymentStatus.AwaitingCode && p.ExpiresAtUtc > now)
+            .Select(p => new { p.Id, p.CreatedAtUtc })
+            .ToListAsync(ct);
+        var rank = holds.OrderBy(h => h.CreatedAtUtc).ThenBy(h => h.Id).ToList().FindIndex(h => h.Id == payment.Id) + 1;
+        if (promo.Redemptions + rank <= max) return true;
+
+        db.SeatBookings.RemoveRange(payment.Seats);
+        payment.Status = PaymentStatus.Cancelled;
+        await db.SaveChangesAsync(ct);
+        return false;
     }
 }
 
@@ -51,12 +87,12 @@ public sealed record QuoteRequest(int Seats, string? PromoCode, bool UsePoints);
 public sealed record CheckoutQuote(
     decimal Subtotal, decimal PromoDiscount, string? PromoMessage, bool PromoApplied,
     int PointsBalance, int PointsUsed, decimal PointsDiscount, decimal Total, int PointsEarned,
-    bool StripeEnabled);
+    bool StripeEnabled, bool CardEnabled);
 
 public sealed record GetCheckoutQuoteQuery(Guid ScreeningId, QuoteRequest Request) : IQuery<CheckoutQuote?>;
 
 internal sealed class GetCheckoutQuoteHandler(
-    CinemaDbContext db, ICurrentUser currentUser, CheckoutPricing pricing, IStripeGateway stripe)
+    CinemaDbContext db, ICurrentUser currentUser, CheckoutPricing pricing, IStripeGateway stripe, IConfiguration configuration)
     : IQueryHandler<GetCheckoutQuoteQuery, CheckoutQuote?>
 {
     public async Task<CheckoutQuote?> Handle(GetCheckoutQuoteQuery query, CancellationToken ct)
@@ -75,7 +111,7 @@ internal sealed class GetCheckoutQuoteHandler(
             error?.Message ?? (price.PromoDiscount > 0 ? $"−{price.PromoDiscount:0.00}" : null),
             price.PromoDiscount > 0,
             balance, price.PointsUsed, price.PointsDiscount, price.Total, price.PointsEarned,
-            stripe.Enabled);
+            stripe.Enabled, configuration.GetValue<bool>("Payments:AllowTestCard"));
     }
 }
 
@@ -92,7 +128,7 @@ internal sealed class StripeCheckoutValidator : AbstractValidator<StripeCheckout
     public StripeCheckoutValidator()
     {
         RuleFor(x => x.Seats).NotEmpty().WithMessage("Pick at least one seat.");
-        RuleFor(x => x.Seats.Count).LessThanOrEqualTo(8).WithMessage("Eight seats is the limit per booking.");
+        RuleFor(x => x.Seats.Count).LessThanOrEqualTo(8).WithMessage("Eight seats is the limit per booking.").When(x => x.Seats is not null);
     }
 }
 
@@ -115,6 +151,13 @@ internal sealed class StripeCheckoutHandler(
             return Result.Failure<StripeCheckoutStarted>(Error.Conflict("This screening is no longer on sale."));
 
         await CheckoutHandler.ReleaseExpiredHoldsAsync(db, screening.Id, ct);
+
+        if (await db.SeatPayments.AnyAsync(p => p.UserId == userId && p.ScreeningId == screening.Id
+                && p.Status == PaymentStatus.AwaitingCode && p.ExpiresAtUtc > DateTime.UtcNow, ct))
+            return Result.Failure<StripeCheckoutStarted>(Error.Conflict("You already have an unfinished checkout for this screening. Finish or release it first."));
+        if (await db.SeatPayments.CountAsync(p => p.UserId == userId && p.Status == PaymentStatus.AwaitingCode
+                && p.ExpiresAtUtc > DateTime.UtcNow, ct) >= CheckoutHandler.MaxOpenCheckouts)
+            return Result.Failure<StripeCheckoutStarted>(Error.Conflict("Finish or release one of your unfinished checkouts first."));
 
         foreach (var seat in command.Seats)
             if (seat.Row < 1 || seat.Row > screening.Rows || seat.Number < 1 || seat.Number > screening.SeatsPerRow)
@@ -167,6 +210,9 @@ internal sealed class StripeCheckoutHandler(
             return Result.Failure<StripeCheckoutStarted>(
                 Error.Conflict("One of those seats was just taken. Reload the map and try again."));
         }
+
+        if (!await pricing.KeepPromoHoldAsync(payment, ct))
+            return Result.Failure<StripeCheckoutStarted>(Error.Validation(Pricing.Explain(PromoRejection.UsedUp)));
 
         var baseUrl = command.ReturnBaseUrl.TrimEnd('/');
         StripeSession session;
@@ -249,7 +295,9 @@ internal sealed class StripeConfirmHandler(
             return Result.Failure<TicketResponse>(Error.Conflict("The Stripe payment does not match this booking."));
 
         payment.ExternalPaymentId = status.PaymentIntentId;
-        return Result.Success(await finalizer.ConfirmAsync(payment, ct));
+        return await finalizer.ConfirmAsync(payment, ct) is { } ticket
+            ? Result.Success(ticket)
+            : Result.Failure<TicketResponse>(Error.Conflict("This booking expired before it was confirmed. The seats are back on sale."));
     }
 }
 
@@ -404,8 +452,8 @@ public static class PaymentEndpoints
 {
     public static void Map(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/payments/options", (IStripeGateway stripe) =>
-                Results.Ok(new PaymentOptions(true, stripe.Enabled, Pricing.ManatPerPoint, Pricing.MaxPointsShare)))
+        app.MapGet("/api/payments/options", (IStripeGateway stripe, IConfiguration configuration) =>
+                Results.Ok(new PaymentOptions(configuration.GetValue<bool>("Payments:AllowTestCard"), stripe.Enabled, Pricing.ManatPerPoint, Pricing.MaxPointsShare)))
             .WithName("GetPaymentOptions").WithTags("Payments").AllowAnonymous();
 
         app.MapPost("/api/screenings/{id:guid}/quote", async (
@@ -418,11 +466,12 @@ public static class PaymentEndpoints
 
         app.MapPost("/api/screenings/{id:guid}/checkout/stripe",
             async Task<Results<Ok<StripeCheckoutStarted>, BadRequest<Error>, Conflict<Error>, NotFound<Error>>> (
-                Guid id, StripeCheckoutCommand body, HttpRequest request, IDispatcher dispatcher, CancellationToken ct) =>
+                Guid id, StripeCheckoutCommand body, IConfiguration configuration, IDispatcher dispatcher, CancellationToken ct) =>
             {
-                // Stripe sends the browser back to whichever host it came from, so the same
-                // build works on localhost and on a real domain without configuration.
-                var baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
+                // Stripe sends the browser back to the configured public address. Building it
+                // from the request's Host header let a forged Host point the return link at
+                // another site, since AllowedHosts is "*".
+                var baseUrl = configuration["App:PublicUrl"] ?? "https://localhost:7139";
                 var result = await dispatcher.Send(body with { ScreeningId = id, ReturnBaseUrl = baseUrl }, ct);
                 if (result.IsSuccess) return TypedResults.Ok(result.Value);
                 return result.Error.Code switch
