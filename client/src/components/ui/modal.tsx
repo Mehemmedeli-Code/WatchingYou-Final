@@ -2,6 +2,9 @@ import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
+/** Open dialogs, newest last: Escape closes only the one on top, not every dialog under it. */
+const stack: (() => void)[] = [];
+
 /**
  * The one dialog frame on the site.
  *
@@ -25,7 +28,15 @@ export function Modal({
   children: ReactNode;
 }) {
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    const close = () => onClose();
+    stack.push(close);
+    // One Escape, one dialog: the top one handles it and no other listener sees it — not even
+    // the dialog underneath, which is on top a moment later once this one has closed.
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || stack.at(-1) !== close) return;
+      event.stopImmediatePropagation();
+      onClose();
+    };
     document.addEventListener("keydown", onKey);
 
     // The page behind should not scroll while a dialog is on top of it.
@@ -33,6 +44,7 @@ export function Modal({
     document.body.style.overflow = "hidden";
 
     return () => {
+      stack.splice(stack.indexOf(close), 1);
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = previous;
     };

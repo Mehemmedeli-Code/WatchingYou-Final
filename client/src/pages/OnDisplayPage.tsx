@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { get, query } from "@/lib/api";
 import { CinemaMap, VenueFilterHint, type MappedVenue } from "@/components/CinemaMap";
 import { SearchField } from "@/components/SearchField";
-import { t, formatWhen, formatDay, languageName } from "@/lib/i18n";
-import { formatMoney } from "@/lib/format";
+import { t, formatDateIn, languageName } from "@/lib/i18n";
+import { formatMoney, zoneFor } from "@/lib/format";
 
 interface Showtime {
   screeningId: string;
@@ -16,6 +16,7 @@ interface Showtime {
   hall: string;
   venueId: string;
   venueName: string;
+  city: string;
   audioLanguage: string;
   subtitleLanguage?: string | null;
   seatPrice: number;
@@ -38,6 +39,9 @@ export default function OnDisplayPage() {
   const [days, setDays] = useState(14);
   const [venues, setVenues] = useState<MappedVenue[]>([]);
   const [venueId, setVenueId] = useState<string | null>(null);
+  // The capital the map shows; the listing follows it.
+  const [city, setCity] = useState("Baku");
+  const pickCity = (next: string) => { setCity(next); setVenueId(null); };
 
   useEffect(() => {
     get<MappedVenue[]>("/api/venues").then(setVenues).catch(() => setVenues([]));
@@ -47,10 +51,10 @@ export default function OnDisplayPage() {
     setItems(null);
     const to = new Date(Date.now() + days * 86_400_000).toISOString();
     const data = await get<OnDisplayItem[]>(
-      "/api/on-display" + query({ language, search, to, venueId }),
+      "/api/on-display" + query({ language, search, to, venueId, city }),
     ).catch(() => []);
     setItems(data);
-  }, [language, search, days, venueId]);
+  }, [language, search, days, venueId, city]);
 
   // Debounced so typing a film name does not fire a request per keystroke.
   useEffect(() => {
@@ -60,7 +64,7 @@ export default function OnDisplayPage() {
 
   return (
     <Section title={t("onDisplay.title")} lede={t("onDisplay.lede")}>
-      <CinemaMap venues={venues} selectedId={venueId} onSelect={setVenueId} />
+      <CinemaMap venues={venues} selectedId={venueId} onSelect={setVenueId} city={city} onCity={pickCity} />
       <VenueFilterHint venue={venues.find((v) => v.id === venueId)} />
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
@@ -98,7 +102,9 @@ export default function OnDisplayPage() {
                 <div key={show.screeningId} className="rounded-lg border border-line p-3">
                   <p className="flex items-center gap-1.5 text-sm text-ink">
                     <Clock size={13} aria-hidden />
-                    {formatDay(show.startsAtUtc)} · {formatWhen(show.startsAtUtc, { hour: "2-digit", minute: "2-digit" })}
+                    {formatDateIn(new Date(show.startsAtUtc), { weekday: "short", day: "numeric", month: "short", timeZone: zoneFor(show.city) })}
+                    {" · "}
+                    {formatDateIn(new Date(show.startsAtUtc), { hour: "2-digit", minute: "2-digit", timeZone: zoneFor(show.city) })}
                   </p>
                   <p className="mt-1 text-xs text-ink-mute">{show.venueName} · {show.hall}</p>
 

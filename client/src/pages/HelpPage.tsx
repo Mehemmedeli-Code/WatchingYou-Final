@@ -115,7 +115,6 @@ export default function HelpPage() {
           messages={messages}
           pending={pending}
           onSend={send}
-          onRefresh={load}
           title={t("help.title")}
           subtitle={user?.email ?? ""}
           placeholder={t("help.placeholder")}

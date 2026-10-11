@@ -131,7 +131,6 @@ export function HelpInbox() {
             messages={toBubbles(thread, true)}
             pending={pending}
             onSend={reply}
-            onRefresh={() => loadThread(openId)}
             title={thread.userName}
             subtitle={thread.userEmail}
             placeholder={t("help.placeholder")}

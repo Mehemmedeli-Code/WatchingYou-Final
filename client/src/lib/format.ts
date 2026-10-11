@@ -17,8 +17,18 @@ export const formatUsd = (value: number) =>
 export const formatMoney = (value: number) => `${number.format(value)} ₼`;
 export const formatDate = (iso: string) =>
   formatDateIn(new Date(iso), { day: "numeric", month: "short", year: "numeric", timeZone: TIME_ZONE });
-export const formatDateTime = (iso: string) =>
-  formatDateIn(new Date(iso), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: TIME_ZONE });
+/** The capitals with cinemas: where the map's flags lead, and the clock their shows run on. */
+export const CITIES = [
+  { city: "Baku", country: "az", label: "AZE", zone: "Asia/Baku", centre: [49.865, 40.39] as [number, number] },
+  { city: "Ankara", country: "tr", label: "TR", zone: "Europe/Istanbul", centre: [32.82, 39.91] as [number, number] },
+  { city: "Moscow", country: "ru", label: "RUS", zone: "Europe/Moscow", centre: [37.59, 55.75] as [number, number] },
+];
+
+/** A show's time is told on its own city's clock: 12:00 in Ankara is 12:00 there. */
+export const zoneFor = (city?: string | null) => CITIES.find((c) => c.city === city)?.zone ?? TIME_ZONE;
+
+export const formatDateTime = (iso: string, city?: string | null) =>
+  formatDateIn(new Date(iso), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: zoneFor(city) });
 
 export function formatRuntime(minutes: number) {
   const hours = Math.floor(minutes / 60);

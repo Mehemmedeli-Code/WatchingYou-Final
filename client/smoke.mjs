@@ -45,6 +45,10 @@ const respond = (path) =>
   : /\/api\/rentals\/mine/.test(path) ? { items: [], page: 1, pageSize: 20, totalCount: 0, totalPages: 0 }
   : /\/api\/help\/chat/.test(path) ? null
   : /\/api\/(reports|admin\/rentals\/overdue|help\/inbox)/.test(path) ? []
+  : /\/api\/(admin\/)?banners/.test(path) ? [
+      { id: "b1", theme: "Brand", isActive: true, sortOrder: 0, showing: true },
+      { id: "b2", theme: "Christmas", isActive: true, sortOrder: 1, promoCode: "YENIIL20", percentOff: 20, startsOn: "2026-12-14", endsOn: "2027-01-18", showing: true },
+    ]
   : /\/api\/venues/.test(path) ? VENUES
   : /\/api\/movies\/genres/.test(path) ? ["Drama", "Thriller"]
   : /\/api\/movies(\?|$)/.test(path) ? { items: [], page: 1, pageSize: 12, total: 0, totalPages: 0 }

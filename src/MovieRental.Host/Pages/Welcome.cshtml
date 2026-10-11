@@ -114,6 +114,36 @@
         details[open] summary::after { transform: rotate(45deg); }
         details p { margin: 0; padding: 0 28px 24px; border-top: 1px solid rgba(0,0,0,.4); padding-top: 20px;
                     color: var(--ink); font-size: clamp(15px, 1.9vw, 20px); line-height: 1.5; }
+        /* Below the fold: the best of a genre, each poster standing on its own huge number. */
+        .ranks { max-width: 1200px; margin: 0 auto; padding: 64px 16px 8px; display: grid; gap: 56px; }
+        .rank-row { display: grid; grid-template-columns: 260px 1fr; gap: 24px; align-items: center; }
+        .rank-copy h2 { font: 700 clamp(22px, 2.6vw, 30px)/1.2 Poppins, sans-serif; margin: 0 0 12px; }
+        .rank-copy p { color: var(--mute); margin: 0; line-height: 1.5; }
+        .rank-list { list-style: none; margin: 0; padding: 0 0 12px; display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity;
+                     scrollbar-width: thin; scrollbar-color: rgba(34,224,122,.4) transparent; }
+        .rank-list li { flex: 0 0 auto; display: flex; align-items: flex-end; scroll-snap-align: start; }
+        .rank-n { font: 800 clamp(120px, 13vw, 190px)/.8 Poppins, sans-serif; color: #0E1712; letter-spacing: -.06em;
+                  -webkit-text-stroke: 2px rgba(34,224,122,.35); margin-right: -26px; user-select: none; }
+        .rank-list img { position: relative; width: clamp(120px, 12vw, 168px); aspect-ratio: 2 / 3; object-fit: cover; border-radius: 8px;
+                         box-shadow: 0 14px 30px -12px rgba(0,0,0,.8); transition: transform .25s; }
+
+        /* The globe: the members' network, drawn live. */
+        .link { position: relative; overflow: hidden; margin: 72px 0 0; padding: 72px 16px;
+                background: radial-gradient(60% 80% at 30% 50%, rgba(34,224,122,.16), transparent 70%), #020403;
+                border-top: 1px solid rgba(34,224,122,.18); border-bottom: 1px solid rgba(34,224,122,.18); }
+        .link-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center; }
+        .link canvas { width: 100%; aspect-ratio: 1; max-width: 560px; justify-self: center; display: block; }
+        .link .kicker { color: var(--accent); font: 600 12px Inter, sans-serif; letter-spacing: .2em; text-transform: uppercase; margin: 0 0 12px; }
+        .link h2 { font: 800 clamp(30px, 4.4vw, 56px)/1.05 Poppins, sans-serif; margin: 0 0 16px; }
+        .link h2 em { font-style: normal; color: var(--accent); text-shadow: 0 0 28px rgba(34,224,122,.45); }
+        .link .lede { color: var(--mute); font-size: clamp(15px, 1.6vw, 18px); line-height: 1.6; margin: 0 0 24px; }
+        .link ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+        .link li { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 1px solid rgba(34,224,122,.18);
+                   border-radius: 12px; background: rgba(10,26,17,.55); }
+        .link li b { display: block; font: 600 15px Inter, sans-serif; margin-bottom: 2px; }
+        .link li span { color: var(--mute); font-size: 14px; line-height: 1.45; }
+        .link li i { flex: 0 0 auto; width: 10px; height: 10px; margin-top: 6px; border-radius: 50%; background: var(--accent);
+                     box-shadow: 0 0 12px var(--accent); }
         .again { text-align: center; padding: 16px 16px 8px; }
         .again .start { margin: 14px auto 0; }
         footer { max-width: 1200px; margin: 0 auto; padding: 32px 16px 48px; color: var(--mute); font-size: 14px; }
@@ -133,10 +163,13 @@
             .wall { grid-template-columns: repeat(5, 1fr); }
             summary { padding: 18px 18px; }
             details p { padding: 16px 18px 18px; }
+            .rank-row { grid-template-columns: 1fr; gap: 12px; }
+            .link-inner { grid-template-columns: 1fr; }
+            .link { padding: 48px 16px; }
         }
         @@media (prefers-reduced-motion: no-preference) {
             .wall { animation: drift 60s linear infinite alternate; }
-            @@keyframes drift { from { transform: rotate(-12deg) scale(1.1) translateY(0); } to { transform: rotate(-12deg) scale(1.1) translateY(-6%); } }
+            @@keyframes drift { from { transform: rotate(-12deg) scale(1.1) translateX(0); } to { transform: rotate(-12deg) scale(1.1) translateX(-6%); } }
         }
     </style>
 </head>
@@ -237,6 +270,146 @@
             </script>
         </div>
         <div class="curve" aria-hidden="true"></div>
+    </section>
+
+    @if (Model.TopRows.Count > 0)
+    {
+        <section class="ranks" aria-label="@T["welcome.top.label"]">
+            @foreach (var row in Model.TopRows)
+            {
+                var genre = T[$"genre.{row.Genre.Replace(" ", "")}"];
+                <div class="rank-row">
+                    <div class="rank-copy">
+                        <h2>@T["welcome.top.title"].Replace("{n}", row.Films.Count.ToString()).Replace("{genre}", genre)</h2>
+                        <p>@T["welcome.top.lede"].Replace("{genre}", genre)</p>
+                    </div>
+                    <ol class="rank-list">
+                        @for (var i = 0; i < row.Films.Count; i++)
+                        {
+                            var film = row.Films[i];
+                            <li><span class="rank-n" aria-hidden="true">@(i + 1)</span><img src="@film.PosterUrl" alt="@film.Title (@film.Year)" loading="lazy" /></li>
+                        }
+                    </ol>
+                </div>
+            }
+        </section>
+    }
+
+    <section class="link">
+        <div class="link-inner">
+            <canvas id="wy-globe" width="560" height="560" aria-hidden="true"></canvas>
+            <div>
+                <p class="kicker">WatchingYou</p>
+                <h2>@Html.Raw(T["welcome.link.title"])</h2>
+                <p class="lede">@T["welcome.link.lede"]</p>
+                <ul>
+                    <li><i></i><div><b>@T["welcome.link.f1"]</b><span>@T["welcome.link.f1d"]</span></div></li>
+                    <li><i></i><div><b>@T["welcome.link.f2"]</b><span>@T["welcome.link.f2d"]</span></div></li>
+                    <li><i></i><div><b>@T["welcome.link.f3"]</b><span>@T["welcome.link.f3d"]</span></div></li>
+                </ul>
+            </div>
+        </div>
+        <script nonce="@Model.HttpContext.Items["csp-nonce"]">
+            // A dotted Earth turning slowly, with green links pulsing between cities: the members'
+            // network, drawn on a canvas. Still for reduced motion; paused while out of view.
+            (function () {
+                var canvas = document.getElementById("wy-globe");
+                if (!canvas || !canvas.getContext) return;
+                var ctx = canvas.getContext("2d");
+                var dpr = Math.min(window.devicePixelRatio || 1, 2);
+                var size = 560;
+                canvas.width = size * dpr; canvas.height = size * dpr;
+                ctx.scale(dpr, dpr);
+                var R = size * 0.38, cx = size / 2, cy = size / 2, tilt = -0.32;
+                var rad = Math.PI / 180;
+
+                // Points spread evenly over the sphere (a Fibonacci lattice).
+                var dots = [];
+                var n = 1300, golden = Math.PI * (3 - Math.sqrt(5));
+                for (var i = 0; i < n; i++) {
+                    var y = 1 - (i / (n - 1)) * 2, r = Math.sqrt(1 - y * y), th = golden * i;
+                    dots.push([Math.cos(th) * r, y, Math.sin(th) * r]);
+                }
+                var cities = [[40.4, 49.9], [39.9, 32.9], [55.8, 37.6], [51.5, -0.1], [48.9, 2.4], [40.7, -74.0],
+                              [25.2, 55.3], [35.7, 139.7], [28.6, 77.2], [-23.6, -46.6], [30.0, 31.2], [-33.9, 151.2], [1.35, 103.8],
+                              [34.1, -118.2], [19.4, -99.1], [6.5, 3.4], [-26.2, 28.0], [41.9, 12.5], [37.6, 127.0], [-6.2, 106.8],
+                              [43.7, -79.4], [-34.6, -58.4], [24.7, 46.7], [64.1, -21.9], [-41.3, 174.8]];
+                var links = [[0, 1], [0, 2], [0, 6], [1, 3], [2, 4], [3, 5], [6, 8], [8, 7], [5, 9], [4, 10], [7, 11], [6, 12], [0, 8], [2, 7],
+                             [5, 13], [13, 14], [14, 9], [9, 22], [10, 15], [15, 16], [17, 1], [18, 7], [12, 19], [19, 11], [5, 20], [20, 3],
+                             [23, 21], [0, 23], [21, 6], [3, 24], [24, 20], [11, 24], [24, 13], [16, 12], [17, 3]];
+                function vec(lat, lon) { return [Math.cos(lat * rad) * Math.cos(lon * rad), Math.sin(lat * rad), Math.cos(lat * rad) * Math.sin(lon * rad)]; }
+                var cityVec = cities.map(function (c) { return vec(c[0], c[1]); });
+                // A link to a city that is not on the list would stop the whole animation.
+                links = links.filter(function (l) { return cityVec[l[0]] && cityVec[l[1]]; });
+
+                function project(v, spin) {
+                    var x = v[0] * Math.cos(spin) - v[2] * Math.sin(spin);
+                    var z = v[0] * Math.sin(spin) + v[2] * Math.cos(spin);
+                    var y = v[1] * Math.cos(tilt) - z * Math.sin(tilt);
+                    z = v[1] * Math.sin(tilt) + z * Math.cos(tilt);
+                    return [cx + x * R, cy - y * R, z];
+                }
+                function arcPoint(a, b, t) {
+                    var dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+                    var om = Math.acos(Math.max(-1, Math.min(1, dot))), so = Math.sin(om) || 1;
+                    var k1 = Math.sin((1 - t) * om) / so, k2 = Math.sin(t * om) / so, lift = 1 + 0.22 * Math.sin(Math.PI * t) * (om / Math.PI + 0.3);
+                    return [(a[0] * k1 + b[0] * k2) * lift, (a[1] * k1 + b[1] * k2) * lift, (a[2] * k1 + b[2] * k2) * lift];
+                }
+
+                function frame(time) {
+                    var spin = time * 0.00012;
+                    ctx.clearRect(0, 0, size, size);
+                    var glow = ctx.createRadialGradient(cx, cy, R * 0.6, cx, cy, R * 1.25);
+                    glow.addColorStop(0, "rgba(34,224,122,0.10)"); glow.addColorStop(0.8, "rgba(34,224,122,0.05)"); glow.addColorStop(1, "rgba(34,224,122,0)");
+                    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, R * 1.25, 0, 7); ctx.fill();
+                    ctx.fillStyle = "#04120A"; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
+                    ctx.strokeStyle = "rgba(34,224,122,0.45)"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+
+                    for (var i = 0; i < dots.length; i++) {
+                        var p = project(dots[i], spin);
+                        if (p[2] < -0.05) continue;
+                        ctx.fillStyle = "rgba(120,255,180," + (0.18 + 0.62 * p[2]).toFixed(3) + ")";
+                        ctx.fillRect(p[0] - 1.1, p[1] - 1.1, 2.2, 2.2);
+                    }
+                    ctx.lineCap = "round";
+                    for (var l = 0; l < links.length; l++) {
+                        var a = cityVec[links[l][0]], b = cityVec[links[l][1]];
+                        ctx.strokeStyle = "rgba(34,224,122,0.62)"; ctx.lineWidth = 1.5; ctx.beginPath();
+                        var started = false;
+                        for (var s = 0; s <= 40; s++) {
+                            var q = project(arcPoint(a, b, s / 40), spin);
+                            if (q[2] < 0) { started = false; continue; }
+                            if (!started) { ctx.moveTo(q[0], q[1]); started = true; } else ctx.lineTo(q[0], q[1]);
+                        }
+                        ctx.stroke();
+                        var pulse = ((time * 0.00035) + l * 0.37) % 1;
+                        var head = project(arcPoint(a, b, pulse), spin);
+                        if (head[2] > 0) {
+                            ctx.fillStyle = "#9BFFC6"; ctx.shadowColor = "#22E07A"; ctx.shadowBlur = 12;
+                            ctx.beginPath(); ctx.arc(head[0], head[1], 2.6, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
+                        }
+                    }
+                    for (var c = 0; c < cityVec.length; c++) {
+                        var m = project(cityVec[c], spin);
+                        if (m[2] < 0) continue;
+                        ctx.fillStyle = "#22E07A"; ctx.shadowColor = "#22E07A"; ctx.shadowBlur = 10;
+                        ctx.beginPath(); ctx.arc(m[0], m[1], c === 0 ? 4.2 : 3, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
+                    }
+                }
+
+                var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                if (still) { frame(3000); return; }
+                var visible = true, raf = 0;
+                function loop(t) { frame(t); if (visible) raf = requestAnimationFrame(loop); }
+                if ("IntersectionObserver" in window) {
+                    new IntersectionObserver(function (entries) {
+                        visible = entries[0].isIntersecting;
+                        cancelAnimationFrame(raf);
+                        if (visible) raf = requestAnimationFrame(loop);
+                    }).observe(canvas);
+                } else raf = requestAnimationFrame(loop);
+            })();
+        </script>
     </section>
 
     <section class="faq">

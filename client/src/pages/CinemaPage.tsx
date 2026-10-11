@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { motion } from "motion/react";
+import { Film } from "lucide-react";
 import { Section, Panel, Notice, Spinner, Empty } from "@/components/Shell";
 import { BookingFlow, TicketCard, type SeatSelection, type TicketResponse, type CheckoutStarted } from "@/components/BookingFlow";
 import { accountKey, post, ApiError } from "@/lib/api";
@@ -24,6 +25,9 @@ interface Screening {
   subtitleLanguage?: string | null;
   hallId: string;
   venueName: string;
+  posterUrl?: string | null;
+  /** The show's city: its time is told on that city's clock. */
+  city?: string;
 }
 
 interface PendingCheckout {
@@ -316,6 +320,18 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
     activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [activeId]);
 
+  // On a wide screen the page itself stays put: the list scrolls in its own column and the
+  // seat map stays in view beside it, just under the sticky site header (measured, since its
+  // height changes with the width).
+  const [headerHeight, setHeaderHeight] = useState(0);
+  useEffect(() => {
+    const header = document.querySelector("header");
+    if (!header) return;
+    const observer = new ResizeObserver(() => setHeaderHeight(header.getBoundingClientRect().height));
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
+
   // The list keeps shows for a while after they start (someone may be looking for the one
   // they are late for), but they can no longer be sold. Deciding that here rather than
   // at payment means nobody picks seats and types a card number only to be refused.
@@ -433,8 +449,11 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
       ) : null}
 
       {screenings.length > 0 ? (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
-          <div className="space-y-2">
+        <div
+          className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]"
+          style={{ "--pane-top": `${headerHeight + 16}px`, "--pane-height": `calc(100vh - ${headerHeight + 32}px)` } as CSSProperties}
+        >
+          <div className="rr-scroll rr-scroll-fade space-y-3 lg:sticky lg:top-[var(--pane-top)] lg:max-h-[var(--pane-height)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:px-1.5 lg:py-3">
             {screenings.map((screening) => {
               const isActive = screening.id === activeId;
               return (
@@ -444,35 +463,55 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
                   onClick={() => setActiveId(screening.id)}
                   aria-pressed={isActive}
                   aria-current={isActive ? "true" : undefined}
-                  className={`w-full rounded-lg border p-3 text-left transition-colors ${
+                  className={`group w-full overflow-hidden rounded-xl border text-left transition ${
                     isActive
-                      ? "border-accent bg-surface-raised ring-2 ring-accent/40"
-                      : "border-line hover:border-accent-dim"
+                      ? "border-accent bg-surface-raised shadow-[0_0_0_1px_var(--color-accent),0_8px_24px_-12px_var(--color-accent)]"
+                      : "border-line hover:-translate-y-0.5 hover:border-accent-dim"
                   }`}
                 >
-                  <p className="font-display text-base text-ink">{screening.movieTitle}</p>
-                  <p className="mt-1 text-xs text-ink-mute">
-                    {screening.venueName} · {screening.hall} · {formatDateTime(screening.startsAtUtc)}
-                  </p>
-                  <p className="mt-1 text-xs text-ink-mute">
-                    {languageName(screening.audioLanguage)}
-                    {screening.subtitleLanguage
-                      ? ` · ${t("onDisplay.subtitles")}: ${languageName(screening.subtitleLanguage)}`
-                      : ""}
-                  </p>
-                  {hasStarted(screening.startsAtUtc) ? (
-                    <p className="mt-1 text-xs text-warn">{t("cinema.started", "Started — no longer on sale")}</p>
-                  ) : (
-                    <p className="mt-1 text-xs text-accent">
-                      {screening.capacity - screening.seatsTaken} / {screening.capacity} {t("cinema.free", "free")}
+                  {/* A slice of the poster, not the whole of it: enough to recognise the film. */}
+                  <div className="relative h-20 overflow-hidden bg-gradient-to-br from-accent-dim/40 via-surface-raised to-surface">
+                    {screening.posterUrl ? (
+                      <img src={screening.posterUrl} alt="" loading="lazy"
+                        className="h-full w-full object-cover object-[center_25%] transition duration-500 group-hover:scale-105" />
+                    ) : (
+                      <Film size={26} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-accent/60" aria-hidden />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" aria-hidden />
+                    <span className="absolute right-2 top-2 rounded-full bg-black/65 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">
+                      {formatMoney(screening.seatPrice)}
+                    </span>
+                  </div>
+                  <div className="p-3">
+                    <p className="font-display text-base leading-tight text-ink">{screening.movieTitle}</p>
+                    <p className="mt-1 text-xs text-ink-mute">
+                      {screening.venueName} · {screening.hall} · {formatDateTime(screening.startsAtUtc, screening.city)}
                     </p>
-                  )}
+                    <p className="mt-1 text-xs text-ink-mute">
+                      {languageName(screening.audioLanguage)}
+                      {screening.subtitleLanguage
+                        ? ` · ${t("onDisplay.subtitles")}: ${languageName(screening.subtitleLanguage)}`
+                        : ""}
+                    </p>
+                    {hasStarted(screening.startsAtUtc) ? (
+                      <p className="mt-1.5 text-xs text-warn">{t("cinema.started", "Started — no longer on sale")}</p>
+                    ) : (
+                      <>
+                        <p className="mt-1.5 text-xs text-accent">
+                          {screening.capacity - screening.seatsTaken} / {screening.capacity} {t("cinema.free", "free")}
+                        </p>
+                        <div className="mt-1 h-1 overflow-hidden rounded-full bg-line" aria-hidden>
+                          <div className="h-full rounded-full bg-accent" style={{ width: `${Math.round(((screening.capacity - screening.seatsTaken) / Math.max(screening.capacity, 1)) * 100)}%` }} />
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </button>
               );
             })}
           </div>
 
-          <Panel>
+          <Panel className="rr-scroll lg:sticky lg:top-[var(--pane-top)] lg:max-h-[var(--pane-height)] lg:self-start lg:overflow-y-auto lg:overscroll-contain">
             {!map ? (
               <Spinner label={t("cinema.drawing")} />
             ) : (
@@ -480,7 +519,7 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
                 <div className="mb-6">
                   <h3 className="font-display text-2xl text-ink">{map.movieTitle}</h3>
                   <p className="text-sm text-ink-mute">
-                    {map.venueName} · {map.hall} · {formatDateTime(map.startsAtUtc)} · {formatMoney(map.seatPrice)} {t("cinema.perSeat", "a seat")}
+                    {map.venueName} · {map.hall} · {formatDateTime(map.startsAtUtc, screenings.find((s) => s.id === map.screeningId)?.city)} · {formatMoney(map.seatPrice)} {t("cinema.perSeat", "a seat")}
                   </p>
                   <p className="mt-1 text-sm text-accent">
                     {languageName(map.audioLanguage)}

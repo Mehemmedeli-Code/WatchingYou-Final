@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/useAuth";
 import { get, post } from "@/lib/api";
+import { askConfirm } from "@/lib/dialog";
 import { formatDate, formatUsd, PRO_PRICE } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { ProSubscribers } from "@/components/ProSubscribers";
@@ -46,13 +47,15 @@ export default function ProPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  // Arrived from the welcome page having picked PRO: open the payment straight away, once,
-  // unless the account already has it. The flag leaves the address so a reload does not reopen it.
-  useEffect(() => {
-    if (!status || new URLSearchParams(location.search).get("checkout") !== "1") return;
-    history.replaceState(null, "", location.pathname);
-    if (!status.active) setPaying(true);
-  }, [status]);
+  // Whichever plan the account is on, the other one is a button away.
+  async function switchToFree() {
+    if (!status) return;
+    const ok = await askConfirm(
+      t("pro.switchConfirm", "Watching PRO ends now and the {n} days left are not refunded. Switch to the free account?")
+        .replace("{n}", String(status.daysLeft)),
+      { confirmLabel: t("pro.switchFree", "Switch to the free account"), danger: true });
+    if (ok) setStatus(await post<ProStatus>("/api/pro/cancel"));
+  }
 
   // Staff watch everything already; what they need is the subscriber list, not the offer.
   if (isStaff) {
@@ -78,10 +81,13 @@ export default function ProPage() {
   return (
     <Section title="Watching PRO" lede={t("pro.lede", "Every film, as often as you like. $5 a month.")}>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Panel>
-          <p className="flex items-center gap-2 font-display text-lg text-ink">
-            <Film size={18} aria-hidden /> {t("pro.freePlan", "Free account")}
-          </p>
+        <Panel className={status && !status.active ? "flex flex-col border-accent" : "flex flex-col"}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="flex items-center gap-2 font-display text-lg text-ink">
+              <Film size={18} aria-hidden /> {t("pro.freePlan", "Free account")}
+            </p>
+            {status && !status.active ? <Badge tone="good">{t("pro.yourPlan", "Your plan")}</Badge> : null}
+          </div>
           <p className="mt-2 font-display text-3xl text-ink">
             {formatUsd(0.5)} <span className="text-base text-ink-mute">/ 3 {t("pro.days", "days")}</span>
           </p>
@@ -92,9 +98,16 @@ export default function ProPage() {
               </li>
             ))}
           </ul>
+          {status?.active ? (
+            <div className="mt-auto border-t border-line pt-4">
+              <Button variant="outline" className="mt-5 w-full" onClick={() => void switchToFree()}>
+                {t("pro.switchFree", "Switch to the free account")}
+              </Button>
+            </div>
+          ) : null}
         </Panel>
 
-        <Panel className="border-accent">
+        <Panel className={status && !status.active ? "" : "border-accent"}>
           <div className="flex items-center justify-between gap-3">
             <p className="flex items-center gap-2 font-display text-lg text-ink">
               <Crown size={18} className="text-accent" aria-hidden /> Watching PRO

@@ -4,7 +4,8 @@ import { Panel, Notice } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Input, Field, Select } from "@/components/ui/input";
 import { post, ApiError } from "@/lib/api";
-import { t, languageName } from "@/lib/i18n";
+import { LanguageFlags } from "@/components/admin/LanguageFlags";
+import { t } from "@/lib/i18n";
 
 export interface HallOption { id: string; name: string; format?: string | null; rows: number; seatsPerRow: number }
 export interface VenueOption { id: string; name: string; halls: HallOption[] }
@@ -148,22 +149,15 @@ export function BulkScheduleForm({
           </div>
         </Field>
 
-        <div className="grid grid-cols-3 gap-3">
-          <Field label={t("admin.seatPrice")}>
-            <Input type="number" step="0.5" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
-          </Field>
-          <Field label={t("onDisplay.language")}>
-            <Select value={audio} onChange={(e) => setAudio(e.target.value)}>
-              {["az", "en", "ru", "tr"].map((code) => <option key={code} value={code}>{languageName(code)}</option>)}
-            </Select>
-          </Field>
-          <Field label={t("onDisplay.subtitles")}>
-            <Select value={subtitles} onChange={(e) => setSubtitles(e.target.value)}>
-              <option value="">—</option>
-              {["az", "en", "ru", "tr"].map((code) => <option key={code} value={code}>{languageName(code)}</option>)}
-            </Select>
-          </Field>
-        </div>
+        <Field label={t("admin.seatPrice")}>
+          <Input type="number" step="0.5" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
+        </Field>
+        <Field label={t("onDisplay.language")}>
+          <LanguageFlags label={t("onDisplay.language")} value={audio} onChange={setAudio} />
+        </Field>
+        <Field label={t("onDisplay.subtitles")}>
+          <LanguageFlags label={t("onDisplay.subtitles")} value={subtitles} onChange={setSubtitles} optional />
+        </Field>
 
         {error ? <Notice tone="error">{error}</Notice> : null}
         {result ? (

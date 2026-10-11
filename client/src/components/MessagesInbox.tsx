@@ -14,6 +14,8 @@ interface DirectThreadRow {
   preview: string;
   lastMessageAtUtc: string;
   unread: number;
+  /** "received": a message request to me, waiting for my answer. */
+  request?: "none" | "sent" | "received" | "declined";
 }
 
 /**
@@ -67,7 +69,11 @@ export function MessagesInbox() {
                     <span className={row.unread > 0 ? "font-semibold text-ink" : "text-ink"}>{row.otherName}</span>
                     <span className="shrink-0 text-xs text-ink-mute">{formatWhen(row.lastMessageAtUtc)}</span>
                   </span>
-                  <span className="mt-0.5 block truncate text-sm text-ink-mute">{row.preview}</span>
+                  <span className="mt-0.5 block truncate text-sm text-ink-mute">
+                    {row.request === "received" ? <span className="mr-1.5 font-medium text-accent">{t("inbox.request", "Message request")} ·</span> : null}
+                    {row.request === "sent" ? <span className="mr-1.5 text-ink-mute">{t("inbox.requestSent", "Request sent")} ·</span> : null}
+                    {row.preview || t("dm.deleted", "This message was deleted")}
+                  </span>
                 </span>
                 {row.unread > 0 ? <Badge tone="good">{row.unread}</Badge> : null}
               </button>

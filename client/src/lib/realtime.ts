@@ -12,6 +12,7 @@ import { apiUrl } from "@/lib/platform";
  */
 export type RealtimeEvent =
   | "dm"          // { fromUserId, fromName }
+  | "dmChanged"   // { fromUserId } — an edit, deletion, reaction, pin or accepted request
   | "typing"      // { fromUserId, fromName }
   | "help"        // { conversationId } — to the customer who owns the conversation
   | "helpDesk"    // { conversationId } — to every Security/Admin connection

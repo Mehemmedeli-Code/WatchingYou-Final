@@ -75,7 +75,8 @@ internal sealed class PageShellFactory(
             new("on-display", "/on-display", language["nav.onDisplay"]),
             new("ai-catalog", "/ai-catalog", language["nav.aiCatalog"]),
             new("human-craft", "/human-craft", language["nav.humanCraft"]),
-            new("cinema", "/cinema", language["nav.cinema"])
+            new("cinema", "/cinema", language["nav.cinema"]),
+            new("guide", "/guide", language["nav.guide"])
         };
 
         // Watching PRO is sold to viewers. Staff run the site and watch without it, so the

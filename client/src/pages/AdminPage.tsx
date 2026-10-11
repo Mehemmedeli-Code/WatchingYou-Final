@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Download, X } from "lucide-react";
+import { Download, FileText, X } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Section, Panel, Notice, Empty, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,9 @@ import { VectorBarChart, type ChartSeries } from "@/components/VectorChart";
 import { useAuth } from "@/components/useAuth";
 import { get, post, put, patch, del, query, download, ApiError, type Paged } from "@/lib/api";
 import { BulkScheduleForm } from "@/components/admin/BulkScheduleForm";
+import { LanguageFlags } from "@/components/admin/LanguageFlags";
 import { PromoAdmin } from "@/components/admin/PromoAdmin";
+import { BannerAdmin } from "@/components/admin/BannerAdmin";
 import { formatDate, formatMoney } from "@/lib/format";
 import { t, languageName, genreName } from "@/lib/i18n";
 import { VideoPlayer } from "@/components/VideoPlayer";
@@ -171,6 +173,14 @@ export default function AdminPage() {
             >
               <Download size={14} aria-hidden />
               {t("export.bookings", "Bookings CSV")}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => run(() => download("/api/backoffice/reports/sales-receipt.pdf", "watchingyou-sales.pdf"), t("export.done", "Download started."))}
+            >
+              <FileText size={14} aria-hidden />
+              {t("export.salesReceipt", "Sales receipt (PDF)")}
             </Button>
             <Button
               size="sm"
@@ -456,6 +466,10 @@ export default function AdminPage() {
         <PromoAdmin />
       </Section>
 
+      <Section title={t("banner.adminTitle", "Advertising boards")} lede={t("banner.adminLede", "The four boards at the top of the catalogue. The holiday ones sell a promo code in their own weeks; the WatchingYou one advertises the site.")}>
+        <BannerAdmin />
+      </Section>
+
     </>
   );
 }
@@ -640,37 +654,26 @@ function NewScreeningForm({
           <Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={t("onDisplay.language")}>
-            <Select value={audio} onChange={(e) => setAudio(e.target.value)}>
-              {["az", "en", "ru", "tr"].map((code) => (
-                <option key={code} value={code}>{languageName(code)}</option>
-              ))}
-            </Select>
-          </Field>
-          <Field label={t("onDisplay.subtitles")}>
-            <Select value={subtitles} onChange={(e) => setSubtitles(e.target.value)}>
-              <option value="">—</option>
-              {["az", "en", "ru", "tr"].map((code) => (
-                <option key={code} value={code}>{languageName(code)}</option>
-              ))}
-            </Select>
-          </Field>
-        </div>
+        <Field label={t("onDisplay.language")}>
+          <LanguageFlags label={t("onDisplay.language")} value={audio} onChange={setAudio} />
+        </Field>
+        <Field label={t("onDisplay.subtitles")}>
+          <LanguageFlags label={t("onDisplay.subtitles")} value={subtitles} onChange={setSubtitles} optional />
+        </Field>
 
         <Field label={t("admin.seatPrice")}>
           <Input type="number" step="0.5" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
         </Field>
 
-        {/* Blank means the site defaults — 48 hours and 30%. Filled in, this performance
+        {/* Blank means the site defaults — full refund until 24 hours before, then 30% kept. Filled in, this performance
             carries its own rule, which is why each one shows a Rules section. */}
         <div className="grid grid-cols-2 gap-3">
-          <Field label={t("admin.refundWindow")} hint="48">
+          <Field label={t("admin.refundWindow")} hint="24">
             <Input
               type="number"
               value={refundWindow}
               onChange={(e) => setRefundWindow(e.target.value)}
-              placeholder="48"
+              placeholder="24"
             />
           </Field>
           <Field label={t("admin.refundFee")} hint="30">
@@ -906,13 +909,17 @@ function EditScreeningDialog({
               <Field label={t("admin.seatPrice")}>
                 <Input type="number" step="0.5" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
               </Field>
-              <Field label={t("admin.audio")}>
-                <Input value={audio} onChange={(e) => setAudio(e.target.value)} />
-              </Field>
-              <Field label={t("admin.subtitles")}>
-                <Input value={subtitles} onChange={(e) => setSubtitles(e.target.value)} />
-              </Field>
-              <Field label={t("admin.refundWindow")} hint="48">
+              <div className="col-span-2">
+                <Field label={t("admin.audio")}>
+                  <LanguageFlags label={t("admin.audio")} value={audio} onChange={setAudio} />
+                </Field>
+              </div>
+              <div className="col-span-2">
+                <Field label={t("admin.subtitles")}>
+                  <LanguageFlags label={t("admin.subtitles")} value={subtitles} onChange={setSubtitles} optional />
+                </Field>
+              </div>
+              <Field label={t("admin.refundWindow")} hint="24">
                 <Input type="number" value={refundWindow} onChange={(e) => setRefundWindow(e.target.value)} />
               </Field>
               <Field label={t("admin.refundFee")} hint="30">
