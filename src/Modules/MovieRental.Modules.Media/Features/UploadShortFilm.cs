@@ -84,7 +84,7 @@ internal sealed class UploadShortFilmHandler(
             UserId = userId,
             AuthorName = contact?.FullName ?? "Unknown",
             Title = command.Title.Trim(),
-            Synopsis = command.Synopsis.Trim(),
+            Synopsis = (command.Synopsis ?? "").Trim(),
             Origin = command.Origin,
             Visibility = command.Visibility,
             StoredFileName = storedName,
