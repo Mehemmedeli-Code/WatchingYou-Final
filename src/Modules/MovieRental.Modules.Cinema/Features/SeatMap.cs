@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Cinema.Domain;
 using MovieRental.Modules.Cinema.Persistence;
+using MovieRental.SharedKernel.Contracts;
 using MovieRental.SharedKernel.Cqrs;
 using MovieRental.SharedKernel.Security;
 
@@ -16,7 +17,7 @@ public sealed record ScreeningListItem(
     Guid Id, Guid MovieId, string MovieTitle, string Hall, DateTime StartsAtUtc,
     decimal SeatPrice, int Capacity, int SeatsTaken,
     string AudioLanguage, string? SubtitleLanguage,
-    Guid HallId, string VenueName);
+    Guid HallId, string VenueName, string? PosterUrl = null, string City = "Baku");
 
 public sealed record SeatState(int Row, int Number, bool IsTaken, bool IsMine, bool IsHeld);
 
@@ -28,11 +29,12 @@ public sealed record SeatMapResponse(
 
 public sealed record GetScreeningsQuery : IQuery<IReadOnlyList<ScreeningListItem>>;
 
-internal sealed class GetScreeningsHandler(CinemaDbContext db)
+internal sealed class GetScreeningsHandler(CinemaDbContext db, ICatalogApi catalog)
     : IQueryHandler<GetScreeningsQuery, IReadOnlyList<ScreeningListItem>>
 {
-    public async Task<IReadOnlyList<ScreeningListItem>> Handle(GetScreeningsQuery query, CancellationToken ct) =>
-        await db.Screenings.AsNoTracking()
+    public async Task<IReadOnlyList<ScreeningListItem>> Handle(GetScreeningsQuery query, CancellationToken ct)
+    {
+        var shows = await db.Screenings.AsNoTracking()
             // Only shows still on sale: the page picks the first one, and listing shows that had
             // started (or were cancelled) opened it on a seat map nobody could click.
             .Where(s => s.StartsAtUtc > DateTime.UtcNow && !s.IsCancelled)
@@ -40,8 +42,13 @@ internal sealed class GetScreeningsHandler(CinemaDbContext db)
             .Select(s => new ScreeningListItem(
                 s.Id, s.MovieId, s.MovieTitle, s.Hall, s.StartsAtUtc, s.SeatPrice,
                 s.Rows * s.SeatsPerRow, s.Bookings.Count, s.AudioLanguage, s.SubtitleLanguage,
-                s.HallId, s.HallRoom!.Venue!.Name))
+                s.HallId, s.HallRoom!.Venue!.Name, null, s.HallRoom!.Venue!.City))
             .ToListAsync(ct);
+
+        // The posters live in the catalogue: one lookup for every film on the list.
+        var posters = await catalog.GetPostersAsync([.. shows.Select(s => s.MovieId).Distinct()], ct);
+        return [.. shows.Select(s => s with { PosterUrl = posters.GetValueOrDefault(s.MovieId) })];
+    }
 }
 
 public sealed record GetSeatMapQuery(Guid ScreeningId) : IQuery<SeatMapResponse?>;

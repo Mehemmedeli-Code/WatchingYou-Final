@@ -15,13 +15,13 @@ namespace MovieRental.Modules.Cinema.Features;
 public sealed record ShowtimeItem(
     Guid ScreeningId, DateTime StartsAtUtc, string Hall, string AudioLanguage,
     string? SubtitleLanguage, decimal SeatPrice, int SeatsLeft,
-    Guid VenueId, string VenueName);
+    Guid VenueId, string VenueName, string City);
 
 public sealed record OnDisplayItem(
     Guid MovieId, string MovieTitle, IReadOnlyList<string> Languages, IReadOnlyList<ShowtimeItem> Showtimes);
 
 public readonly record struct OnDisplayFilter(
-    string? Language, DateTime? From, DateTime? To, string? Search, Guid? VenueId);
+    string? Language, DateTime? From, DateTime? To, string? Search, Guid? VenueId, string? City);
 
 public sealed record GetOnDisplayQuery(OnDisplayFilter Filter) : IQuery<IReadOnlyList<OnDisplayItem>>;
 
@@ -40,6 +40,9 @@ internal sealed class GetOnDisplayHandler(CinemaDbContext db)
 
         if (filter.VenueId is { } venueId)
             screenings = screenings.Where(s => s.HallRoom!.VenueId == venueId);
+
+        if (!string.IsNullOrWhiteSpace(filter.City))
+            screenings = screenings.Where(s => s.HallRoom!.Venue!.City == filter.City);
 
         if (!string.IsNullOrWhiteSpace(filter.Language))
             screenings = screenings.Where(s => s.AudioLanguage == filter.Language);
@@ -60,7 +63,7 @@ internal sealed class GetOnDisplayHandler(CinemaDbContext db)
             {
                 s.Id, s.MovieId, s.MovieTitle, s.StartsAtUtc, s.Hall,
                 s.AudioLanguage, s.SubtitleLanguage, s.SeatPrice,
-                VenueId = s.HallRoom!.VenueId, VenueName = s.HallRoom!.Venue!.Name,
+                VenueId = s.HallRoom!.VenueId, VenueName = s.HallRoom!.Venue!.Name, s.HallRoom!.Venue!.City,
                 Capacity = s.Rows * s.SeatsPerRow,
                 Taken = s.Bookings.Count
             })
@@ -74,7 +77,7 @@ internal sealed class GetOnDisplayHandler(CinemaDbContext db)
                 [.. g.Select(x => x.AudioLanguage).Distinct().Order()],
                 [.. g.Select(x => new ShowtimeItem(
                     x.Id, x.StartsAtUtc, x.Hall, x.AudioLanguage, x.SubtitleLanguage,
-                    x.SeatPrice, Math.Max(0, x.Capacity - x.Taken), x.VenueId, x.VenueName))]))
+                    x.SeatPrice, Math.Max(0, x.Capacity - x.Taken), x.VenueId, x.VenueName, x.City))]))
             .OrderBy(x => x.MovieTitle)];
     }
 }

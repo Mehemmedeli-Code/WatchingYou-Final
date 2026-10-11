@@ -51,6 +51,7 @@ public sealed class CinemaModule : IModule
         RefundEndpoints.Map(endpoints);
         ManageScreeningsEndpoints.Map(endpoints);
         PaymentEndpoints.Map(endpoints);
+        BannerEndpoints.Map(endpoints);
         CinemaAdminToolEndpoints.Map(endpoints);
 
         // Back office: tills, shifts, set-up and reports.
