@@ -175,6 +175,30 @@ internal sealed class SubscribeProHandler(
 }
 
 /// <summary>
+/// Back to the free account: PRO ends now, including any month paid ahead. Nothing is refunded —
+/// the page says so before the button is pressed.
+/// </summary>
+public sealed record CancelProCommand : ICommand<ProStatus>;
+
+internal sealed class CancelProHandler(RentalsDbContext db, ICurrentUser currentUser, IDispatcher dispatcher)
+    : ICommandHandler<CancelProCommand, ProStatus>
+{
+    public async Task<ProStatus> Handle(CancelProCommand command, CancellationToken ct)
+    {
+        var userId = currentUser.RequireId();
+        var now = DateTime.UtcNow;
+        // A month paid ahead has not started yet: it ends before it begins.
+        await db.Subscriptions
+            .Where(s => s.UserId == userId && s.EndsAtUtc > now)
+            .ExecuteUpdateAsync(set => set
+                .SetProperty(s => s.StartsAtUtc, s => s.StartsAtUtc > now ? now : s.StartsAtUtc)
+                .SetProperty(s => s.EndsAtUtc, now)
+                .SetProperty(s => s.UpdatedAtUtc, (DateTime?)now), ct);
+        return await dispatcher.Ask(new GetProStatusQuery(), ct);
+    }
+}
+
+/// <summary>
 /// A card payment as this module takes one: the test card of the seat checkout, which never
 /// charges, so it is refused on a live site (Payments:AllowTestCard). Only the brand and the
 /// last four digits leave here; the number and CVC are never stored.
@@ -222,6 +246,10 @@ public static class WatchingProEndpoints
                 return result.IsSuccess ? TypedResults.Ok(result.Value) : TypedResults.BadRequest(result.Error);
             })
             .WithName("SubscribePro");
+
+        pro.MapPost("/cancel", async (IDispatcher dispatcher, CancellationToken ct) =>
+                TypedResults.Ok(await dispatcher.Send(new CancelProCommand(), ct)))
+            .WithName("CancelPro");
 
         app.MapGet("/api/pro/subscribers", async (IDispatcher dispatcher, CancellationToken ct) =>
                 TypedResults.Ok(await dispatcher.Ask(new GetProOverviewQuery(), ct)))
