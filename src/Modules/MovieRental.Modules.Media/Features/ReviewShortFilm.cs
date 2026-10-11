@@ -108,10 +108,10 @@ internal sealed class DecideShortFilmHandler(
 
         await email.SendAsync(new EmailRequest(contact.Email, subject,
             $"""
-             <p>Hi {contact.FullName},</p>
-             <p>Your submission <strong>{film.Title}</strong> has been reviewed.</p>
-             {(string.IsNullOrWhiteSpace(film.ReviewerNote) ? "" : $"<p>{film.ReviewerNote}</p>")}
-             {(string.IsNullOrWhiteSpace(film.SecurityReport?.Summary) ? "" : $"<p><em>{film.SecurityReport!.Summary}</em></p>")}
+             <p>Hi {System.Net.WebUtility.HtmlEncode(contact.FullName)},</p>
+             <p>Your submission <strong>{System.Net.WebUtility.HtmlEncode(film.Title)}</strong> has been reviewed.</p>
+             {(string.IsNullOrWhiteSpace(film.ReviewerNote) ? "" : $"<p>{System.Net.WebUtility.HtmlEncode(film.ReviewerNote)}</p>")}
+             {(string.IsNullOrWhiteSpace(film.SecurityReport?.Summary) ? "" : $"<p><em>{System.Net.WebUtility.HtmlEncode(film.SecurityReport!.Summary)}</em></p>")}
              {failureList}
              {next}
              """), ct);

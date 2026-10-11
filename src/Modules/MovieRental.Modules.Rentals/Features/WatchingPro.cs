@@ -4,10 +4,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using MovieRental.Modules.Rentals.Domain;
 using MovieRental.Modules.Rentals.Persistence;
 using MovieRental.SharedKernel.Contracts;
 using MovieRental.SharedKernel.Cqrs;
+using MovieRental.SharedKernel.Payments;
 using MovieRental.SharedKernel.Results;
 using MovieRental.SharedKernel.Security;
 
@@ -72,11 +74,12 @@ internal sealed class GetProOverviewHandler(RentalsDbContext db, IUserDirectory 
         var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var all = await db.Subscriptions.AsNoTracking().ToListAsync(ct);
 
+        var contacts = await users.GetContactsAsync([.. all.Select(s => s.UserId).Distinct()], ct);
         var rows = new List<ProSubscriberRow>();
         foreach (var group in all.GroupBy(s => s.UserId))
         {
             var latest = group.MaxBy(s => s.EndsAtUtc)!;
-            var contact = await users.GetContactAsync(group.Key, ct);
+            var contact = contacts.GetValueOrDefault(group.Key);
             var active = group.Any(s => s.IsActiveAt(now));
             rows.Add(new ProSubscriberRow(
                 group.Key, contact?.FullName ?? "—", contact?.Email ?? "—", active,
@@ -111,26 +114,27 @@ internal sealed class SubscribeProValidator : AbstractValidator<SubscribeProComm
 }
 
 internal sealed class SubscribeProHandler(
-    RentalsDbContext db, ICurrentUser currentUser, IDispatcher dispatcher, IEmailSender email, IUserDirectory users)
+    RentalsDbContext db, ICurrentUser currentUser, IDispatcher dispatcher, IEmailSender email, IUserDirectory users,
+    IConfiguration configuration)
     : ICommandHandler<SubscribeProCommand, Result<ProStatus>>
 {
     public async Task<Result<ProStatus>> Handle(SubscribeProCommand command, CancellationToken ct)
     {
         var userId = currentUser.RequireId();
 
-        var digits = new string(command.Card.Number?.Where(char.IsDigit).ToArray() ?? []);
-        var brand = CardCheck.BrandOf(digits);
-        if (digits.Length != 16 || !CardCheck.PassesLuhn(digits))
-            return Result.Failure<ProStatus>(Error.Validation("The card number is not valid."));
-        if (brand is null)
-            return Result.Failure<ProStatus>(Error.Validation("Only Visa and Mastercard are accepted."));
-        if (!CardCheck.ExpiryIsFuture(command.Card.ExpiryMonth, command.Card.ExpiryYear))
-            return Result.Failure<ProStatus>(Error.Validation("The card has expired."));
-        if (command.Card.Cvc is not { Length: 3 } cvc || !cvc.All(char.IsDigit))
-            return Result.Failure<ProStatus>(Error.Validation("The CVC is three digits."));
+        var paid = CardPayment.Check(command.Card, configuration);
+        if (paid.IsFailure) return Result.Failure<ProStatus>(paid.Error);
+        var (brand, last4) = paid.Value;
 
         // A month paid while one is still running starts where that one ends: paying early
         // never costs days.
+        // One purchase per person at a time. Two sent together (a double tap) both read the
+        // same end date, so both months started now and the second payment bought nothing.
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var lockName = $"pro:{userId:N}";
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"EXEC sp_getapplock @Resource = {lockName}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 15000", ct);
+
         var now = DateTime.UtcNow;
         var runningUntil = await db.Subscriptions
             .Where(s => s.UserId == userId && s.EndsAtUtc > now)
@@ -147,9 +151,10 @@ internal sealed class SubscribeProHandler(
             Amount = RentalPricing.MonthlyPrice,
             Currency = RentalPricing.Currency,
             CardBrand = brand,
-            CardLast4 = digits[^4..],
+            CardLast4 = last4,
         });
         await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
 
         var contact = await users.GetContactAsync(userId, ct);
         if (contact is not null)
@@ -158,7 +163,7 @@ internal sealed class SubscribeProHandler(
                 $"<p>Hörmətli {System.Net.WebUtility.HtmlEncode(contact.FullName)},</p>" +
                 $"<p>{RentalPricing.PlanName} abunəliyiniz uğurla aktivləşdirildi. " +
                 $"<strong>{starts.AddMonths(1):dd.MM.yyyy}</strong> tarixinədək bütün filmlərə limitsiz girişiniz var.</p>" +
-                $"<p>Ödəniş: ${RentalPricing.MonthlyPrice:0.00}, {brand} •••• {digits[^4..]}.<br>" +
+                $"<p>Ödəniş: ${RentalPricing.MonthlyPrice:0.00}, {brand} •••• {last4}.<br>" +
                 "Abunəlik avtomatik yenilənmir və kart məlumatlarınız saxlanılmır.</p>" +
                 "<p>Hörmətlə,<br>WatchingYou komandası</p>" +
                 "<hr style=\"border:none;border-top:1px solid #ddd;margin:24px 0 12px\">" +
@@ -169,37 +174,33 @@ internal sealed class SubscribeProHandler(
     }
 }
 
-/// <summary>The checks that can be made without a bank: checksum, brand, expiry.</summary>
-internal static class CardCheck
+/// <summary>
+/// A card payment as this module takes one: the test card of the seat checkout, which never
+/// charges, so it is refused on a live site (Payments:AllowTestCard). Only the brand and the
+/// last four digits leave here; the number and CVC are never stored.
+/// </summary>
+internal static class CardPayment
 {
-    public static bool PassesLuhn(string digits)
+    public static Result<(string Brand, string Last4)> Check(ProCard? card, IConfiguration configuration)
     {
-        var sum = 0;
-        var doubling = false;
-        for (var i = digits.Length - 1; i >= 0; i--)
-        {
-            var d = digits[i] - '0';
-            if (doubling && (d *= 2) > 9) d -= 9;
-            sum += d;
-            doubling = !doubling;
-        }
-        return digits.Length > 0 && sum % 10 == 0;
-    }
+        if (!configuration.GetValue<bool>("Payments:AllowTestCard"))
+            return Result.Failure<(string, string)>(Error.Validation("Card payment is not available yet."));
+        if (card is null)
+            return Result.Failure<(string, string)>(Error.Validation("Enter the card details."));
 
-    public static string? BrandOf(string digits)
-    {
-        if (digits.StartsWith('4')) return "Visa";
-        if (digits.Length >= 2 && int.TryParse(digits[..2], out var two) && two is >= 51 and <= 55) return "Mastercard";
-        if (digits.Length >= 4 && int.TryParse(digits[..4], out var four) && four is >= 2221 and <= 2720) return "Mastercard";
-        return null;
-    }
-
-    public static bool ExpiryIsFuture(int month, int year)
-    {
-        if (month is < 1 or > 12) return false;
-        if (year < 100) year += 2000;
-        if (year > 2100) return false;
-        return new DateTime(year, month, DateTime.DaysInMonth(year, month), 23, 59, 59, DateTimeKind.Utc) >= DateTime.UtcNow;
+        var digits = CardRules.Digits(card.Number);
+        var brand = CardRules.BrandName(digits);
+        if (digits.Length != 16 || !CardRules.PassesLuhn(digits))
+            return Result.Failure<(string, string)>(Error.Validation("The card number is not valid."));
+        if (brand is null)
+            return Result.Failure<(string, string)>(Error.Validation("Only Visa and Mastercard are accepted."));
+        if (!CardRules.ExpiryIsFuture(card.ExpiryMonth, card.ExpiryYear))
+            return Result.Failure<(string, string)>(Error.Validation("The card has expired."));
+        if (!CardRules.CvcLooksRight(card.Cvc))
+            return Result.Failure<(string, string)>(Error.Validation("The CVC is three digits."));
+        if (string.IsNullOrWhiteSpace(card.HolderName))
+            return Result.Failure<(string, string)>(Error.Validation("Enter the name on the card."));
+        return Result.Success((brand, digits[^4..]));
     }
 }
 

@@ -1,4 +1,4 @@
-using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.JsonWebTokens;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
@@ -11,10 +11,8 @@ namespace MovieRental.Modules.Identity.Infrastructure;
 public interface ITokenService
 {
     AccessToken CreateAccessToken(AppUser user);
-    RefreshTokenEntity CreateRefreshToken(Guid userId, string? ip);
+    (RefreshTokenEntity Entity, string Value) CreateRefreshToken(Guid userId, string? ip);
     string CreateNumericCode(int digits = 6);
-    string CreateConfirmationLinkPayload(Guid userId, string purpose);
-    bool TryReadConfirmationLinkPayload(string payload, out Guid userId, out string purpose);
 }
 
 public sealed record AccessToken(string Value, DateTime ExpiresAtUtc);
@@ -22,7 +20,9 @@ public sealed record AccessToken(string Value, DateTime ExpiresAtUtc);
 public sealed class TokenService(IOptions<JwtOptions> options) : ITokenService
 {
     private readonly JwtOptions _options = options.Value;
-    private readonly JwtSecurityTokenHandler _handler = new();
+    // JsonWebTokenHandler is the current Microsoft.IdentityModel API (JwtSecurityTokenHandler is
+    // legacy), and the same one the JwtBearer middleware validates with.
+    private readonly JsonWebTokenHandler _handler = new();
 
     public AccessToken CreateAccessToken(AppUser user)
     {
@@ -35,50 +35,48 @@ public sealed class TokenService(IOptions<JwtOptions> options) : ITokenService
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.FullName),
-            new("email_confirmed", user.IsEmailConfirmed.ToString().ToLowerInvariant())
+            new("email_confirmed", user.IsEmailConfirmed.ToString().ToLowerInvariant()),
+            // Checked on every request (AuthCookie.IsCurrentAsync): a password or role change
+            // retires the token at once.
+            new(AuthCookie.StampClaimType, AuthCookie.StampOf(user))
         };
         claims.AddRange(user.RoleList.Select(role => new Claim(ClaimTypes.Role, role)));
 
         var credentials = new SigningCredentials(SigningKey(_options.SecretKey), SecurityAlgorithms.HmacSha256);
-        var token = new JwtSecurityToken(
-            issuer: _options.Issuer,
-            audience: _options.Audience,
-            claims: claims,
-            notBefore: DateTime.UtcNow,
-            expires: expires,
-            signingCredentials: credentials);
+        var token = _handler.CreateToken(new SecurityTokenDescriptor
+        {
+            Issuer = _options.Issuer,
+            Audience = _options.Audience,
+            Subject = new ClaimsIdentity(claims),
+            NotBefore = DateTime.UtcNow,
+            Expires = expires,
+            SigningCredentials = credentials
+        });
 
-        return new AccessToken(_handler.WriteToken(token), expires);
+        return new AccessToken(token, expires);
     }
 
-    public RefreshTokenEntity CreateRefreshToken(Guid userId, string? ip) => new()
+    public (RefreshTokenEntity Entity, string Value) CreateRefreshToken(Guid userId, string? ip)
     {
-        UserId = userId,
-        Token = Base64UrlText.Encode(RandomNumberGenerator.GetBytes(48)),
-        ExpiresAtUtc = DateTime.UtcNow.AddDays(_options.RefreshTokenDays),
-        CreatedByIp = ip
-    };
+        var value = System.Buffers.Text.Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(48));
+        return (new RefreshTokenEntity
+        {
+            UserId = userId,
+            Token = HashRefreshToken(value),
+            ExpiresAtUtc = DateTime.UtcNow.AddDays(_options.RefreshTokenDays),
+            CreatedByIp = ip
+        }, value);
+    }
+
+    /// <summary>The table keeps a hash, never the token: a copy of the database must not be a
+    /// set of working sign-ins. SHA-256 is enough — the token is 384 random bits, not a password.</summary>
+    public static string HashRefreshToken(string value) =>
+        Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value)));
 
     public string CreateNumericCode(int digits = 6)
     {
         var max = (int)Math.Pow(10, digits);
         return RandomNumberGenerator.GetInt32(max).ToString(new string('0', digits));
-    }
-
-    public string CreateConfirmationLinkPayload(Guid userId, string purpose) =>
-        Base64UrlText.Encode($"{userId:N}|{purpose}|{DateTime.UtcNow:O}");
-
-    public bool TryReadConfirmationLinkPayload(string payload, out Guid userId, out string purpose)
-    {
-        userId = Guid.Empty;
-        purpose = string.Empty;
-        if (!Base64UrlText.TryDecode(payload, out var plain)) return false;
-
-        var parts = plain.Split('|');
-        if (parts.Length != 3 || !Guid.TryParseExact(parts[0], "N", out userId)) return false;
-
-        purpose = parts[1];
-        return DateTime.TryParse(parts[2], out var issuedAt) && DateTime.UtcNow - issuedAt.ToUniversalTime() < TimeSpan.FromDays(2);
     }
 
     public static SymmetricSecurityKey SigningKey(string secret) =>

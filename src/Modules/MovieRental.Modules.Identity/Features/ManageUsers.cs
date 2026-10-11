@@ -31,8 +31,15 @@ internal sealed class GetUsersHandler(IdentityDbContext db)
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var term = query.Search.Trim();
-            users = users.Where(u => EF.Functions.Like(u.Email, $"%{term}%")
-                                  || EF.Functions.Like(u.FullName, $"%{term}%"));
+            if (term.Length > 100) term = term[..100];
+            users = users.Where(u => u.Email.Contains(term) || u.FullName.Contains(term));
+        }
+        else
+        {
+            // With nothing typed the list is the staff only: customers are found by searching,
+            // when one is to be given a role.
+            users = users.Where(u => u.Roles.Contains(AppRoles.Admin) || u.Roles.Contains(AppRoles.Security)
+                                  || u.Roles.Contains(AppRoles.Cashier));
         }
 
         var rows = await users.OrderBy(u => u.Email).Take(200).ToListAsync(ct);

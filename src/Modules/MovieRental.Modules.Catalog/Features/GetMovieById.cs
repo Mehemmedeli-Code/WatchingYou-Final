@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Catalog.Persistence;
 using MovieRental.SharedKernel.Cqrs;
@@ -12,10 +13,11 @@ namespace MovieRental.Modules.Catalog.Features;
 
 public sealed record GetMovieByIdQuery(Guid Id) : IQuery<MovieDetail?>;
 
-internal sealed class GetMovieByIdHandler(CatalogDbContext db) : IQueryHandler<GetMovieByIdQuery, MovieDetail?>
+internal sealed class GetMovieByIdHandler(CatalogDbContext db, IHostEnvironment environment) : IQueryHandler<GetMovieByIdQuery, MovieDetail?>
 {
-    public async Task<MovieDetail?> Handle(GetMovieByIdQuery query, CancellationToken ct) =>
-        await db.Movies
+    public async Task<MovieDetail?> Handle(GetMovieByIdQuery query, CancellationToken ct)
+    {
+        var movie = await db.Movies
             .AsNoTracking()
             .Where(m => m.Id == query.Id)
             .Select(m => new MovieDetail(
@@ -29,6 +31,8 @@ internal sealed class GetMovieByIdHandler(CatalogDbContext db) : IQueryHandler<G
                     .ToList(),
                 m.VideoUrl != null && m.VideoUrl != ""))
             .FirstOrDefaultAsync(ct);
+        return movie is null ? null : movie with { Descriptions = MovieDescriptions.For(environment, movie.Slug) };
+    }
 }
 
 public static class GetMovieByIdEndpoint

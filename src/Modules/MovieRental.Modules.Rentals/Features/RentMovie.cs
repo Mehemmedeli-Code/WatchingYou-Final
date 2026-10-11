@@ -13,9 +13,9 @@ using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Rentals.Features;
 
-// Feature 3 — one-click rental. Always three days for $0.50 (RentalPricing); Days is kept in the
-// request for older clients and ignored.
-public sealed record RentMovieCommand(Guid MovieId, int Days = RentalPricing.PeriodDays) : ICommand<Result<RentalResponse>>;
+// Feature 3 — rental, paid by card. Always three days for $0.50 (RentalPricing); Days is kept in
+// the request for older clients and ignored.
+public sealed record RentMovieCommand(Guid MovieId, int Days = RentalPricing.PeriodDays, ProCard? Card = null) : ICommand<Result<RentalResponse>>;
 
 internal sealed class RentMovieValidator : AbstractValidator<RentMovieCommand>
 {
@@ -26,7 +26,8 @@ internal sealed class RentMovieValidator : AbstractValidator<RentMovieCommand>
 }
 
 internal sealed class RentMovieHandler(
-    RentalsDbContext db, ICatalogApi catalog, ICurrentUser currentUser, IEmailSender email, IUserDirectory users)
+    RentalsDbContext db, ICatalogApi catalog, ICurrentUser currentUser, IEmailSender email, IUserDirectory users,
+    Microsoft.Extensions.Configuration.IConfiguration configuration)
     : ICommandHandler<RentMovieCommand, Result<RentalResponse>>
 {
     public async Task<Result<RentalResponse>> Handle(RentMovieCommand command, CancellationToken ct)
@@ -45,6 +46,10 @@ internal sealed class RentMovieHandler(
 
         var movie = await catalog.GetMovieAsync(command.MovieId, ct);
         if (movie is null) return Result.Failure<RentalResponse>(Error.NotFound("Movie"));
+
+        // Paid before a copy is taken: a refused card should not hold one.
+        var paid = CardPayment.Check(command.Card, configuration);
+        if (paid.IsFailure) return Result.Failure<RentalResponse>(paid.Error);
 
         // Stock is taken first. If writing the rental row then fails, the compensating
         // release below puts the copy back — the two modules write to separate schemas,

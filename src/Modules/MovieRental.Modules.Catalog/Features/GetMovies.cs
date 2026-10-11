@@ -15,7 +15,8 @@ namespace MovieRental.Modules.Catalog.Features;
 // Bound straight off the query string with [AsParameters].
 public readonly record struct MovieFilterRequest(
     string? Search, string? Genre, int? YearFrom, int? YearTo, double? MinRating,
-    bool? OnlyAvailable, string? SortBy, string? SortDir, int? Page, int? PageSize, bool? IncludeDeleted);
+    bool? OnlyAvailable, string? SortBy, string? SortDir, int? Page, int? PageSize, bool? IncludeDeleted,
+    bool? Originals = null);
 
 public sealed record GetMoviesQuery(MovieFilterRequest Filter) : IQuery<PagedResult<MovieListItem>>;
 
@@ -27,7 +28,7 @@ internal sealed class GetMoviesHandler(CatalogDbContext db)
     public async Task<PagedResult<MovieListItem>> Handle(GetMoviesQuery query, CancellationToken ct)
     {
         var f = query.Filter;
-        var page = Math.Max(1, f.Page ?? 1);
+        var page = Math.Clamp(f.Page ?? 1, 1, 10_000);
         var pageSize = Math.Clamp(f.PageSize ?? 12, 1, MaxPageSize);
 
         // AsNoTracking: this is a read slice, the change tracker would only cost memory.
@@ -38,11 +39,14 @@ internal sealed class GetMoviesHandler(CatalogDbContext db)
 
         if (!string.IsNullOrWhiteSpace(f.Search))
         {
+            // Contains, not LIKE with the text pasted in: % and _ typed by a visitor stayed
+            // wildcards, and a handful of them kept the database busy for the full 30 seconds.
             var term = f.Search.Trim();
+            if (term.Length > 100) term = term[..100];
             movies = movies.Where(m =>
-                EF.Functions.Like(m.Title, $"%{term}%") ||
-                EF.Functions.Like(m.Description, $"%{term}%") ||
-                (m.Director != null && EF.Functions.Like(m.Director, $"%{term}%")));
+                m.Title.Contains(term) ||
+                m.Description.Contains(term) ||
+                (m.Director != null && m.Director.Contains(term)));
         }
 
         if (!string.IsNullOrWhiteSpace(f.Genre) && !f.Genre.Equals("all", StringComparison.OrdinalIgnoreCase))
@@ -50,17 +54,21 @@ internal sealed class GetMoviesHandler(CatalogDbContext db)
 
         if (f.YearFrom is { } from) movies = movies.Where(m => m.ReleaseYear >= from);
         if (f.YearTo is { } to) movies = movies.Where(m => m.ReleaseYear <= to);
-        if (f.MinRating is { } minRating) movies = movies.Where(m => m.AverageRating >= minRating);
+        if (f.MinRating is { } minRating && double.IsFinite(minRating)) movies = movies.Where(m => m.AverageRating >= minRating);
         if (f.OnlyAvailable == true) movies = movies.Where(m => m.AvailableCopies > 0);
+        if (f.Originals is { } originals) movies = movies.Where(m => m.IsOriginal == originals);
 
         var descending = string.Equals(f.SortDir, "desc", StringComparison.OrdinalIgnoreCase);
+        // Real films first whatever the sort: our own Originals never crowd the first page of the
+        // catalogue; they follow once the released films run out.
+        var realFirst = movies.OrderBy(m => m.IsOriginal);
         movies = (f.SortBy?.ToLowerInvariant()) switch
         {
-            "title" => descending ? movies.OrderByDescending(m => m.Title) : movies.OrderBy(m => m.Title),
-            "year" => descending ? movies.OrderByDescending(m => m.ReleaseYear) : movies.OrderBy(m => m.ReleaseYear),
-            "price" => descending ? movies.OrderByDescending(m => m.DailyPrice) : movies.OrderBy(m => m.DailyPrice),
-            "rating" => descending ? movies.OrderByDescending(m => m.AverageRating) : movies.OrderBy(m => m.AverageRating),
-            _ => descending ? movies.OrderBy(m => m.CreatedAtUtc) : movies.OrderByDescending(m => m.CreatedAtUtc)
+            "title" => descending ? realFirst.ThenByDescending(m => m.Title) : realFirst.ThenBy(m => m.Title),
+            "year" => descending ? realFirst.ThenByDescending(m => m.ReleaseYear) : realFirst.ThenBy(m => m.ReleaseYear),
+            "price" => descending ? realFirst.ThenByDescending(m => m.DailyPrice) : realFirst.ThenBy(m => m.DailyPrice),
+            "rating" => descending ? realFirst.ThenByDescending(m => m.AverageRating) : realFirst.ThenBy(m => m.AverageRating),
+            _ => descending ? realFirst.ThenBy(m => m.CreatedAtUtc) : realFirst.ThenByDescending(m => m.CreatedAtUtc)
         };
 
         // Count before paging, then a single round trip for the page itself.
@@ -71,7 +79,7 @@ internal sealed class GetMoviesHandler(CatalogDbContext db)
             .Select(m => new MovieListItem(
                 m.Id, m.Title, m.Slug, m.Genre, m.ReleaseYear, m.DurationMinutes,
                 m.DailyPrice, m.AvailableCopies, m.TotalCopies, m.AverageRating, m.ReviewCount,
-                m.PosterUrl, m.IsDeleted, m.VideoUrl != null && m.VideoUrl != "", m.TrailerUrl))
+                m.PosterUrl, m.IsDeleted, m.VideoUrl != null && m.VideoUrl != "", m.TrailerUrl, m.IsOriginal))
             .ToListAsync(ct);
 
         return new PagedResult<MovieListItem>(items, page, pageSize, total);

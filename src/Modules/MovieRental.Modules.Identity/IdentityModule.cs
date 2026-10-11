@@ -33,6 +33,7 @@ public sealed class IdentityModule : IModule
 
         // Real-time chat. The hub lives here because Identity owns both conversations.
         services.AddSignalR();
+        services.AddSingleton<Presence>();
         services.AddSingleton<IRealtimeNotifier, SignalRNotifier>();
 
         RegisterTransports(services, configuration);
@@ -82,6 +83,8 @@ public sealed class IdentityModule : IModule
         UpdateProfileEndpoint.Map(endpoints);
         CurrentUserProfileEndpoint.Map(endpoints);
         DeleteAccountEndpoint.Map(endpoints);
+        AvatarEndpoints.Map(endpoints);
+        PeopleEndpoints.Map(endpoints);
 
         endpoints.MapHub<ChatHub>(ChatHub.Path).RequireAuthorization();
     }

@@ -18,6 +18,10 @@ public sealed class Movie : BaseEntity, ISoftDeletable
     /// different lengths, different audiences and, often, different hosts.</summary>
     public string? VideoUrl { get; set; }
 
+    /// <summary>One of the WatchingYou Originals (our own invented films with made posters), as
+    /// opposed to a real released film. The front shelf leads with real films.</summary>
+    public bool IsOriginal { get; set; }
+
     public decimal DailyPrice { get; set; }
     public int TotalCopies { get; set; }
     public int AvailableCopies { get; set; }

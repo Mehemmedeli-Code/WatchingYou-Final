@@ -16,10 +16,30 @@ namespace MovieRental.Modules.Cinema.Infrastructure;
 internal sealed class BookingFinalizer(
     CinemaDbContext db, IUserDirectory users, IEmailSender email, ILogger<BookingFinalizer> logger)
 {
-    /// <summary>The payment must be tracked and loaded with its seats and screening.</summary>
-    public async Task<TicketResponse> ConfirmAsync(SeatPayment payment, CancellationToken ct)
+    /// <summary>The payment must be tracked and loaded with its seats and screening. Returns
+    /// null when the hold expired (or was released) before this confirm could claim it.</summary>
+    public async Task<TicketResponse?> ConfirmAsync(SeatPayment payment, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
+
+        // Claim the payment in one conditional UPDATE. Two confirms at once (a double tap, the
+        // Stripe return racing "Check payment") or a confirm racing the expiry sweep all read
+        // AwaitingCode; only the one whose UPDATE hits a row goes on to award points, count the
+        // promo and send the ticket.
+        // One transaction with the writes below, so a failed save never leaves a "Confirmed"
+        // payment without its seats confirmed or its points moved.
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var claimed = await db.SeatPayments.IgnoreQueryFilters()
+            .Where(p => p.Id == payment.Id && p.Status == PaymentStatus.AwaitingCode)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(p => p.Status, PaymentStatus.Confirmed)
+                .SetProperty(p => p.ConfirmedAtUtc, now), ct);
+        if (claimed == 0)
+        {
+            await db.Entry(payment).ReloadAsync(ct);
+            return payment.Status == PaymentStatus.Confirmed ? TicketMapper.ToTicket(payment) : null;
+        }
+
         payment.Status = PaymentStatus.Confirmed;
         payment.ConfirmedAtUtc = now;
         foreach (var seat in payment.Seats) seat.ConfirmedAtUtc = now;
@@ -44,6 +64,7 @@ internal sealed class BookingFinalizer(
         }
 
         await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
 
         if (!string.IsNullOrEmpty(payment.PromoCode))
         {
@@ -108,7 +129,7 @@ internal sealed class BookingFinalizer(
             await email.SendAsync(new EmailRequest(contact.Email,
                 $"Your tickets — {ticket.MovieTitle} · {ticket.Reference}",
                 $"""
-                 <p>Hi {contact.FullName},</p>
+                 <p>Hi {System.Net.WebUtility.HtmlEncode(contact.FullName)},</p>
                  <p>You are booked for <strong>{ticket.MovieTitle}</strong>, hall {ticket.Hall}, seats {seats}.</p>
                  <p>Your tickets are attached as a PDF — one page per seat, each with its own QR code to show at the door.</p>
                  <p>Paid {ticket.Amount:0.00}. {(payment.PointsEarned > 0 ? $"You earned {payment.PointsEarned} loyalty points." : "")}</p>

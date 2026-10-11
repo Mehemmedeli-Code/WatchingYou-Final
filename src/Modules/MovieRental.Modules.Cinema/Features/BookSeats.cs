@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using MovieRental.Modules.Cinema.Domain;
 using MovieRental.Modules.Cinema.Infrastructure;
 using MovieRental.Modules.Cinema.Persistence;
@@ -49,18 +50,39 @@ internal sealed class CheckoutValidator : AbstractValidator<CheckoutCommand>
     public CheckoutValidator()
     {
         RuleFor(x => x.Seats).NotEmpty().WithMessage("Pick at least one seat.");
-        RuleFor(x => x.Seats.Count).LessThanOrEqualTo(8).WithMessage("Eight seats is the limit per booking.");
-        RuleFor(x => x.Card.HolderName).NotEmpty().MaximumLength(120).WithMessage("Enter the name on the card.");
+        RuleFor(x => x.Seats.Count).LessThanOrEqualTo(8).WithMessage("Eight seats is the limit per booking.").When(x => x.Seats is not null);
+        RuleFor(x => x.Card).NotNull().WithMessage("Enter the card details.");
+        RuleFor(x => x.Card.HolderName).NotEmpty().MaximumLength(120).WithMessage("Enter the name on the card.").When(x => x.Card is not null);
     }
 }
 
 internal sealed class CheckoutHandler(
-    CinemaDbContext db, ICurrentUser currentUser, IUserDirectory users, IEmailSender email, CheckoutPricing pricing)
+    CinemaDbContext db, ICurrentUser currentUser, IUserDirectory users, IEmailSender email, CheckoutPricing pricing,
+    IConfiguration configuration)
     : ICommandHandler<CheckoutCommand, Result<CheckoutStarted>>
 {
+    internal const int MaxOpenCheckouts = 2;
+
     public async Task<Result<CheckoutStarted>> Handle(CheckoutCommand command, CancellationToken ct)
     {
         var userId = currentUser.RequireId();
+
+        // The built-in card checkout checks the number but takes no money, so on a live site it
+        // hands out free tickets. Off unless Payments:AllowTestCard is set (Development sets it).
+        if (!configuration.GetValue<bool>("Payments:AllowTestCard"))
+            return Result.Failure<CheckoutStarted>(Error.Validation("Card checkout is not available. Pay with Stripe."));
+
+        // One open checkout per screening: holding seats costs nothing, so without this one
+        // account could hold a whole hall by looping checkouts.
+        if (await db.SeatPayments.AnyAsync(p => p.UserId == userId && p.ScreeningId == command.ScreeningId
+                && p.Status == PaymentStatus.AwaitingCode && p.ExpiresAtUtc > DateTime.UtcNow, ct))
+            return Result.Failure<CheckoutStarted>(Error.Conflict("You already have an unfinished checkout for this screening. Finish or release it first."));
+
+        // And a few open checkouts in all. Holding seats is free, so one account could otherwise
+        // take eight seats on every screening at once and keep them off sale.
+        if (await db.SeatPayments.CountAsync(p => p.UserId == userId && p.Status == PaymentStatus.AwaitingCode
+                && p.ExpiresAtUtc > DateTime.UtcNow, ct) >= MaxOpenCheckouts)
+            return Result.Failure<CheckoutStarted>(Error.Conflict("Finish or release one of your unfinished checkouts first."));
 
         // --- card, before anything is written -------------------------------------------
         var digits = CardValidation.Digits(command.Card.Number);
@@ -103,7 +125,7 @@ internal sealed class CheckoutHandler(
         var (price, priceError) = await pricing.PriceAsync(screening, command.Seats.Count, command.PromoCode, command.UsePoints, userId, ct);
         if (priceError is not null) return Result.Failure<CheckoutStarted>(priceError);
 
-        var code = Random.Shared.Next(0, 1_000_000).ToString("D6");
+        var code = System.Security.Cryptography.RandomNumberGenerator.GetInt32(1_000_000).ToString("D6");
         var (hash, salt) = CodeHasher.Create(code);
 
         var payment = new SeatPayment
@@ -148,10 +170,13 @@ internal sealed class CheckoutHandler(
                 Error.Conflict("One of those seats was taken while you were paying. Reload the map and try again."));
         }
 
+        if (!await pricing.KeepPromoHoldAsync(payment, ct))
+            return Result.Failure<CheckoutStarted>(Error.Validation(Pricing.Explain(PromoRejection.UsedUp)));
+
         await email.SendAsync(new EmailRequest(contact.Email,
             $"Your WatchingYou booking code — {payment.Reference}",
             $"""
-             <p>Hi {contact.FullName},</p>
+             <p>Hi {System.Net.WebUtility.HtmlEncode(contact.FullName)},</p>
              <p>Confirm your seats for <strong>{screening.MovieTitle}</strong> with this code:</p>
              <p style="font-size:22px;letter-spacing:4px"><strong>{code}</strong></p>
              <p>{command.Seats.Count} seat(s) · {payment.Amount:0.00} · {brand} ending {last4}</p>
@@ -206,6 +231,12 @@ internal sealed class CheckoutHandler(
 
 public sealed record ConfirmBookingCommand(Guid PaymentId, string Code) : ICommand<Result<TicketResponse>>;
 
+internal sealed class ConfirmBookingValidator : AbstractValidator<ConfirmBookingCommand>
+{
+    // Without it a body with no "code" reached Code.Trim() and answered 500.
+    public ConfirmBookingValidator() => RuleFor(x => x.Code).NotEmpty().WithMessage("Enter the code from the e-mail.");
+}
+
 internal sealed class ConfirmBookingHandler(CinemaDbContext db, ICurrentUser currentUser, BookingFinalizer finalizer)
     : ICommandHandler<ConfirmBookingCommand, Result<TicketResponse>>
 {
@@ -240,9 +271,23 @@ internal sealed class ConfirmBookingHandler(CinemaDbContext db, ICurrentUser cur
             return Result.Failure<TicketResponse>(Error.Validation("This booking expired. The seats are back on sale."));
         }
 
+        // Spend an attempt before looking at the code, in one conditional UPDATE. Counting after
+        // a wrong guess let requests sent together all read the same count and each get a try.
+        var spent = await db.SeatPayments
+            .Where(p => p.Id == payment.Id && p.Status == PaymentStatus.AwaitingCode && p.Attempts < SeatPayment.MaxAttempts)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Attempts, p => p.Attempts + 1), ct);
+        if (spent == 0)
+            return Result.Failure<TicketResponse>(Error.Validation("Too many wrong codes. The seats have been released."));
+
         if (!CodeHasher.Verify(command.Code.Trim(), payment.CodeHash, payment.Salt))
         {
-            payment.Attempts++;
+            await db.Entry(payment).ReloadAsync(ct);
+            // Out of attempts: release the seats now, as the message says, not at expiry.
+            if (payment.AttemptsLeft == 0 && payment.Status == PaymentStatus.AwaitingCode)
+            {
+                db.SeatBookings.RemoveRange(payment.Seats);
+                payment.Status = PaymentStatus.Expired;
+            }
             await db.SaveChangesAsync(ct);
 
             return Result.Failure<TicketResponse>(payment.AttemptsLeft == 0
@@ -250,7 +295,9 @@ internal sealed class ConfirmBookingHandler(CinemaDbContext db, ICurrentUser cur
                 : Error.Validation($"Incorrect code. {payment.AttemptsLeft} attempts left."));
         }
 
-        return Result.Success(await finalizer.ConfirmAsync(payment, ct));
+        return await finalizer.ConfirmAsync(payment, ct) is { } ticket
+            ? Result.Success(ticket)
+            : Result.Failure<TicketResponse>(Error.Conflict("This booking expired before it was confirmed. The seats are back on sale."));
     }
 }
 

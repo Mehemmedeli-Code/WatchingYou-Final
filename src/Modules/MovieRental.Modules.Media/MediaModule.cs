@@ -23,6 +23,7 @@ public sealed class MediaModule : IModule
         StudioEndpoints.Map(endpoints);
         StreamShortFilmEndpoint.Map(endpoints);
         GalleryEndpoints.Map(endpoints);
+        ProfileFilmsEndpoint.Map(endpoints);
         SecurityReviewEndpoints.Map(endpoints);
         ReviewShortFilmEndpoints.Map(endpoints);
     }

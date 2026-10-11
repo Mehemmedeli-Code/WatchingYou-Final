@@ -88,6 +88,8 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
             e.Property(x => x.ExternalPaymentId).HasMaxLength(200);
             e.HasIndex(x => x.Reference).IsUnique();
             e.HasIndex(x => new { x.ScreeningId, x.Status, x.ExpiresAtUtc });
+            // "My tickets", "my unfinished checkouts" and the per-account hold cap all ask by user.
+            e.HasIndex(x => new { x.UserId, x.Status, x.ExpiresAtUtc });
 
             // NoAction, not Cascade. SQL Server refuses two cascade paths to the same table,
             // and deleting a Screening already reaches SeatBookings directly — a second route

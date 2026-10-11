@@ -31,7 +31,9 @@ internal sealed class CompareTasteHandler(
     {
         var meId = currentUser.RequireId();
         var them = await users.GetContactAsync(query.OtherUserId, ct);
-        if (them is null) return null;
+        // Only people who chose to appear on the globe: otherwise any user id (they are public
+        // on reviews) gave away that person's name and what they have rented.
+        if (them is null || !them.ShareOnGlobe) return null;
 
         var mine = await rentals.RentedMovieIdsAsync(meId, ct);
         var theirs = await rentals.RentedMovieIdsAsync(query.OtherUserId, ct);

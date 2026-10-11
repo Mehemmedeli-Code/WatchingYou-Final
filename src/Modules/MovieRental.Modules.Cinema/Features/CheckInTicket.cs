@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -33,6 +34,12 @@ public sealed record CheckInResult(
 /// scanning one seat's code admits that seat, while a typed reference admits the next
 /// unused seat on the booking.</param>
 public sealed record CheckInCommand(string Payload, Guid? ScreeningId) : ICommand<CheckInResult>;
+
+internal sealed class CheckInValidator : AbstractValidator<CheckInCommand>
+{
+    // An empty scan used to reach Parse(null) and answer 500.
+    public CheckInValidator() => RuleFor(x => x.Payload).NotEmpty().WithMessage("Scan a ticket or type its reference.");
+}
 
 internal sealed class CheckInHandler(CinemaDbContext db, ICurrentUser currentUser, IAuditLog audit)
     : ICommandHandler<CheckInCommand, CheckInResult>

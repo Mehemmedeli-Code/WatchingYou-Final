@@ -84,7 +84,7 @@ internal sealed class VerificationService(
 
             await email.SendAsync(new EmailRequest(user.Email, subject,
                 $"""
-                 <p>Hi {user.FullName},</p>
+                 <p>Hi {System.Net.WebUtility.HtmlEncode(user.FullName)},</p>
                  <p>{lead}</p>
                  <p style="font-size:20px;letter-spacing:3px"><strong>{code}</strong></p>
                  <p>It expires in {minutes} minutes and can be used once.</p>
@@ -107,18 +107,28 @@ internal sealed class VerificationService(
         if (pending is null || !pending.IsUsable)
             return Result.Failure(Error.Validation("That code has expired or been used up. Ask for a new one."));
 
+        // Spend an attempt before looking at the code, in one conditional UPDATE. Counting after
+        // a wrong guess let parallel requests all read the same count and each get a guess.
+        var spent = await db.VerificationCodes
+            .Where(c => c.Id == pending.Id && c.ConsumedAtUtc == null && c.Attempts < VerificationCode.MaxAttempts)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.Attempts, c => c.Attempts + 1), ct);
+        if (spent == 0)
+            return Result.Failure(Error.Validation("Too many wrong attempts. Request a new code."));
+
         if (!VerificationCodeHasher.Verify(code.Trim(), pending.CodeHash, pending.Salt))
         {
-            pending.Attempts++;
-            await db.SaveChangesAsync(ct);
-
-            return Result.Failure(pending.AttemptsLeft == 0
+            var left = Math.Max(0, VerificationCode.MaxAttempts - pending.Attempts - 1);
+            return Result.Failure(left == 0
                 ? Error.Validation("Too many wrong attempts. Request a new code.")
-                : Error.Validation($"Incorrect code. {pending.AttemptsLeft} attempts left."));
+                : Error.Validation($"Incorrect code. {left} attempts left."));
         }
 
-        pending.ConsumedAtUtc = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
-        return Result.Success();
+        // Conditional too, so one code cannot be used by two requests at once.
+        var consumed = await db.VerificationCodes
+            .Where(c => c.Id == pending.Id && c.ConsumedAtUtc == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.ConsumedAtUtc, DateTime.UtcNow), ct);
+        return consumed == 1
+            ? Result.Success()
+            : Result.Failure(Error.Validation("That code has expired or been used up. Ask for a new one."));
     }
 }

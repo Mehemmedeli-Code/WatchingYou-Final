@@ -61,9 +61,6 @@ public sealed class ShortFilm : BaseEntity, ISoftDeletable
 
     public bool IsDecided => Status is SubmissionStatus.Approved or SubmissionStatus.Rejected;
 
-    /// <summary>The only condition under which a stranger may see this film.</summary>
-    public bool IsPublished => Status == SubmissionStatus.Approved && Visibility == ShortFilmVisibility.Public;
-
     public int HoursLeft(DateTime nowUtc) =>
         IsDecided ? 0 : Math.Max(0, (int)(ReviewDeadlineUtc - nowUtc).TotalHours);
 }

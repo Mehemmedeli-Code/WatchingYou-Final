@@ -20,7 +20,7 @@ namespace MovieRental.Modules.Identity.Infrastructure;
 /// provider reads), so every open tab of the same person hears the same event.
 /// </summary>
 [Authorize]
-public sealed class ChatHub(IdentityDbContext db, ILogger<ChatHub> logger) : Hub
+public sealed class ChatHub(IdentityDbContext db, Presence presence, ILogger<ChatHub> logger) : Hub
 {
     public const string Path = "/hubs/chat";
 
@@ -32,6 +32,7 @@ public sealed class ChatHub(IdentityDbContext db, ILogger<ChatHub> logger) : Hub
         if (Context.User?.IsInRole(AppRoles.Security) == true || Context.User?.IsInRole(AppRoles.Admin) == true)
             await Groups.AddToGroupAsync(Context.ConnectionId, DeskGroup);
 
+        if (MyId() is { } me) presence.Connected(me);
         await base.OnConnectedAsync();
     }
 
@@ -78,6 +79,7 @@ public sealed class ChatHub(IdentityDbContext db, ILogger<ChatHub> logger) : Hub
     public override Task OnDisconnectedAsync(Exception? exception)
     {
         if (exception is not null) logger.LogDebug(exception, "Chat connection {Id} dropped.", Context.ConnectionId);
+        if (MyId() is { } me) presence.Disconnected(me);
         return base.OnDisconnectedAsync(exception);
     }
 

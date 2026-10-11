@@ -10,22 +10,20 @@ namespace MovieRental.Tests;
 /// proves it, and it has to run against real SQL Server: the guarantee is a filtered unique
 /// index, and an in-memory provider would happily accept both rows and tell us nothing.
 ///
-/// Needs LocalDB. Skip with: dotnet test --filter Category!=Integration
+/// Needs LocalDB. Skip with: dotnet test --project tests/MovieRental.Tests -- --filter-not-trait "Category=Integration"
 /// </summary>
 [Trait("Category", "Integration")]
 public sealed class SeatConcurrencyTests : IAsyncLifetime
 {
     private readonly string _database = $"WatchingYouTests_{Guid.NewGuid():N}";
-    private string ConnectionString =>
-        $"Server=(localdb)\\MSSQLLocalDB;Database={_database};Trusted_Connection=True;" +
-        "TrustServerCertificate=True;MultipleActiveResultSets=True";
+    private string ConnectionString => TestDb.ConnectionString(_database);
 
     private CinemaDbContext NewContext() =>
         new(new DbContextOptionsBuilder<CinemaDbContext>().UseSqlServer(ConnectionString).Options);
 
     private readonly Guid _screeningId = Guid.NewGuid();
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         // A throwaway database per run, so a failed test never poisons the next one.
         await using var db = NewContext();
@@ -53,7 +51,7 @@ public sealed class SeatConcurrencyTests : IAsyncLifetime
         await db.SaveChangesAsync();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         await using var db = NewContext();
         await db.Database.EnsureDeletedAsync();

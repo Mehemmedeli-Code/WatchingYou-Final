@@ -21,7 +21,7 @@ internal sealed class GetMyRentalsHandler(RentalsDbContext db, ICurrentUser curr
     public async Task<PagedResult<RentalResponse>> Handle(GetMyRentalsQuery query, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
-        var page = Math.Max(1, query.Filter.Page ?? 1);
+        var page = Math.Clamp(query.Filter.Page ?? 1, 1, 10_000);
         var pageSize = Math.Clamp(query.Filter.PageSize ?? 10, 1, 50);
         var userId = currentUser.RequireId();
 

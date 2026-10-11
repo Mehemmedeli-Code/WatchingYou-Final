@@ -67,7 +67,7 @@ internal sealed class BoxOfficeSaleValidator : AbstractValidator<BoxOfficeSaleCo
     public BoxOfficeSaleValidator()
     {
         RuleFor(x => x.Seats).NotEmpty().WithMessage("Pick at least one seat.");
-        RuleFor(x => x.Seats.Count).LessThanOrEqualTo(20).WithMessage("Twenty seats is the most in one sale.");
+        RuleFor(x => x.Seats.Count).LessThanOrEqualTo(20).WithMessage("Twenty seats is the most in one sale.").When(x => x.Seats is not null);
         RuleFor(x => x.Tender).IsInEnum();
         RuleFor(x => x.CashReceived).GreaterThanOrEqualTo(0).When(x => x.CashReceived is not null);
     }

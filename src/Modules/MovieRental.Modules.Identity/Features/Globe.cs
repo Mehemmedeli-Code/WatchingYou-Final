@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using MovieRental.Modules.Identity.Infrastructure;
 using MovieRental.Modules.Identity.Persistence;
 using MovieRental.SharedKernel.Cqrs;
 using MovieRental.SharedKernel.Results;
@@ -48,35 +49,37 @@ internal sealed class GetGlobeCitiesHandler(IdentityDbContext db)
         var cities = await db.Users.AsNoTracking()
             .Where(u => u.ShareOnGlobe && !u.IsSuspended && u.City != null
                      && u.Latitude != null && u.Longitude != null)
-            .GroupBy(u => new { u.City, u.CountryCode, u.Latitude, u.Longitude })
+            // By name and country only: grouping on the coordinates too split one city in two
+            // whenever two people had saved it a few decimals apart ("Baku" twice).
+            .GroupBy(u => new { u.City, u.CountryCode })
             .Select(g => new
             {
                 g.Key.City,
                 g.Key.CountryCode,
-                Latitude = g.Key.Latitude!.Value,
-                Longitude = g.Key.Longitude!.Value,
+                Latitude = g.Max(u => u.Latitude!.Value),
+                Longitude = g.Max(u => u.Longitude!.Value),
                 Count = g.Count()
             })
             .OrderByDescending(c => c.Count)
             .Take(400)
             .ToListAsync(ct);
 
-        var result = new List<GlobeCity>(cities.Count);
+        // Three faces per city in one query (ranked per city in SQL), not one query per city —
+        // up to 400 round trips every time the globe opened.
+        var names = cities.Select(c => c.City).ToList();
+        var faces = await db.Users.AsNoTracking()
+            .Where(u => u.ShareOnGlobe && !u.IsSuspended && u.City != null && names.Contains(u.City))
+            .GroupBy(u => u.City)
+            .Select(g => new
+            {
+                City = g.Key,
+                Top = g.OrderByDescending(u => u.LastLoginAtUtc ?? u.CreatedAtUtc).Take(3)
+                    .Select(u => new GlobeFace(u.Id, u.FullName, u.AvatarUrl)).ToList()
+            })
+            .ToDictionaryAsync(x => x.City!, x => x.Top, ct);
 
-        foreach (var city in cities)
-        {
-            var faces = await db.Users.AsNoTracking()
-                .Where(u => u.ShareOnGlobe && !u.IsSuspended && u.City == city.City)
-                .OrderByDescending(u => u.LastLoginAtUtc ?? u.CreatedAtUtc)
-                .Take(3)
-                .Select(u => new GlobeFace(u.Id, u.FullName, u.AvatarUrl))
-                .ToListAsync(ct);
-
-            result.Add(new GlobeCity(city.City!, city.CountryCode, city.Latitude, city.Longitude,
-                city.Count, faces));
-        }
-
-        return result;
+        return [.. cities.Select(city => new GlobeCity(city.City!, city.CountryCode, city.Latitude, city.Longitude,
+            city.Count, faces.GetValueOrDefault(city.City!) ?? []))];
     }
 }
 
@@ -88,7 +91,7 @@ internal sealed class GetGlobeMembersHandler(IdentityDbContext db)
     public async Task<GlobeMemberPage> Handle(GetGlobeMembersQuery query, CancellationToken ct)
     {
         var size = Math.Clamp(query.PageSize, 1, 50);
-        var page = Math.Max(query.Page, 1);
+        var page = Math.Clamp(query.Page, 1, 10_000);
 
         var people = db.Users.AsNoTracking()
             .Where(u => u.ShareOnGlobe && !u.IsSuspended && u.City == query.City);
@@ -135,14 +138,18 @@ internal sealed class UpdateGlobePresenceHandler(IdentityDbContext db, ICurrentU
         if (user is null) return Result.Failure(Error.NotFound("User"));
 
         user.ShareOnGlobe = command.ShareOnGlobe;
-        user.AvatarUrl = string.IsNullOrWhiteSpace(command.AvatarUrl) ? null : command.AvatarUrl.Trim();
+        // AvatarUrl in the body is ignored: the picture belongs to the avatar endpoints. Taking it
+        // from here let anyone point their picture at a stranger's server (every viewer's browser
+        // then called it) or at another member's file, which removing "their own" picture deleted.
 
         if (command.ShareOnGlobe)
         {
             user.City = command.City?.Trim();
             user.CountryCode = command.CountryCode?.Trim().ToUpperInvariant();
-            user.Latitude = command.Latitude;
-            user.Longitude = command.Longitude;
+            // The pin is the city, never the person: whatever the client sends is rounded to a
+            // tenth of a degree (about 10 km) before it is stored or shown to anyone.
+            user.Latitude = command.Latitude is { } lat ? Math.Round(lat, 1) : null;
+            user.Longitude = command.Longitude is { } lon ? Math.Round(lon, 1) : null;
         }
         else
         {
@@ -181,5 +188,36 @@ public static class GlobeEndpoints
                 return result.IsSuccess ? TypedResults.NoContent() : TypedResults.BadRequest(result.Error);
             })
             .WithName("UpdateGlobePresence").WithTags("Globe").RequireAuthorization();
+
+        // Who is online in one country. Only people who chose to be on the globe count, and
+        // only the number travels until somebody asks for the list.
+        // ponytail: filters the in-memory online set against the table; keep per-country
+        // counters in the presence store once millions are online at the same time.
+        app.MapGet("/api/globe/online", async (string country, IdentityDbContext db, Presence presence, CancellationToken ct) =>
+            {
+                var code = country.Trim().ToUpperInvariant();
+                var online = presence.OnlineIds();
+                var count = await db.Users.AsNoTracking()
+                    .CountAsync(u => u.ShareOnGlobe && !u.IsSuspended && u.CountryCode == code && online.Contains(u.Id), ct);
+                return Results.Ok(new { country = code, online = count });
+            })
+            .WithName("GetGlobeOnline").WithTags("Globe").RequireAuthorization();
+
+        app.MapGet("/api/globe/online/members", async (string country, int? page, IdentityDbContext db, Presence presence, CancellationToken ct) =>
+            {
+                var code = country.Trim().ToUpperInvariant();
+                var pageNo = Math.Clamp(page ?? 1, 1, 10_000);
+                const int size = 30;
+                var online = presence.OnlineIds();
+                var people = db.Users.AsNoTracking()
+                    .Where(u => u.ShareOnGlobe && !u.IsSuspended && u.CountryCode == code && online.Contains(u.Id));
+                var total = await people.CountAsync(ct);
+                var items = await people.OrderBy(u => u.Username).ThenBy(u => u.FullName)
+                    .Skip((pageNo - 1) * size).Take(size)
+                    .Select(u => new { userId = u.Id, displayName = u.FullName, u.Username, u.AvatarUrl, u.City })
+                    .ToListAsync(ct);
+                return Results.Ok(new { country = code, total, page = pageNo, pageSize = size, items });
+            })
+            .WithName("GetGlobeOnlineMembers").WithTags("Globe").RequireAuthorization();
     }
 }

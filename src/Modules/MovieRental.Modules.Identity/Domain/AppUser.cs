@@ -6,6 +6,16 @@ public sealed class AppUser : BaseEntity, ISoftDeletable
 {
     public required string Email { get; set; }
     public required string FullName { get; set; }
+    /// <summary>Public handle, unique, shown as @name and searched on the People page. Lower case
+    /// letters, digits, dots and underscores; set at registration, changeable on the profile.</summary>
+    public string? Username { get; set; }
+
+    /// <summary>A private account approves its followers: following it sends a request, and its
+    /// follower lists are shown only to people it has accepted.</summary>
+    public bool IsPrivate { get; set; }
+
+    /// <summary>A few lines under the name on the profile, up to 150 characters.</summary>
+    public string? Bio { get; set; }
     public string? PhoneNumber { get; set; }
     public required string PasswordHash { get; set; }
     public bool IsEmailConfirmed { get; set; }

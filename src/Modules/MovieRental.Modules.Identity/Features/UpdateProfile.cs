@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using MovieRental.Modules.Identity.Domain;
 using MovieRental.Modules.Identity.Persistence;
 using MovieRental.SharedKernel.Cqrs;
 using MovieRental.SharedKernel.Results;
@@ -17,7 +18,9 @@ namespace MovieRental.Modules.Identity.Features;
 // who skipped it could never receive an SMS code, because nothing on the site could give them
 // a number to send it to — the button simply never appeared. This is that endpoint.
 
-public sealed record UpdateProfileCommand(string FullName, string? PhoneNumber) : ICommand<Result<UserProfileResponse>>;
+/// <param name="Username">Null leaves the handle as it is, so older callers that only send a name
+/// and phone keep working.</param>
+public sealed record UpdateProfileCommand(string FullName, string? PhoneNumber, string? Username = null, bool? IsPrivate = null, string? Bio = null) : ICommand<Result<UserProfileResponse>>;
 
 internal sealed class UpdateProfileValidator : AbstractValidator<UpdateProfileCommand>
 {
@@ -27,6 +30,13 @@ internal sealed class UpdateProfileValidator : AbstractValidator<UpdateProfileCo
         RuleFor(x => x.PhoneNumber).Matches(@"^\+?[0-9]{7,15}$")
             .When(x => !string.IsNullOrWhiteSpace(x.PhoneNumber))
             .WithMessage("Use digits only, optionally starting with +.");
+        RuleFor(x => x.Username).Must(u => Usernames.IsValid(Usernames.Normalize(u)))
+            .When(x => x.Username is not null)
+            .WithMessage("Username: 3-30 characters, lower-case letters, digits, dots and underscores.");
+        RuleFor(x => x.Username).Must(u => !Usernames.IsReserved(Usernames.Normalize(u)))
+            .When(x => x.Username is not null)
+            .WithMessage("That username is taken.");
+        RuleFor(x => x.Bio).MaximumLength(150);
     }
 }
 
@@ -48,6 +58,29 @@ internal sealed class UpdateProfileHandler(IdentityDbContext db, ICurrentUser cu
             user.IsPhoneConfirmed = false;
         }
 
+        if (command.Username is not null)
+        {
+            var handle = Usernames.Normalize(command.Username);
+            if (handle != user.Username)
+            {
+                if (await db.Users.AnyAsync(u => u.Username == handle && u.Id != user.Id, ct))
+                    return Result.Failure<UserProfileResponse>(Error.Conflict("That username is taken."));
+                user.Username = handle;
+            }
+        }
+
+        if (command.IsPrivate is { } isPrivate && isPrivate != user.IsPrivate)
+        {
+            user.IsPrivate = isPrivate;
+            // Going public answers every waiting request with yes: there is nothing left to approve.
+            if (!isPrivate)
+                await db.Follows.Where(f => f.FolloweeId == user.Id && !f.IsAccepted)
+                    .ExecuteUpdateAsync(s => s.SetProperty(f => f.IsAccepted, true), ct);
+        }
+
+        // Null leaves the bio alone; an empty string clears it.
+        if (command.Bio is not null) user.Bio = string.IsNullOrWhiteSpace(command.Bio) ? null : command.Bio.Trim();
+
         user.FullName = command.FullName.Trim();
         await db.SaveChangesAsync(ct);
 
@@ -59,14 +92,17 @@ public static class UpdateProfileEndpoint
 {
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPut("/api/auth/profile",
-            async Task<Results<Ok<UserProfileResponse>, BadRequest<Error>, NotFound<Error>>> (
+            async Task<Results<Ok<UserProfileResponse>, BadRequest<Error>, NotFound<Error>, Conflict<Error>>> (
                 UpdateProfileCommand body, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var result = await dispatcher.Send(body, ct);
                 if (result.IsSuccess) return TypedResults.Ok(result.Value);
-                return result.Error.Code == "not_found"
-                    ? TypedResults.NotFound(result.Error)
-                    : TypedResults.BadRequest(result.Error);
+                return result.Error.Code switch
+                {
+                    "not_found" => TypedResults.NotFound(result.Error),
+                    "conflict" => TypedResults.Conflict(result.Error),
+                    _ => TypedResults.BadRequest(result.Error)
+                };
             })
         .WithName("UpdateProfile").WithTags("Auth").RequireAuthorization();
 }

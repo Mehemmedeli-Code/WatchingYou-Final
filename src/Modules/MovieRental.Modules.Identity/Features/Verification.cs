@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -22,6 +23,16 @@ namespace MovieRental.Modules.Identity.Features;
 
 public sealed record SendVerificationCommand(string Email, VerificationChannel Channel) : ICommand<Result>;
 
+// A body without an e-mail used to reach Email.Trim() and answer 500.
+internal sealed class SendVerificationValidator : AbstractValidator<SendVerificationCommand>
+{
+    public SendVerificationValidator()
+    {
+        RuleFor(x => x.Email).MaximumLength(256);
+        RuleFor(x => x.Channel).IsInEnum();
+    }
+}
+
 internal sealed class SendVerificationHandler(
     IdentityDbContext db, IVerificationService verification, ICurrentUser currentUser)
     : ICommandHandler<SendVerificationCommand, Result>
@@ -34,27 +45,42 @@ internal sealed class SendVerificationHandler(
             ? await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.Id, ct)
             : null;
 
+        var signedIn = user is not null;
         if (user is null)
         {
-            var email = command.Email.Trim().ToLowerInvariant();
+            var email = (command.Email ?? "").Trim().ToLowerInvariant();
             user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
         }
 
         // Unknown address: report success anyway, send nothing.
         if (user is null) return Result.Success();
 
+        // Someone not signed in gets the same answer for every address; only the signed-in
+        // owner is told the real reason (already confirmed, wait a minute).
+        Result Quiet(Result result) => signedIn ? result : Result.Success();
+
         if (command.Channel == VerificationChannel.Email && user.IsEmailConfirmed)
-            return Result.Failure(Error.Conflict("This e-mail is already confirmed."));
+            return Quiet(Result.Failure(Error.Conflict("This e-mail is already confirmed.")));
 
         if (command.Channel == VerificationChannel.Sms && user.IsPhoneConfirmed)
-            return Result.Failure(Error.Conflict("This phone number is already confirmed."));
+            return Quiet(Result.Failure(Error.Conflict("This phone number is already confirmed.")));
 
-        return await verification.IssueAsync(
-            user, command.Channel, VerificationPurpose.AccountVerification, ct);
+        return Quiet(await verification.IssueAsync(
+            user, command.Channel, VerificationPurpose.AccountVerification, ct));
     }
 }
 
 public sealed record ConfirmCodeCommand(string Email, VerificationChannel Channel, string Code) : ICommand<Result>;
+
+internal sealed class ConfirmCodeValidator : AbstractValidator<ConfirmCodeCommand>
+{
+    public ConfirmCodeValidator()
+    {
+        RuleFor(x => x.Email).MaximumLength(256);
+        RuleFor(x => x.Channel).IsInEnum();
+        RuleFor(x => x.Code).NotEmpty().MaximumLength(10);
+    }
+}
 
 internal sealed class ConfirmCodeHandler(
     IdentityDbContext db, IVerificationService verification, ICurrentUser currentUser)
@@ -68,7 +94,7 @@ internal sealed class ConfirmCodeHandler(
 
         if (user is null)
         {
-            var email = command.Email.Trim().ToLowerInvariant();
+            var email = (command.Email ?? "").Trim().ToLowerInvariant();
             user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
         }
 

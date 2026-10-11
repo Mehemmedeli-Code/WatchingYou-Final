@@ -10,6 +10,7 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
     public override string Schema => SchemaName;
 
     public DbSet<AppUser> Users => Set<AppUser>();
+    public DbSet<Follow> Follows => Set<Follow>();
     public DbSet<RefreshTokenEntity> RefreshTokens => Set<RefreshTokenEntity>();
     public DbSet<VerificationCode> VerificationCodes => Set<VerificationCode>();
     public DbSet<AuditEntryRow> AuditEntries => Set<AuditEntryRow>();
@@ -32,8 +33,18 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             e.Property(x => x.PasswordHash).HasMaxLength(300).IsRequired();
             e.Property(x => x.Roles).HasMaxLength(200);
             e.HasIndex(x => x.Email).IsUnique().HasFilter("[IsDeleted] = 0");
+            e.Property(x => x.Username).HasMaxLength(30);
+            e.Property(x => x.Bio).HasMaxLength(150);
+            e.HasIndex(x => x.Username).IsUnique().HasFilter("[Username] IS NOT NULL AND [IsDeleted] = 0");
             e.HasMany(x => x.RefreshTokens).WithOne(x => x.User!).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.VerificationCodes).WithOne(x => x.User!).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<Follow>(e =>
+        {
+            e.ToTable("Follows");
+            e.HasKey(x => new { x.FollowerId, x.FolloweeId });
+            e.HasIndex(x => x.FolloweeId);
         });
 
         b.Entity<RefreshTokenEntity>(e =>

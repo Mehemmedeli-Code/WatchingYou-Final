@@ -31,16 +31,15 @@ internal sealed class ExportRentalsHandler(RentalsDbContext db, IUserDirectory u
             .Take(MaxRows)
             .ToListAsync(ct);
 
-        var emails = new Dictionary<Guid, string>();
-        foreach (var userId in rentals.Select(r => r.UserId).Distinct())
-            emails[userId] = (await users.GetContactAsync(userId, ct))?.Email ?? "";
+        var contacts = await users.GetContactsAsync([.. rentals.Select(r => r.UserId).Distinct()], ct);
+        string Email(Guid id) => contacts.GetValueOrDefault(id)?.Email ?? "";
 
         return Csv.Build(
             ["Film", "Customer", "Rented (UTC)", "Due (UTC)", "Returned (UTC)", "Status",
              "Days overdue", "Extensions", "Daily price", "Base price", "Late fee", "Total"],
             rentals.Select(r => (IReadOnlyList<object?>)new object?[]
             {
-                r.MovieTitle, emails.GetValueOrDefault(r.UserId), r.RentedAtUtc, r.DueAtUtc, r.ReturnedAtUtc,
+                r.MovieTitle, Email(r.UserId), r.RentedAtUtc, r.DueAtUtc, r.ReturnedAtUtc,
                 r.StatusAt(now).ToString(), r.DaysOverdue(r.ReturnedAtUtc ?? now), r.ExtensionCount,
                 r.DailyPrice, r.BasePrice, r.LateFee, r.BasePrice + r.LateFee
             }));
