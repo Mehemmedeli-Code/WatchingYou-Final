@@ -1,3 +1,4 @@
+import { PromoBanners } from "@/components/PromoBoard";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import StackSpread from "@/components/ui/stack-spread";
 import { HeroEye } from "@/components/ui/hero-eye";
@@ -104,12 +105,9 @@ export default function HomePage() {
   }, []);
 
   const refreshFeatured = useCallback(async () => {
-    // Real films lead the shelf; our own Originals start from the 12th card.
-    const [real, originals] = await Promise.all([
-      get<Paged<MovieListItem>>("/api/movies" + query({ sortBy: "rating", sortDir: "desc", pageSize: 11, originals: false })).catch(() => null),
-      get<Paged<MovieListItem>>("/api/movies" + query({ sortBy: "rating", sortDir: "desc", pageSize: 5, originals: true })).catch(() => null),
-    ]);
-    if (real) setFeatured([...real.items, ...(originals?.items ?? [])]);
+    // Only films that can be played here: no Originals, nothing without a video or trailer.
+    const real = await get<Paged<MovieListItem>>("/api/movies" + query({ sortBy: "rating", sortDir: "desc", pageSize: 40, originals: false })).catch(() => null);
+    if (real) setFeatured(real.items.filter((m) => m.hasVideo || m.trailerUrl).slice(0, 16));
   }, []);
 
   useEffect(() => { void refreshFeatured(); }, [refreshFeatured]);
@@ -255,6 +253,9 @@ export default function HomePage() {
           half a sentence showing. The eye says the name without text to cover. */}
       {inApp ? null : <StackSpread centerpiece={<HeroEye label={t("home.hero.cta")} />} />}
       <h1 className="sr-only">WatchingYou</h1>
+
+      {/* The season's offers, set on the admin page. Nothing shows when no board is on. */}
+      {inApp ? null : <div className="mx-auto w-full max-w-6xl px-4 pt-8 sm:px-6"><PromoBanners /></div>}
 
       {featured.length > 0 ? (
         <Section title={t("featured.title")} lede={t("featured.lede")}>

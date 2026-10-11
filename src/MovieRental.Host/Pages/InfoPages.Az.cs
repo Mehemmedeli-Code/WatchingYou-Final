@@ -10,7 +10,7 @@ public static partial class InfoPages
         ]),
         new("Kinoteatr", [
             "Hər seansın canlı yer xəritəsi var: başqaları yer seçdikcə hansı yerlərin boş olduğunu görürsən, öz yerini seçir, ödəyir və QR kodlu bilet alırsan. Kod girişdə internetsiz açılır, foyedə zəif siqnal heç vaxt mane olmur.",
-            "Cədvəl bir həftə irəlini göstərir — gündüz və axşam seansları. Seansdan 48 saat əvvələdək bileti ləğv etmək olar; seansı biz ləğv etsək, pulun hamısı qaytarılır.",
+            "Cədvəl bir həftə irəlini göstərir — gündüz və axşam seansları. Seansdan 24 saat əvvələdək ləğv etsən, pulun hamısı qaytarılır, sonra isə 70%-i; seansı biz ləğv etsək, pulun hamısı qaytarılır.",
         ]),
         new("Kitabxana", [
             "Kataloqdakı istənilən film üç günlük 0,50 $-a icarəyə götürülür. Gecikmə cəriməsi yoxdur: üç gün bitəndə sadəcə daha üç gün istəyib-istəmədiyini soruşuruq.",
@@ -44,7 +44,7 @@ public static partial class InfoPages
             "Bütün yoxlama üç gün ərzində bitir. O vaxta qədər filmi yalnız müəllifi görür; o, Studio-da yoxlamanı izləyə və yoxlayanlarla danışa bilər.",
         ], Meta: "Sentyabr 2026"),
         new("Geri qaytarma, sadə dillə", [
-            "Bileti seansdan 48 saat əvvələdək ləğv etmək olar; sənin üçün saxladığımız yerə görə qiymətin 30%-i tutulur. Bundan sonra yer artıq sənindir. Seansı biz ləğv etsək, məbləğin hamısı avtomatik qaytarılır.",
+            "Bileti seansdan 24 saat əvvələdək ləğv etsən, pulun hamısı qaytarılır. 24 saatdan az qalanda seans başlayana qədər ləğv etmək olar, 70%-i qaytarılır. Seansı biz ləğv etsək, məbləğin hamısı avtomatik qaytarılır.",
             "Hər seansın səhifəsi öz qaydalarını göstərir, çünki xüsusi tədbirlərdə bəzən fərqli qaydalar olur.",
         ], Meta: "Sentyabr 2026"),
     ]);
@@ -103,7 +103,7 @@ public static partial class InfoPages
         ]),
         new("Biletlər", [
             "Bilet üzərində yazılan seans, zal və yerlər üçün bir dəfə keçərlidir. QR kod girişdə yoxlanılır; istifadə olunmuş kod yenidən işləmir.",
-            "Seansdan 48 saat əvvələdək ləğv etmək olar; qiymətin 30%-i tutulur. 48 saatdan az qalanda və ya seans başlayandan sonra pul qaytarılmır. Seansı biz ləğv etsək, tam məbləğ qaytarılır. Seansın öz səhifəsi fərqli qaydalar təyin edə bilər və o seansa həmin qaydalar aiddir.",
+            "Seansdan 24 saat əvvələdək ləğv etsən, pulun hamısı qaytarılır. 24 saatdan az qalanda 70%-i qaytarılır (30%-i tutulur). Seans başlayandan sonra pul qaytarılmır. Seansı biz ləğv etsək, tam məbləğ qaytarılır. Seansın öz səhifəsi fərqli qaydalar təyin edə bilər və o seansa həmin qaydalar aiddir.",
         ]),
         new("İcarə və Watching PRO", [
             "İcarə bir filmi üç gün ərzində 0,50 $-a izləməyə imkan verir; eyni qiymətə daha üç gün uzatmaq olar. Gecikmə cəriməsi yoxdur.",

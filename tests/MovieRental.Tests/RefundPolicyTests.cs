@@ -40,10 +40,30 @@ public class RefundPolicyTests
     };
 
     [Fact]
-    public void Outside_the_window_a_fee_is_kept()
+    public void A_day_or_more_ahead_everything_comes_back()
     {
-        // 72 hours out: refundable, 30% of 20.00 kept.
         var quote = Policy.Quote(PaymentOf(), ScreeningAt(Start), Start.AddHours(-72));
+
+        Assert.Equal(RefundOutcome.Full, quote.Outcome);
+        Assert.True(quote.Allowed);
+        Assert.Equal(20.00m, quote.Refund);
+        Assert.Equal(0m, quote.Fee);
+    }
+
+    [Fact]
+    public void The_boundary_is_inclusive_at_exactly_the_window()
+    {
+        // Exactly 24 hours still counts as early — the customer who reads "24 hours before"
+        // and acts on the hour gets everything back.
+        var quote = Policy.Quote(PaymentOf(), ScreeningAt(Start), Start.AddHours(-24));
+        Assert.Equal(RefundOutcome.Full, quote.Outcome);
+        Assert.Equal(20.00m, quote.Refund);
+    }
+
+    [Fact]
+    public void Inside_the_day_seventy_percent_comes_back()
+    {
+        var quote = Policy.Quote(PaymentOf(), ScreeningAt(Start), Start.AddHours(-23).AddMinutes(-59));
 
         Assert.Equal(RefundOutcome.PartialWithFee, quote.Outcome);
         Assert.True(quote.Allowed);
@@ -52,22 +72,12 @@ public class RefundPolicyTests
     }
 
     [Fact]
-    public void The_boundary_is_inclusive_at_exactly_the_window()
+    public void Minutes_before_the_start_seventy_percent_still_comes_back()
     {
-        // Exactly 48 hours still counts as outside — the customer who reads "more than 48
-        // hours" and acts on the hour should not be refused.
-        var quote = Policy.Quote(PaymentOf(), ScreeningAt(Start), Start.AddHours(-48));
+        var quote = Policy.Quote(PaymentOf(), ScreeningAt(Start), Start.AddMinutes(-5));
+
         Assert.Equal(RefundOutcome.PartialWithFee, quote.Outcome);
-    }
-
-    [Fact]
-    public void One_hour_inside_the_window_is_refused()
-    {
-        var quote = Policy.Quote(PaymentOf(), ScreeningAt(Start), Start.AddHours(-47));
-
-        Assert.Equal(RefundOutcome.TooLate, quote.Outcome);
-        Assert.False(quote.Allowed);
-        Assert.Equal(0m, quote.Refund);
+        Assert.Equal(14.00m, quote.Refund);
     }
 
     [Fact]
@@ -94,8 +104,9 @@ public class RefundPolicyTests
     {
         // The per-screening override is why each performance carries its own Rules section.
         var lenient = ScreeningAt(Start, window: 6, fee: 10m);
-        var quote = Policy.Quote(PaymentOf(), lenient, Start.AddHours(-8));
+        Assert.Equal(RefundOutcome.Full, Policy.Quote(PaymentOf(), lenient, Start.AddHours(-8)).Outcome);
 
+        var quote = Policy.Quote(PaymentOf(), lenient, Start.AddHours(-5));
         Assert.Equal(RefundOutcome.PartialWithFee, quote.Outcome);
         Assert.Equal(2.00m, quote.Fee);
         Assert.Equal(18.00m, quote.Refund);

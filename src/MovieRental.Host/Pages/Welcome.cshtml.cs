@@ -19,6 +19,12 @@ public sealed class WelcomeModel(CatalogDbContext catalog, ICurrentUser currentU
     public sealed record Tile(string Title, string Genre, int Year, string? PosterUrl);
 
     public IReadOnlyList<Tile> Tiles { get; private set; } = [];
+
+    /// <summary>Below the fold: the best of a few genres, numbered, as a reason to sign up.</summary>
+    public sealed record RankedFilm(string Title, int Year, string PosterUrl);
+    public sealed record TopRow(string Genre, IReadOnlyList<RankedFilm> Films);
+    public IReadOnlyList<TopRow> TopRows { get; private set; } = [];
+    private static readonly string[] RankedGenres = ["Drama", "Horror", "Science Fiction"];
     public string ReturnUrl { get; private set; } = "/";
     public string Language => language.Code;
 
@@ -30,11 +36,24 @@ public sealed class WelcomeModel(CatalogDbContext catalog, ICurrentUser currentU
 
         if (currentUser.IsAuthenticated) return LocalRedirect(ReturnUrl);
 
-        var films = await catalog.Movies.AsNoTracking()
+        // Only films that can be played: no Originals, nothing without a video or trailer.
+        var watchable = catalog.Movies.AsNoTracking().Where(m => !m.IsOriginal && ((m.VideoUrl != null && m.VideoUrl != "") || (m.TrailerUrl != null && m.TrailerUrl != "")));
+        var films = await watchable
             .OrderByDescending(m => m.PosterUrl != null && m.PosterUrl != "").ThenByDescending(m => m.AverageRating).ThenBy(m => m.Title)
             .Select(m => new Tile(m.Title, m.Genre, m.ReleaseYear, m.PosterUrl == "" ? null : m.PosterUrl))
             .Take(48)
             .ToListAsync(ct);
+
+        // Rated first, then the most reviewed, then the newest: a ranking that still reads well
+        // while few people have rated anything. Only films with a poster: a row of numbers needs faces.
+        var ranked = await watchable
+            .Where(m => RankedGenres.Contains(m.Genre) && m.PosterUrl != null && m.PosterUrl != "")
+            .OrderByDescending(m => m.AverageRating).ThenByDescending(m => m.ReviewCount).ThenByDescending(m => m.ReleaseYear)
+            .Select(m => new { m.Genre, Film = new RankedFilm(m.Title, m.ReleaseYear, m.PosterUrl!) })
+            .ToListAsync(ct);
+        TopRows = [.. RankedGenres
+            .Select(g => new TopRow(g, [.. ranked.Where(r => r.Genre == g).Select(r => r.Film).Take(10)]))
+            .Where(row => row.Films.Count >= 3)];
 
         // Enough tiles to cover a wide screen even with a small catalogue, shuffled per repeat
         // so the same film does not line up in a column.

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Send, RotateCcw, ShieldCheck } from "lucide-react";
+import { Send, ShieldCheck, Smile } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 
@@ -29,6 +29,37 @@ export interface ChatMessage {
   /** Who wrote it, shown on the desk's side so the customer sees a name, not a department. */
   authorName?: string;
   at?: string;
+  /** Inside the bubble, above the text: a "forwarded" label, the line being answered. */
+  top?: ReactNode;
+  /** Under the bubble: time, ticks, reactions. */
+  bottom?: ReactNode;
+  /** A control beside the bubble — the message menu. */
+  menu?: ReactNode;
+  /** Greyed and italic, for "This message was deleted". */
+  muted?: boolean;
+}
+
+/** The emoji offered in the composer and as reactions. A fixed set: no picker library for a
+ *  grid of characters every system already draws. */
+export const EMOJI = [
+  "😀", "😂", "🤣", "😊", "😍", "🥰", "😘", "😎", "🤩", "🥳", "😇", "🙂", "😉", "😋", "😜", "🤔",
+  "🤗", "🤭", "😴", "😮", "😢", "😭", "😡", "🥺", "😱", "🤯", "😬", "🙄", "😏", "😅", "🤝", "👏",
+  "👍", "👎", "🙏", "💪", "👋", "✌️", "👌", "🤞", "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "💔",
+  "🔥", "✨", "🎉", "🎬", "🍿", "🎥", "⭐", "🌙", "☀️", "🌹", "☕", "🍕", "⚽", "🎵", "✅", "❌",
+];
+
+/** A grid of {@link EMOJI}; the caller decides what a pick does. */
+export function EmojiGrid({ onPick, className }: { onPick: (emoji: string) => void; className?: string }) {
+  return (
+    <div role="listbox" aria-label={t("chat.emoji", "Emoji")} className={cn("grid grid-cols-8 gap-1 rounded-xl border border-line bg-surface-raised p-2 shadow-xl shadow-black/40", className)}>
+      {EMOJI.map((emoji) => (
+        <button key={emoji} type="button" role="option" aria-selected={false} onClick={() => onPick(emoji)}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition hover:bg-surface">
+          {emoji}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function TypingIndicator() {
@@ -72,7 +103,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
     >
-      <div className={cn("flex items-end gap-2", isUser && "flex-row-reverse")}>
+      <div className={cn("group flex items-end gap-2", isUser && "flex-row-reverse")}>
         {!isUser ? (
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-dim">
             <ShieldCheck className="size-4 text-surface" aria-hidden />
@@ -90,11 +121,15 @@ function MessageBubble({ message }: { message: ChatMessage }) {
               isUser
                 ? "rounded-tr-md bg-accent text-surface"
                 : "rounded-tl-md border border-line bg-surface-raised text-ink",
+              message.muted && "italic opacity-70",
             )}
           >
+            {message.top}
             {renderContent(message.content)}
           </div>
+          {message.bottom}
         </div>
+        {message.menu ? <div className="self-center">{message.menu}</div> : null}
       </div>
     </motion.div>
   );
@@ -104,7 +139,6 @@ export function ChatMessages({
   messages,
   pending,
   onSend,
-  onRefresh,
   title,
   subtitle,
   placeholder,
@@ -112,7 +146,19 @@ export function ChatMessages({
   otherTyping,
   onTyping,
   live,
+  above,
+  draft,
+  closed,
+  emoji,
 }: {
+  /** Above the input: the "replying to" or "editing" strip. */
+  above?: ReactNode;
+  /** Put this text in the input whenever the key changes (editing a message). */
+  draft?: { key: string; text: string } | null;
+  /** In place of the input: why nothing can be written here now. */
+  closed?: ReactNode;
+  /** An emoji button beside the input. */
+  emoji?: boolean;
   /** Name of whoever is typing on the other end, shown under the last message. */
   otherTyping?: string | null;
   /** Called as the reader types; the caller decides how often to tell the other side. */
@@ -122,14 +168,21 @@ export function ChatMessages({
   messages: ChatMessage[];
   pending: boolean;
   onSend: (text: string) => void;
-  onRefresh?: () => void;
   title: string;
   subtitle: string;
   placeholder: string;
   className?: string;
 }) {
   const [value, setValue] = useState("");
+  const [picking, setPicking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!draft) return;
+    setValue(draft.text);
+    inputRef.current?.focus();
+  }, [draft]);
 
   const scrollToBottom = useCallback(() => {
     const list = scrollRef.current;
@@ -145,6 +198,7 @@ export function ChatMessages({
     if (!text || pending) return;
     onSend(text);
     setValue("");
+    setPicking(false);
   }
 
   function onKeyDown(event: KeyboardEvent) {
@@ -176,15 +230,6 @@ export function ChatMessages({
           </div>
         </div>
 
-        {onRefresh ? (
-          <button
-            onClick={onRefresh}
-            aria-label={t("common.next")}
-            className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs text-ink-mute transition-colors hover:text-ink"
-          >
-            <RotateCcw className="size-3.5" aria-hidden />
-          </button>
-        ) : null}
       </div>
 
       <div
@@ -203,13 +248,27 @@ export function ChatMessages({
         ) : null}
       </div>
 
-      <div className="border-t border-line p-3">
+      <div className="relative border-t border-line p-3">
+        {closed ? <div className="text-center text-sm text-ink-mute">{closed}</div> : (
+        <>
+        {above}
+        {picking ? (
+          <EmojiGrid className="absolute bottom-full left-3 mb-2" onPick={(e) => { setValue((v) => v + e); inputRef.current?.focus(); }} />
+        ) : null}
         <div className="flex items-center gap-2 rounded-xl border border-line bg-surface-raised px-4 py-2 focus-within:border-accent">
+          {emoji ? (
+            <button type="button" onClick={() => setPicking((p) => !p)} aria-label={t("chat.emoji", "Emoji")} aria-expanded={picking}
+              className={cn("text-ink-mute transition hover:text-ink", picking && "text-accent")}>
+              <Smile className="size-5" aria-hidden />
+            </button>
+          ) : null}
           <input
+            ref={inputRef}
             type="text"
             value={value}
             onChange={(e) => { setValue(e.target.value); if (e.target.value) onTyping?.(); }}
             onKeyDown={onKeyDown}
+            onFocus={() => setPicking(false)}
             placeholder={placeholder}
             aria-label={placeholder}
             className="flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-mute/70"
@@ -226,6 +285,8 @@ export function ChatMessages({
             <Send className="size-4" aria-hidden />
           </button>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

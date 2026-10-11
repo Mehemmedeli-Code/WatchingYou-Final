@@ -153,15 +153,14 @@ export default function SecurityPage() {
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <p className="text-sm text-ink">{t(`check.${check}`, check)}</p>
                         <div className="flex gap-1">
-                          {(["Pass", "Fail", "NotApplicable"] as CheckOutcome[]).map((outcome) => (
+                          {(["Pass", "Fail"] as CheckOutcome[]).map((outcome) => (
                             <Button
                               key={outcome}
                               size="sm"
                               variant={draft[check].outcome === outcome ? "solid" : "outline"}
                               onClick={() => setDraft({ ...draft, [check]: { ...draft[check], outcome } })}
                             >
-                              {outcome === "Pass" ? t("security.pass")
-                                : outcome === "Fail" ? t("security.fail") : t("security.na")}
+                              {outcome === "Pass" ? t("security.pass") : t("security.fail")}
                             </Button>
                           ))}
                         </div>

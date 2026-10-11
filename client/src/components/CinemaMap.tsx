@@ -23,6 +23,8 @@ export function CinemaMap(props: {
   venues: MappedVenue[];
   selectedId?: string | null;
   onSelect?: (venueId: string | null) => void;
+  city: string;
+  onCity: (city: string) => void;
 }) {
   if (props.venues.length === 0) return null;
 

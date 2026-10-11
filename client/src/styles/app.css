@@ -197,3 +197,22 @@
   --color-series-1: #1FA463;
   --color-series-2: #6A84F5;
 }
+
+/* A scroll column in the site's colours: a thin accent thumb, no track, brighter on hover.
+   The standard properties for Firefox and current Chrome, the -webkit ones for Safari. */
+.rr-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-accent) 40%, transparent) transparent;
+}
+.rr-scroll:hover { scrollbar-color: color-mix(in srgb, var(--color-accent) 75%, transparent) transparent; }
+.rr-scroll::-webkit-scrollbar { width: 6px; }
+.rr-scroll::-webkit-scrollbar-track { background: transparent; }
+.rr-scroll::-webkit-scrollbar-thumb { border-radius: 999px; background: color-mix(in srgb, var(--color-accent) 40%, transparent); }
+.rr-scroll:hover::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--color-accent) 75%, transparent); }
+
+/* The ends of a scrolling list fade out, so it reads as "there is more" rather than a cut. */
+@media (min-width: 1024px) {
+  .rr-scroll-fade {
+    mask-image: linear-gradient(to bottom, transparent 0, #000 14px, #000 calc(100% - 28px), transparent 100%);
+  }
+}

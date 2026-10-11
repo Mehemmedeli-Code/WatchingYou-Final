@@ -181,26 +181,31 @@ public static class TicketPdf
         return sb.ToString();
     }
 
-    private static byte[] Assemble(IReadOnlyList<string> pageContents, string title)
+    /// <summary>Wraps page content streams into a PDF. Fonts: F1 Helvetica, F2 Helvetica-Bold,
+    /// F3 Courier, F4 Courier-Bold (the monospaced pair lines up a receipt's columns).</summary>
+    internal static byte[] Assemble(IReadOnlyList<string> pageContents, string title,
+        float pageWidth = PageWidth, float pageHeight = PageHeight)
     {
         var latin1 = Encoding.Latin1;
         var objects = new List<string>();
 
-        // 1 catalog, 2 page tree, 3 regular font, 4 bold font, 5 info; then page + content pairs.
-        var pageIds = Enumerable.Range(0, pageContents.Count).Select(i => 6 + i * 2).ToArray();
+        // 1 catalog, 2 page tree, 3-4 Helvetica, 5 info, 6-7 Courier; then page + content pairs.
+        var pageIds = Enumerable.Range(0, pageContents.Count).Select(i => 8 + i * 2).ToArray();
 
         objects.Add("<< /Type /Catalog /Pages 2 0 R >>");
         objects.Add($"<< /Type /Pages /Kids [{string.Join(" ", pageIds.Select(id => $"{id} 0 R"))}] /Count {pageIds.Length} >>");
         objects.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
         objects.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
         objects.Add($"<< /Title ({Escape(title)}) /Producer (WatchingYou) >>");
+        objects.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>");
+        objects.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>");
 
         for (var i = 0; i < pageContents.Count; i++)
         {
             var contentId = pageIds[i] + 1;
             objects.Add(
-                $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {PageWidth} {PageHeight}] " +
-                $"/Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents {contentId} 0 R >>");
+                $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {pageWidth.ToString(CultureInfo.InvariantCulture)} {pageHeight.ToString("0.##", CultureInfo.InvariantCulture)}] " +
+                $"/Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 6 0 R /F4 7 0 R >> >> /Contents {contentId} 0 R >>");
             var stream = pageContents[i];
             objects.Add($"<< /Length {latin1.GetByteCount(stream)} >>\nstream\n{stream}endstream");
         }

@@ -424,38 +424,57 @@ public static class DevelopmentDatabaseBootstrapper
         }
 
         var cinema = services.GetRequiredService<CinemaDbContext>();
-        if (!await cinema.Venues.AnyAsync(ct))
+
+        // The cinemas, city by city: the capitals the map's flags lead to. A city is seeded when
+        // it has no cinema yet, so an existing database gains a newly listed city on its next
+        // start without touching the ones it already has.
+        var cities = new (string City, TimeSpan Offset, (string Audio, string? Subtitles)[] Languages,
+                          (string Name, string Address, double Lat, double Lng)[] Venues)[]
         {
-            // Four cinemas, four rooms each. The rooms differ on purpose: a preview that
-            // showed the same box everywhere would be decoration rather than information.
-            var venues = new[]
-            {
-                ("Nizami", "Baku", "28 May küç. 1", 40.3725, 49.8375),
-                ("28 Mall", "Baku", "Azadlıq pr. 15", 40.3789, 49.8480),
-                ("Ganjlik Mall", "Baku", "Fatali Khan Khoyski 14", 40.4004, 49.8506),
-                ("Metropark", "Baku", "Babek pr. 96", 40.4044, 49.8949),
-            };
+            ("Baku", TimeSpan.FromHours(4), [("az", null), ("en", "az"), ("ru", "az"), ("tr", "en"), ("en", "ru")],
+            [
+                ("Nizami", "28 May küç. 1", 40.3725, 49.8375),
+                ("28 Mall", "Azadlıq pr. 15", 40.3789, 49.8480),
+                ("Ganjlik Mall", "Fatali Khan Khoyski 14", 40.4004, 49.8506),
+                ("Metropark", "Babek pr. 96", 40.4044, 49.8949),
+            ]),
+            ("Ankara", TimeSpan.FromHours(3), [("tr", null), ("en", "tr"), ("tr", "en"), ("en", "tr")],
+            [
+                ("Ankamall", "Gazi Mh. Mevlana Blv. 2", 39.9512, 32.8317),
+                ("Armada", "Eskişehir Yolu 6", 39.9124, 32.8085),
+                ("Kentpark", "Mustafa Kemal Mh. Eskişehir Yolu 7", 39.9097, 32.7768),
+                ("Panora", "Oran Mh. Turan Güneş Blv. 182", 39.8483, 32.8299),
+            ]),
+            ("Moscow", TimeSpan.FromHours(3), [("ru", null), ("en", "ru"), ("ru", "en"), ("en", "ru")],
+            [
+                ("Evropeisky", "Kievskaya pl. 2", 55.7446, 37.5660),
+                ("Afimall City", "Presnenskaya nab. 2", 55.7489, 37.5395),
+                ("Oktyabr", "Novy Arbat 24", 55.7524, 37.5876),
+                ("Atrium", "Zemlyanoy Val 33", 55.7570, 37.6594),
+            ]),
+        };
 
-            var layouts = new (string Name, string Format, int Rows, int Cols, double Width,
-                               double Depth, double Height, double Screen, double ScreenH,
-                               double Curve, double FirstRow, double Pitch, double Rise)[]
-            {
-                ("A100", "Dolby Atmos", 8, 6, 16, 24, 8.4, 9.6, 4.2, 17, 7.4, 1.10, 0.42),
-                ("B100", "Standart",    7, 5, 13, 20, 7.2, 7.8, 3.4, 22, 6.2, 1.05, 0.38),
-                ("C100", "IMAX",       10, 8, 22, 30, 11.0, 15.0, 7.0, 26, 8.6, 1.20, 0.50),
-                ("D100", "VIP recliner", 5, 4, 11, 16, 6.6, 6.6, 2.9, 40, 5.4, 1.40, 0.55),
-            };
+        // Four rooms in every cinema. The rooms differ on purpose: a preview that showed the
+        // same box everywhere would be decoration rather than information.
+        var layouts = new (string Name, string Format, int Rows, int Cols, double Width,
+                           double Depth, double Height, double Screen, double ScreenH,
+                           double Curve, double FirstRow, double Pitch, double Rise)[]
+        {
+            ("A100", "Dolby Atmos", 8, 6, 16, 24, 8.4, 9.6, 4.2, 17, 7.4, 1.10, 0.42),
+            ("B100", "Standart",    7, 5, 13, 20, 7.2, 7.8, 3.4, 22, 6.2, 1.05, 0.38),
+            ("C100", "IMAX",       10, 8, 22, 30, 11.0, 15.0, 7.0, 26, 8.6, 1.20, 0.50),
+            ("D100", "VIP recliner", 5, 4, 11, 16, 6.6, 6.6, 2.9, 40, 5.4, 1.40, 0.55),
+        };
 
-            foreach (var (name, city, address, lat, lng) in venues)
+        foreach (var city in cities)
+        {
+            if (await cinema.Venues.AnyAsync(v => v.City == city.City, ct)) continue;
+            foreach (var (name, address, lat, lng) in city.Venues)
             {
-                var venue = new Venue
-                {
-                    Name = name, City = city, Address = address,
-                    Latitude = lat, Longitude = lng
-                };
+                var venue = new Venue { Name = name, City = city.City, Address = address, Latitude = lat, Longitude = lng };
                 foreach (var layout in layouts)
                 {
-                    var hall = new Hall
+                    venue.Halls.Add(new Hall
                     {
                         Name = layout.Name,
                         Format = layout.Format,
@@ -471,33 +490,35 @@ public static class DevelopmentDatabaseBootstrapper
                         FirstRowDistance = layout.FirstRow,
                         RowPitch = layout.Pitch,
                         RowRise = layout.Rise
-                    };
-                    venue.Halls.Add(hall);
+                    });
                 }
                 cinema.Venues.Add(venue);
             }
-
             await cinema.SaveChangesAsync(ct);
         }
 
         // The schedule. It used to be seeded once, a few days ahead, so after those days passed
         // the cinema page and the listings were empty until someone scheduled shows by hand.
-        // Now a week of shows is laid out whenever nothing is left on sale.
-        if (!await cinema.Screenings.AnyAsync(s => s.StartsAtUtc > DateTime.UtcNow && !s.IsCancelled, ct))
-        {
-            var halls = await cinema.Halls.AsNoTracking().OrderBy(h => h.VenueId).ThenBy(h => h.Name).ToListAsync(ct);
-            var showcase = await catalog.Movies.AsNoTracking()
-                .Where(m => m.PosterUrl != null && m.PosterUrl != "")
-                .OrderByDescending(m => m.AverageRating).ThenBy(m => m.Title)
-                .Take(8).ToListAsync(ct);
+        // Now a week of shows is laid out for any city with nothing left on sale, at that city's
+        // own hours.
+        var showcase = await catalog.Movies.AsNoTracking()
+            .Where(m => m.PosterUrl != null && m.PosterUrl != "")
+            .OrderByDescending(m => m.AverageRating).ThenBy(m => m.Title)
+            .Take(8).ToListAsync(ct);
+        int[] hours = [12, 15, 18, 21];
 
-            var languages = new[]
-            {
-                ("az", (string?)null), ("en", "az"), ("ru", "az"), ("tr", "en"), ("en", "ru")
-            };
-            var baku = TimeSpan.FromHours(4);
-            var todayLocal = (DateTime.UtcNow + baku).Date;
-            int[] hours = [12, 15, 18, 21];
+        foreach (var city in cities)
+        {
+            if (await cinema.Screenings.AnyAsync(
+                    s => s.StartsAtUtc > DateTime.UtcNow && !s.IsCancelled && s.HallRoom!.Venue!.City == city.City, ct))
+                continue;
+
+            var halls = await cinema.Halls.AsNoTracking()
+                .Where(h => h.Venue!.City == city.City)
+                .OrderBy(h => h.VenueId).ThenBy(h => h.Name).ToListAsync(ct);
+            if (halls.Count == 0) continue;
+
+            var todayLocal = (DateTime.UtcNow + city.Offset).Date;
 
             // Each film plays twice a day for a week, rotating through every cinema and room.
             var n = 0;
@@ -506,11 +527,11 @@ public static class DevelopmentDatabaseBootstrapper
             for (var show = 0; show < 2; show++, n++)
             {
                 var hour = hours[(index + show * 2 + day) % hours.Length];
-                var startUtc = DateTime.SpecifyKind(todayLocal.AddDays(day).AddHours(hour) - baku, DateTimeKind.Utc);
+                var startUtc = DateTime.SpecifyKind(todayLocal.AddDays(day).AddHours(hour) - city.Offset, DateTimeKind.Utc);
                 if (startUtc <= DateTime.UtcNow.AddMinutes(30)) continue;
 
                 var hall = halls[n % halls.Count];
-                var (audio, subtitles) = languages[(index + show + day) % languages.Length];
+                var (audio, subtitles) = city.Languages[(index + show + day) % city.Languages.Length];
                 cinema.Screenings.Add(new Screening
                 {
                     MovieId = movie.Id, MovieTitle = movie.Title,
@@ -530,6 +551,33 @@ public static class DevelopmentDatabaseBootstrapper
             cinema.PromoCodes.AddRange(
                 new PromoCode { Code = "WELCOME10", Description = "10% off — demo code", PercentOff = 10m },
                 new PromoCode { Code = "KINO5", Description = "5 AZN off bookings of 15 AZN or more", AmountOff = 5m, MinSubtotal = 15m, MaxRedemptions = 100 });
+            await cinema.SaveChangesAsync(ct);
+        }
+
+        // The four boards on the catalogue page, each holiday one selling its own code for its
+        // own weeks; the house board shows all year. Dates are Baku days; the admin moves them.
+        if (!await cinema.PromoBanners.AnyAsync(ct))
+        {
+            static DateTime Utc(int y, int m, int d) => new DateTime(y, m, d, 0, 0, 0, DateTimeKind.Utc).AddHours(-4);
+            var seasons = new (BannerTheme Theme, string? Code, decimal? Percent, string Note, DateOnly? From, DateOnly? To)[]
+            {
+                (BannerTheme.Brand, null, null, "", null, null),
+                (BannerTheme.Christmas, "YENIIL20", 20m, "New Year: 20% off tickets", new DateOnly(2026, 12, 14), new DateOnly(2027, 1, 18)),
+                (BannerTheme.Novruz, "NOVRUZ25", 25m, "Novruz: 25% off tickets", new DateOnly(2027, 3, 15), new DateOnly(2027, 3, 25)),
+                (BannerTheme.Ramadan, "RAMAZAN15", 15m, "Ramadan: 15% off tickets", new DateOnly(2027, 2, 8), new DateOnly(2027, 3, 10)),
+            };
+            var order = 0;
+            foreach (var (theme, code, percent, note, from, to) in seasons)
+            {
+                if (code is not null && !await cinema.PromoCodes.AnyAsync(p => p.Code == code, ct))
+                    cinema.PromoCodes.Add(new PromoCode
+                    {
+                        Code = code, Description = note, PercentOff = percent,
+                        ValidFromUtc = Utc(from!.Value.Year, from.Value.Month, from.Value.Day),
+                        ValidUntilUtc = Utc(to!.Value.Year, to.Value.Month, to.Value.Day).AddDays(1),
+                    });
+                cinema.PromoBanners.Add(new PromoBanner { Theme = theme, PromoCode = code, StartsOn = from, EndsOn = to, SortOrder = order++ });
+            }
             await cinema.SaveChangesAsync(ct);
         }
 

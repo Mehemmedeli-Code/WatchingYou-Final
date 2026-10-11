@@ -8,6 +8,9 @@ import { MessagesInbox } from "@/components/MessagesInbox";
 import { LoyaltyPanel } from "@/components/LoyaltyPanel";
 import { auth, post, put, ApiError, type AuthResponse, type RegistrationResponse, type UserProfile } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { formatUsd, PRO_PRICE } from "@/lib/format";
+import { PaymentSheet } from "@/components/CardPayment";
+import { Crown } from "lucide-react";
 import { afterSignIn, afterSignOut, openServerPage } from "@/lib/platform";
 
 type Mode = "signin" | "register" | "verify" | "forgot" | "reset";
@@ -37,6 +40,7 @@ export default function AccountPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error" | "info"; text: string } | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [proGate, setProGate] = useState(false);
 
   function fail(err: unknown, fallback: string) {
     if (err instanceof ApiError) {
@@ -78,10 +82,10 @@ export default function AccountPage() {
       // cashier sign in to work, and the site is one click away from there if they want it.
       const roles = session.user.roles;
       const isStaff = roles.includes("Admin") || roles.includes("Cashier");
-      // Chose Watching PRO on the welcome page: the choice is made, so the next step is paying
-      // for it, not the comparison again. Otherwise the free account goes where it was heading.
-      const wantsPro = search.get("plan") === "pro";
-      afterSignIn(wantsPro ? "/pro?checkout=1" : safe ?? (isStaff ? "/backoffice" : "/"));
+      // Chose Watching PRO on the welcome page: paying for it comes before the site opens.
+      // Otherwise the free account goes where it was heading.
+      if (search.get("plan") === "pro" && !isStaff) { setProGate(true); return; }
+      afterSignIn(safe ?? (isStaff ? "/backoffice" : "/"));
     } catch (err) {
       const api = fail(err, t("account.signInFailed", "Could not sign in. Check your connection and try again."));
       if (api?.code === "email_unconfirmed") {
@@ -164,6 +168,8 @@ export default function AccountPage() {
       setBusy(false);
     }
   }
+
+  if (proGate) return <ProGate />;
 
   if (isSignedIn && user) {
     return (
@@ -290,7 +296,7 @@ export default function AccountPage() {
         {message ? <div className="mb-4"><Notice tone={message.tone === "info" ? "info" : message.tone}>{message.text}</Notice></div> : null}
 
         {mode === "forgot" || mode === "reset" ? (
-          <div className="space-y-4">
+          <form className="space-y-4" noValidate onSubmit={(e) => { e.preventDefault(); if (!busy) void (mode === "reset" ? resetPassword : requestReset)(); }}>
             <Field label={t("account.email")}>
               <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" />
             </Field>
@@ -318,26 +324,26 @@ export default function AccountPage() {
             ) : null}
 
             <Button
+              type="submit"
               className="w-full"
               disabled={busy || !email || (mode === "reset" && (code.length !== 6 || password.length < 8))}
-              onClick={mode === "reset" ? resetPassword : requestReset}
             >
               {busy ? t("common.loading") : mode === "reset" ? t("account.setPassword") : t("account.sendCode")}
             </Button>
 
             <div className="flex justify-between text-sm">
               {mode === "reset" ? (
-                <button className="text-accent hover:underline" onClick={requestReset} disabled={busy}>
+                <button type="button" className="text-accent hover:underline" onClick={requestReset} disabled={busy}>
                   {t("account.resend")}
                 </button>
               ) : <span />}
-              <button className="text-ink-mute hover:underline" onClick={() => { setMode("signin"); setMessage(null); }}>
+              <button type="button" className="text-ink-mute hover:underline" onClick={() => { setMode("signin"); setMessage(null); }}>
                 {t("account.signIn")}
               </button>
             </div>
-          </div>
+          </form>
         ) : mode === "verify" ? (
-          <div className="space-y-4">
+          <form className="space-y-4" noValidate onSubmit={(e) => { e.preventDefault(); if (!busy) void (confirm)(); }}>
             <Field label={t("account.email")}>
               <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
             </Field>
@@ -351,21 +357,21 @@ export default function AccountPage() {
               />
             </Field>
 
-            <Button className="w-full" disabled={busy || code.length !== 6} onClick={confirm}>
+            <Button type="submit" className="w-full" disabled={busy || code.length !== 6}>
               {busy ? t("common.loading") : t("account.verify")}
             </Button>
 
             <div className="flex justify-between text-sm">
-              <button className="text-accent hover:underline" onClick={() => resend("Email")} disabled={busy}>
+              <button type="button" className="text-accent hover:underline" onClick={() => resend("Email")} disabled={busy}>
                 {t("account.resend")}
               </button>
-              <button className="text-ink-mute hover:underline" onClick={() => setMode("signin")}>
+              <button type="button" className="text-ink-mute hover:underline" onClick={() => setMode("signin")}>
                 {t("account.signIn")}
               </button>
             </div>
-          </div>
+          </form>
         ) : (
-          <div className="space-y-4">
+          <form className="space-y-4" noValidate onSubmit={(e) => { e.preventDefault(); if (!busy) void (mode === "register" ? register : signIn)(); }}>
             {mode === "register" ? (
               <Field label={t("account.fullName")} hint={fieldErrors.FullName?.[0]}>
                 <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
@@ -391,11 +397,11 @@ export default function AccountPage() {
               </Field>
             ) : null}
 
-            <Button className="w-full" disabled={busy} onClick={mode === "register" ? register : signIn}>
+            <Button type="submit" className="w-full" disabled={busy}>
               {busy ? t("common.loading") : mode === "register" ? t("account.register") : t("account.signIn")}
             </Button>
 
-            <button
+            <button type="button"
               className="w-full text-sm text-ink-mute hover:underline"
               onClick={() => { setMode(mode === "register" ? "signin" : "register"); setMessage(null); setFieldErrors({}); }}
             >
@@ -403,14 +409,14 @@ export default function AccountPage() {
             </button>
 
             {mode === "signin" ? (
-              <button
+              <button type="button"
                 className="w-full text-sm text-accent hover:underline"
                 onClick={() => { setMode("forgot"); setMessage(null); setFieldErrors({}); }}
               >
                 {t("account.forgot")}
               </button>
             ) : null}
-          </div>
+          </form>
         )}
       </Panel>
       <PrivacyLink />
@@ -483,5 +489,33 @@ function PrivacyLink() {
       className="mt-4 text-sm text-ink-mute underline-offset-2 hover:text-accent hover:underline">
       {t("privacy.title", "Privacy policy")}
     </button>
+  );
+}
+
+/** The welcome page's PRO choice, paid for before the site opens. Closing the payment leaves
+ *  both ways on: pay after all, or carry on with the free account. */
+function ProGate() {
+  const [paying, setPaying] = useState(true);
+  return (
+    <Section title="Watching PRO" lede={t("pro.gateLede", "One step left: pay for the first month and the site opens.")}>
+      <Panel className="max-w-xl">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button className="flex-1" onClick={() => setPaying(true)}>
+            {`${t("pro.join", "Get Watching PRO")} · ${formatUsd(PRO_PRICE)}`}
+          </Button>
+          <Button variant="outline" className="flex-1" onClick={() => afterSignIn("/")}>
+            {t("pro.continueFree", "Continue with the free account")}
+          </Button>
+        </div>
+      </Panel>
+      {paying ? (
+        <PaymentSheet
+          item={{ title: "Watching PRO", detail: t("pay.proDetail", "One month, every film"), amount: formatUsd(PRO_PRICE), icon: <Crown size={18} aria-hidden /> }}
+          pay={(card) => post("/api/pro/subscribe", { card })}
+          onClose={() => setPaying(false)}
+          onPaid={() => afterSignIn("/")}
+        />
+      ) : null}
+    </Section>
   );
 }

@@ -13,6 +13,9 @@ public interface ICatalogApi
     Task<bool> TryReserveCopyAsync(Guid movieId, CancellationToken ct = default);
 
     Task ReleaseCopyAsync(Guid movieId, CancellationToken ct = default);
+
+    /// <summary>Poster addresses for several films in one query; films without one are left out.</summary>
+    Task<IReadOnlyDictionary<Guid, string>> GetPostersAsync(IReadOnlyCollection<Guid> movieIds, CancellationToken ct = default);
 }
 
 public sealed record MovieSummary(

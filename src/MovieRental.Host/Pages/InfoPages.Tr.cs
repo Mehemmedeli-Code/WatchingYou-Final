@@ -10,7 +10,7 @@ public static partial class InfoPages
         ]),
         new("Sinema", [
             "Her seansın canlı bir koltuk haritası var: başkaları seçtikçe hangi koltukların boş olduğunu görür, kendi koltuğunu seçer, öder ve QR kodlu bir bilet alırsın. Kod kapıda internetsiz açılır; lobideki zayıf sinyal asla engel olmaz.",
-            "Program bir hafta ilerisini gösterir — gündüz ve akşam seansları. Seanstan 48 saat öncesine kadar bilet iptal edilebilir; seansı biz iptal edersek paranın tamamı iade edilir.",
+            "Program bir hafta ilerisini gösterir — gündüz ve akşam seansları. Seanstan 24 saat öncesine kadar iptal edersen paranın tamamı, sonrasında %70'i iade edilir; seansı biz iptal edersek paranın tamamı iade edilir.",
         ]),
         new("Kütüphane", [
             "Katalogdaki her film üç günlüğüne 0,50 $'a kiralanabilir. Gecikme ücreti yok: üç gün dolduğunda sadece üç gün daha isteyip istemediğini sorarız.",
@@ -44,7 +44,7 @@ public static partial class InfoPages
             "Bütün inceleme üç gün içinde biter. O zamana kadar filmi yalnızca yazarı görür; Studio'da incelemeyi takip edip inceleyenlerle konuşabilir.",
         ], Meta: "Eylül 2026"),
         new("İadeler, sade bir dille", [
-            "Bilet seanstan 48 saat öncesine kadar iptal edilebilir; senin için ayırdığımız koltuk karşılığında fiyatın %30'u kesilir. Sonrasında koltuk kesin olarak senindir. Seansı biz iptal edersek tutarın tamamı otomatik iade edilir.",
+            "Bileti seanstan 24 saat öncesine kadar iptal edersen ücretin tamamı iade edilir. 24 saatten az kala seans başlayana kadar iptal edebilirsin, %70'i iade edilir. Seansı biz iptal edersek tutarın tamamı otomatik iade edilir.",
             "Her seansın sayfası kendi kurallarını gösterir; özel etkinliklerde kurallar bazen farklıdır.",
         ], Meta: "Eylül 2026"),
     ]);
@@ -103,7 +103,7 @@ public static partial class InfoPages
         ]),
         new("Biletler", [
             "Bilet üzerinde yazan seans, salon ve koltuklar için bir kez geçerlidir. QR kod kapıda kontrol edilir; kullanılmış bir kod tekrar çalışmaz.",
-            "Seanstan 48 saat öncesine kadar iptal edebilirsin; fiyatın %30'u kesilir. 48 saatten az kala veya seans başladıktan sonra iade yapılmaz. Seansı biz iptal edersek tam ücret iade edilir. Bir seansın kendi sayfası farklı kurallar belirleyebilir; o seans için onlar geçerlidir.",
+            "Seanstan 24 saat öncesine kadar iptal edersen ücretin tamamı iade edilir. 24 saatten az kala %70'i iade edilir (%30 kesilir). Seans başladıktan sonra iade yapılmaz. Seansı biz iptal edersek tam ücret iade edilir. Bir seansın kendi sayfası farklı kurallar belirleyebilir; o seans için onlar geçerlidir.",
         ]),
         new("Kiralama ve Watching PRO", [
             "Kiralama bir filmi üç gün boyunca 0,50 $'a izlemeni sağlar; aynı fiyata üç gün daha uzatabilirsin. Gecikme ücreti yoktur.",

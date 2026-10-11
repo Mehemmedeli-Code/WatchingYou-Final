@@ -54,6 +54,9 @@ internal sealed class SeedMoviesHandler(CatalogDbContext db) : ICommandHandler<S
             var slug = SlugFactory.Create(item.Title, item.Year);
             var existing = await db.Movies.IgnoreQueryFilters().FirstOrDefaultAsync(m => m.Slug == slug, ct);
 
+            // The made-up Originals are off the site; a fresh database does not bring them back.
+            if (existing is null && item.Original) { skipped++; continue; }
+
             if (existing is null)
             {
                 db.Movies.Add(new Movie

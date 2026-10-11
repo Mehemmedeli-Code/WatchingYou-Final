@@ -51,6 +51,7 @@ const ISLANDS: Record<string, () => Promise<IslandModule>> = {
   backoffice: () => import("@/backoffice/BackOfficeApp"),
   favourites: () => import("@/pages/FavouritesPage"),
   pro: () => import("@/pages/ProPage"),
+  guide: () => import("@/pages/GuidePage"),
 };
 
 async function bootstrap() {

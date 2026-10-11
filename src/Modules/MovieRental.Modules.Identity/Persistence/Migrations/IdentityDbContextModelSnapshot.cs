@@ -193,6 +193,18 @@ namespace MovieRental.Modules.Identity.Persistence.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EditedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Forwarded")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("ReplyToId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("SeenAtUtc")
                         .HasColumnType("datetime2");
 
@@ -217,6 +229,42 @@ namespace MovieRental.Modules.Identity.Persistence.Migrations
                     b.ToTable("DirectMessages", "identity");
                 });
 
+            modelBuilder.Entity("MovieRental.Modules.Identity.Domain.DirectMessageMark", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Hidden")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reaction")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<bool>("Starred")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MessageId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("DirectMessageMarks", "identity");
+                });
+
             modelBuilder.Entity("MovieRental.Modules.Identity.Domain.DirectThread", b =>
                 {
                     b.Property<Guid>("Id")
@@ -239,6 +287,15 @@ namespace MovieRental.Modules.Identity.Persistence.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("LowUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PinnedMessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("RequestDeclined")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("RequestedById")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
@@ -552,6 +609,15 @@ namespace MovieRental.Modules.Identity.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Thread");
+                });
+
+            modelBuilder.Entity("MovieRental.Modules.Identity.Domain.DirectMessageMark", b =>
+                {
+                    b.HasOne("MovieRental.Modules.Identity.Domain.DirectMessage", null)
+                        .WithMany()
+                        .HasForeignKey("MessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("MovieRental.Modules.Identity.Domain.RefreshTokenEntity", b =>

@@ -10,7 +10,7 @@ public static partial class InfoPages
         ]),
         new("The cinema", [
             "Every screening has a live seat map: you see which seats are free as other people pick them, choose your own, pay, and get a ticket with a QR code. The code opens offline at the door, so a weak signal in the lobby never stops you.",
-            "The schedule runs a week ahead with afternoon and evening shows. Cancelling is possible until 48 hours before a show; if we cancel a show ourselves, you get everything back.",
+            "The schedule runs a week ahead with afternoon and evening shows. Cancel up to 24 hours before a show and you get everything back, after that 70%; if we cancel a show ourselves, you get everything back.",
         ]),
         new("The library", [
             "Any film in the catalogue can be rented for three days for $0.50. There are no late fees: when the three days run out we simply ask whether you want three more.",
@@ -44,7 +44,7 @@ public static partial class InfoPages
             "The whole review is promised within three days. Until then the film is visible to its author, who can follow the review and talk to the reviewers in Studio.",
         ], Meta: "September 2026"),
         new("Refunds, plainly", [
-            "A ticket can be cancelled until 48 hours before the show; 30% of the price is kept to cover the seat we held for you. After that the seat is yours for good. If we cancel a show, you get the full amount back automatically.",
+            "Cancel a ticket up to 24 hours before the show and you get the full price back. With less than 24 hours to go you can still cancel until the show starts and get 70% back. If we cancel a show, you get the full amount back automatically.",
             "Each screening's page shows its own rules, because special events sometimes use different ones.",
         ], Meta: "September 2026"),
     ]);
@@ -103,7 +103,7 @@ public static partial class InfoPages
         ]),
         new("Tickets", [
             "A ticket is valid for the screening, hall and seats printed on it, once. The QR code is checked at the door; a code that has been used cannot be used again.",
-            "You can cancel until 48 hours before the show; 30% of the price is kept. Within 48 hours, or after the show has started, there is no refund. If we cancel a screening, the full price is returned. A screening's own page may set different rules, and those apply to it.",
+            "Cancel up to 24 hours before the show and the full price comes back. Within 24 hours, 70% comes back (30% is kept). Once the show has started there is no refund. If we cancel a screening, the full price is returned. A screening's own page may set different rules, and those apply to it.",
         ]),
         new("Rentals and Watching PRO", [
             "A rental lets you watch one film for three days for $0.50; you can extend it by three more days for the same price. There are no late fees.",

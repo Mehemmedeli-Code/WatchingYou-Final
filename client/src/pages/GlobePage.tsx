@@ -9,12 +9,10 @@ import { get, put, query } from "@/lib/api";
 import { t, lang } from "@/lib/i18n";
 import { WORLD_CITIES, flagUrl, countryName, cityKey, type WorldCity } from "@/lib/worldCities";
 import { TasteCompare } from "@/components/TasteCompare";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DirectChat } from "@/components/DirectChat";
 import { GlobeMessages } from "@/components/GlobeMessages";
 import { GlobeMembersMap } from "@/components/GlobeMembersMap";
 import { CrowdBand } from "@/components/CrowdBand";
-import { Globe } from "@/components/ui/globe";
 
 /** What the server returns per city. Named here now that the 3D viewer is gone. */
 export interface GlobeCityMarker {
@@ -151,16 +149,8 @@ export default function GlobePage() {
     <Section title={t("globe.title")} lede={t("globe.lede")}>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
         <div className="rounded-xl border border-line bg-surface-raised p-6">
-          {/* The real Earth: the members, pinned to the cities they chose. The decorative
-              globe and the city list below stay as they were. */}
+          {/* The real Earth: the members, pinned to the cities they chose. */}
           <GlobeMembersMap cities={cities ?? []} selectedCity={open?.city} onSelect={openCity} onCountryChange={setCountry} />
-
-          {/* The decorative globe. */}
-          <div className="flex justify-center py-6">
-            <ErrorBoundary label="Globe" fallback={null}>
-              <Globe size={250} className="flex shrink-0 justify-center" />
-            </ErrorBoundary>
-          </div>
 
           {/* Under the globe: only the country chosen on the map above, and only how many of its
               people are online now. A row per city stopped working long before a million users;

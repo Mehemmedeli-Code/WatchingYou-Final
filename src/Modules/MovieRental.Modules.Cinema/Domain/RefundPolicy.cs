@@ -2,11 +2,12 @@ namespace MovieRental.Modules.Cinema.Domain;
 
 public enum RefundOutcome
 {
-    /// <summary>Everything back. The screening was cancelled, so the customer risked nothing.</summary>
+    /// <summary>Everything back: cancelled early enough, or the screening itself was cancelled.</summary>
     Full = 1,
-    /// <summary>Refundable, less the cancellation fee.</summary>
+    /// <summary>Cancelled late: refundable, less the fee.</summary>
     PartialWithFee = 2,
-    /// <summary>Inside the cut-off; the seat can no longer be resold in time.</summary>
+    /// <summary>No longer produced by the policy (late cancellations are partial now); kept so
+    /// the stored and serialised names stay stable.</summary>
     TooLate = 3,
     AlreadyRefunded = 4,
     NotConfirmed = 5,
@@ -25,14 +26,16 @@ public sealed record RefundQuote(
 /// quote shown on the ticket and the amount actually refunded are computed by the same code.
 /// Two implementations would eventually disagree, and the customer would be the one to find out.
 ///
-/// Defaults: free up to 48 hours before, 30% kept after that, nothing inside the window, and
-/// everything back if the screening is cancelled. A screening may override the window and the
-/// fee — which is why its own page carries a Rules section rather than the site quoting one
+/// Defaults: everything back up to 24 hours before the start, 70% back (30% kept) from then
+/// until the start, nothing once it has started, and everything back if the screening is
+/// cancelled. A screening may override the window and the fee — which is why its own page carries a Rules section rather than the site quoting one
 /// policy everywhere.
 /// </summary>
 public sealed class RefundPolicy
 {
-    public const int DefaultWindowHours = 48;
+    /// <summary>Hours before the start until which a refund is in full.</summary>
+    public const int DefaultWindowHours = 24;
+    /// <summary>Kept when cancelling inside the window.</summary>
     public const decimal DefaultFeePercent = 30m;
 
     public RefundQuote Quote(SeatPayment payment, Screening screening, DateTime nowUtc)
@@ -58,9 +61,11 @@ public sealed class RefundPolicy
         if (screening.StartsAtUtc <= nowUtc)
             return new RefundQuote(RefundOutcome.Started, 0, payment.Amount, hours, false);
 
+        // Exactly on the hour still counts as early: "24 hours before" read and acted on the
+        // hour is not refused the full amount.
         var window = screening.RefundWindowHours ?? DefaultWindowHours;
-        if (hours < window)
-            return new RefundQuote(RefundOutcome.TooLate, 0, payment.Amount, hours, false);
+        if (hours >= window)
+            return new RefundQuote(RefundOutcome.Full, payment.Amount, 0, hours, true);
 
         var percent = Math.Clamp(screening.RefundFeePercent ?? DefaultFeePercent, 0m, 100m);
         var fee = Math.Round(payment.Amount * percent / 100m, 2);

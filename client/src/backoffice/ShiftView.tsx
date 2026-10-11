@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Lock, Printer, Unlock } from "lucide-react";
-import { get, post } from "@/lib/api";
+import { FileText, Lock, Printer, Unlock } from "lucide-react";
+import { download, get, post } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -104,7 +104,12 @@ export function ShiftView({ shift, onChange }: { shift: ShiftSummary | null; onC
 
       {closed ? (
         <Card title={`${t("bo.zReport", "Z report")} · ${closed.cashierName}`}
-          actions={<Button size="sm" variant="outline" onClick={() => printReceipt(t("bo.zReport", "Z report"), reportLines(closed), [closed.cashierName])}><Printer size={14} />{t("bo.print", "Print")}</Button>}>
+          actions={
+            <div className="flex gap-2">
+              <SalesReceiptButton />
+              <Button size="sm" variant="outline" onClick={() => printReceipt(t("bo.zReport", "Z report"), reportLines(closed), [closed.cashierName])}><Printer size={14} />{t("bo.print", "Print")}</Button>
+            </div>
+          }>
           <ShiftFigures s={closed} />
         </Card>
       ) : null}
@@ -126,6 +131,7 @@ export function ShiftView({ shift, onChange }: { shift: ShiftSummary | null; onC
             actions={
               <div className="flex gap-2">
                 <Button size="sm" variant="ghost" onClick={() => void refresh()}>{t("bo.refresh", "Refresh")}</Button>
+                <SalesReceiptButton />
                 <Button size="sm" variant="outline" onClick={() => printReceipt(t("bo.xReport", "X report"), reportLines(shift), [shift.cashierName])}><Printer size={14} />{t("bo.print", "Print")}</Button>
               </div>
             }>
@@ -221,5 +227,16 @@ export function ShiftHistoryView() {
         </Table>
       </Card>
     </Page>
+  );
+}
+
+/** Today's ticket sales — online and at the till — as a receipt PDF, for the end of the day. */
+function SalesReceiptButton() {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button size="sm" variant="outline" disabled={busy}
+      onClick={() => { setBusy(true); void download("/api/backoffice/reports/sales-receipt.pdf", "watchingyou-sales.pdf").catch(() => null).finally(() => setBusy(false)); }}>
+      <FileText size={14} />{t("export.salesReceipt", "Sales receipt (PDF)")}
+    </Button>
   );
 }

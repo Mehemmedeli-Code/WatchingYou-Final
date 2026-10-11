@@ -18,6 +18,7 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
     public DbSet<SupportChatMessage> SupportChatMessages => Set<SupportChatMessage>();
     public DbSet<DirectThread> DirectThreads => Set<DirectThread>();
     public DbSet<DirectMessage> DirectMessages => Set<DirectMessage>();
+    public DbSet<DirectMessageMark> DirectMessageMarks => Set<DirectMessageMark>();
     public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
     public DbSet<MessageReport> MessageReports => Set<MessageReport>();
 
@@ -132,6 +133,15 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             e.Property(x => x.SenderName).HasMaxLength(150).IsRequired();
             e.Property(x => x.Body).HasMaxLength(2000).IsRequired();
             e.HasIndex(x => new { x.ThreadId, x.CreatedAtUtc });
+        });
+
+        b.Entity<DirectMessageMark>(e =>
+        {
+            e.ToTable("DirectMessageMarks");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Reaction).HasMaxLength(16);
+            e.HasIndex(x => new { x.MessageId, x.UserId }).IsUnique();
+            e.HasOne<DirectMessage>().WithMany().HasForeignKey(x => x.MessageId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<UserBlock>(e =>

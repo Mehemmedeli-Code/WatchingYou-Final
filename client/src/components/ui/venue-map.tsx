@@ -63,9 +63,13 @@ export function VenueMap({
   globe = false,
   spin = false,
   clickToActivate = false,
+  locked = false,
   className,
   children,
 }: {
+  /** A fixed view: no dragging, zooming or turning — the pins are what is clicked. A new
+   *  centre still moves it (a city picked from outside the map). */
+  locked?: boolean;
   center: [number, number];
   zoom?: number;
   /** Draw the Earth as a globe instead of a flat sheet (the members' page). */
@@ -107,6 +111,7 @@ export function VenueMap({
         zoom,
         renderWorldCopies: false,
         attributionControl: { compact: true },
+        interactive: !locked,
       });
     } catch (error) {
       console.error("[Map] WebGL unavailable:", error);
@@ -114,7 +119,7 @@ export function VenueMap({
       return;
     }
 
-    instance.addControl(new NavigationControl({ showCompass: false }), "top-right");
+    if (!locked) instance.addControl(new NavigationControl({ showCompass: false }), "top-right");
 
     let loaded = false;
     const onLoad = () => { loaded = true; setReady(true); };
@@ -176,6 +181,15 @@ export function VenueMap({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A new centre or zoom from the page (another city) moves the camera there.
+  const [lng, lat] = center;
+  const first = useRef(true);
+  useEffect(() => {
+    if (!map) return;
+    if (first.current) { first.current = false; return; }
+    map.flyTo({ center: [lng, lat], zoom, duration: 1400, essential: true });
+  }, [map, lng, lat, zoom]);
 
   // Swapping the style keeps the camera and the markers; only the tiles repaint. Only on a
   // real change: re-applying the style the map was just built with would reload every tile
