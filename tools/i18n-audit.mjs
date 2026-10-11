@@ -50,7 +50,8 @@ const NATIVE = new Set(["file", "date", "time", "datetime-local", "month", "week
 
 // ------------------------------------------------------------------ client
 for (const file of walk(join(root, "client/src"), [".tsx", ".ts"])) {
-  if (file.endsWith(".d.ts") || file.includes("serverMessages.ts")) continue;
+  // Files that carry their own text in all four languages: the server messages, and the guides.
+  if (file.endsWith(".d.ts") || file.includes("serverMessages.ts") || /[\\/]lib[\\/]guides\.ts$/.test(file)) continue;
   const src = readFileSync(file, "utf8");
   let ast;
   try { ast = parseAst(src, { lang: file.endsWith(".tsx") ? "tsx" : "ts" }); }
