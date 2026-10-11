@@ -99,15 +99,6 @@ namespace MovieRental.Modules.Identity.Persistence.Migrations
                     b.Property<bool>("ShareOnGlobe")
                         .HasColumnType("bit");
 
-                    b.Property<int>("StaffPinFailures")
-                        .HasColumnType("int");
-
-                    b.Property<string>("StaffPinHash")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("StaffPinLockedUntilUtc")
-                        .HasColumnType("datetime2");
-
                     b.Property<DateTime?>("SuspendedAtUtc")
                         .HasColumnType("datetime2");
 

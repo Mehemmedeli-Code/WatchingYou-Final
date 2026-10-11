@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
@@ -17,8 +17,7 @@ namespace MovieRental.Modules.Identity.Features;
 public sealed record AdminUserItem(
     Guid Id, string FullName, string Email, string? PhoneNumber,
     string[] Roles, bool IsEmailConfirmed, bool IsPhoneConfirmed,
-    bool IsSuspended, string? SuspensionReason, DateTime CreatedAtUtc, DateTime? LastLoginAtUtc,
-    bool HasStaffPin);
+    bool IsSuspended, string? SuspensionReason, DateTime CreatedAtUtc, DateTime? LastLoginAtUtc);
 
 public sealed record GetUsersQuery(string? Search) : IQuery<IReadOnlyList<AdminUserItem>>;
 
@@ -40,7 +39,7 @@ internal sealed class GetUsersHandler(IdentityDbContext db)
             // With nothing typed the list is the staff only: customers are found by searching,
             // when one is to be given a role.
             users = users.Where(u => u.Roles.Contains(AppRoles.Admin) || u.Roles.Contains(AppRoles.Security)
-                                  || u.Roles.Contains(AppRoles.Cashier) || u.Roles.Contains(AppRoles.Moderator));
+                                  || u.Roles.Contains(AppRoles.Cashier));
         }
 
         var rows = await users.OrderBy(u => u.Email).Take(200).ToListAsync(ct);
@@ -48,7 +47,7 @@ internal sealed class GetUsersHandler(IdentityDbContext db)
         return [.. rows.Select(u => new AdminUserItem(
             u.Id, u.FullName, u.Email, u.PhoneNumber, u.RoleList,
             u.IsEmailConfirmed, u.IsPhoneConfirmed, u.IsSuspended, u.SuspensionReason,
-            u.CreatedAtUtc, u.LastLoginAtUtc, u.StaffPinHash != null))];
+            u.CreatedAtUtc, u.LastLoginAtUtc))];
     }
 }
 
@@ -57,8 +56,7 @@ public sealed record SetUserRolesCommand(Guid UserId, string[] Roles) : ICommand
 internal sealed class SetUserRolesHandler(IdentityDbContext db, ICurrentUser currentUser, IAuditLog audit)
     : ICommandHandler<SetUserRolesCommand, Result>
 {
-    // SuperAdmin is not here on purpose: it is never handed out through the site.
-    private static readonly string[] Known = [AppRoles.Admin, AppRoles.Security, AppRoles.Cashier, AppRoles.Moderator, AppRoles.Customer];
+    private static readonly string[] Known = [AppRoles.Admin, AppRoles.Security, AppRoles.Cashier, AppRoles.Customer];
 
     public async Task<Result> Handle(SetUserRolesCommand command, CancellationToken ct)
     {
@@ -69,9 +67,6 @@ internal sealed class SetUserRolesHandler(IdentityDbContext db, ICurrentUser cur
         if (unknown.Length > 0)
             return Result.Failure(Error.Validation($"Unknown role(s): {string.Join(", ", unknown)}."));
 
-        if (user.RoleList.Contains(AppRoles.SuperAdmin))
-            return Result.Failure(Error.Conflict("The owner's roles cannot be changed."));
-
         // Everyone keeps Customer: it is what grants renting and the Studio, and stripping it
         // would leave an admin unable to use the site they administer.
         var roles = command.Roles
@@ -79,11 +74,6 @@ internal sealed class SetUserRolesHandler(IdentityDbContext db, ICurrentUser cur
             .Append(AppRoles.Customer)
             .Distinct()
             .ToArray();
-
-        // Only the owner makes or unmakes admins: one admin cannot quietly promote a friend or
-        // push the others out.
-        if (user.RoleList.Contains(AppRoles.Admin) != roles.Contains(AppRoles.Admin) && !currentUser.IsInRole(AppRoles.SuperAdmin))
-            return Result.Failure(Error.Conflict("Only the owner can give or take the Admin role."));
 
         // An admin removing their own Admin role locks the last door behind them, and there
         // is no way back in through the interface.
@@ -122,12 +112,6 @@ internal sealed class SetUserSuspensionHandler(IdentityDbContext db, ICurrentUse
 
         if (user.Id == currentUser.RequireId() && command.Suspended)
             return Result.Failure(Error.Conflict("You cannot suspend yourself."));
-
-        if (user.RoleList.Contains(AppRoles.SuperAdmin))
-            return Result.Failure(Error.Conflict("The owner cannot be suspended."));
-
-        if (user.RoleList.Contains(AppRoles.Admin) && !currentUser.IsInRole(AppRoles.SuperAdmin))
-            return Result.Failure(Error.Conflict("Only the owner can suspend an admin."));
 
         if (command.Suspended && user.RoleList.Contains(AppRoles.Admin))
         {

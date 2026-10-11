@@ -261,7 +261,7 @@ public static class HelpDeskEndpoints
         }).WithName("SendChatMessage").RequireRateLimiting(AppPolicies.WriteRateLimit);
 
         var desk = app.MapGroup("/api/help/inbox").WithTags("Help")
-            .RequireAuthorization(AppPolicies.Moderation);
+            .RequireAuthorization(AppPolicies.SecurityDesk);
 
         desk.MapGet("", async (bool? includeClosed, IDispatcher dispatcher, CancellationToken ct) =>
                 Results.Ok(await dispatcher.Ask(new GetInboxQuery(includeClosed ?? false), ct)))

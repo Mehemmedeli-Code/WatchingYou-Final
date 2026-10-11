@@ -17,7 +17,7 @@ namespace MovieRental.Modules.Identity.Features;
 public static class AvatarEndpoints
 {
     private const long MaxBytes = 2 * 1024 * 1024;
-    private const string DefaultAvatar = "/icons/avatar.svg";   // the eye, close up
+    private const string DefaultAvatar = "/icons/icon.svg";   // the eye logo
 
     public static void Map(IEndpointRouteBuilder app)
     {

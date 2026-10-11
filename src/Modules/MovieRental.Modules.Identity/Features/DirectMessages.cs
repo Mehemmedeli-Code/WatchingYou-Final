@@ -743,7 +743,7 @@ public static class DirectMessageEndpoints
             }).WithName("ReportMessageWithId").RequireRateLimiting(AppPolicies.WriteRateLimit);
 
         var desk = app.MapGroup("/api/reports").WithTags("Messages")
-            .RequireAuthorization(AppPolicies.Moderation);
+            .RequireAuthorization(AppPolicies.SecurityDesk);
 
         desk.MapGet("", async (bool? includeHandled, IDispatcher dispatcher, CancellationToken ct) =>
                 Results.Ok(await dispatcher.Ask(new GetReportsQuery(includeHandled ?? false), ct)))

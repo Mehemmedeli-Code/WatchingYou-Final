@@ -46,12 +46,6 @@ public sealed class AppUser : BaseEntity, ISoftDeletable
     /// two-role system; promote it to its own entity the day roles gain metadata.</summary>
     public string Roles { get; set; } = SharedKernel.Security.AppRoles.Customer;
 
-    /// <summary>The staff PIN, hashed like a password: asked again on the way into any staff
-    /// screen, so a stolen session alone does not open the admin panel. Set by the owner.</summary>
-    public string? StaffPinHash { get; set; }
-    public int StaffPinFailures { get; set; }
-    public DateTime? StaffPinLockedUntilUtc { get; set; }
-
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAtUtc { get; set; }
 
