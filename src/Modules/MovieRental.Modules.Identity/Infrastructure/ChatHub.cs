@@ -97,6 +97,10 @@ public sealed class ChatHub(IdentityDbContext db, Presence presence, ILogger<Cha
 public interface IRealtimeNotifier
 {
     Task DirectMessageAsync(Guid toUserId, Guid fromUserId, string fromName, CancellationToken ct = default);
+
+    /// <summary>Something in a conversation changed (an edit, a deletion, a reaction, a pin, an
+    /// accepted request): the open window reloads, and no "new message" toast is shown.</summary>
+    Task DirectChangedAsync(Guid toUserId, Guid fromUserId, CancellationToken ct = default);
     Task HelpForCustomerAsync(Guid customerUserId, Guid conversationId, CancellationToken ct = default);
     Task HelpForDeskAsync(Guid conversationId, CancellationToken ct = default);
 }
@@ -105,6 +109,9 @@ internal sealed class SignalRNotifier(IHubContext<ChatHub> hub, ILogger<SignalRN
 {
     public Task DirectMessageAsync(Guid toUserId, Guid fromUserId, string fromName, CancellationToken ct = default) =>
         Safely(() => hub.Clients.User(toUserId.ToString()).SendAsync("dm", new { fromUserId, fromName }, ct));
+
+    public Task DirectChangedAsync(Guid toUserId, Guid fromUserId, CancellationToken ct = default) =>
+        Safely(() => hub.Clients.User(toUserId.ToString()).SendAsync("dmChanged", new { fromUserId }, ct));
 
     public Task HelpForCustomerAsync(Guid customerUserId, Guid conversationId, CancellationToken ct = default) =>
         Safely(() => hub.Clients.User(customerUserId.ToString()).SendAsync("help", new { conversationId }, ct));

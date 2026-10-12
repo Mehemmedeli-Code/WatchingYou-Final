@@ -15,6 +15,7 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
     public DbSet<Venue> Venues => Set<Venue>();
     public DbSet<Hall> Halls => Set<Hall>();
     public DbSet<PromoCode> PromoCodes => Set<PromoCode>();
+    public DbSet<PromoBanner> PromoBanners => Set<PromoBanner>();
     public DbSet<LoyaltyEntry> LoyaltyEntries => Set<LoyaltyEntry>();
 
     // Back office
@@ -122,6 +123,17 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
             e.Property(x => x.Format).HasMaxLength(80);
             // One "A100" per cinema; the same name in another cinema is a different room.
             e.HasIndex(x => new { x.VenueId, x.Name }).IsUnique().HasFilter("[IsDeleted] = 0");
+        });
+
+        b.Entity<PromoBanner>(e =>
+        {
+            e.ToTable("PromoBanners");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Theme).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.Headline).HasMaxLength(80);
+            e.Property(x => x.Subline).HasMaxLength(140);
+            e.Property(x => x.PromoCode).HasMaxLength(32);
+            e.HasIndex(x => x.Theme).IsUnique();
         });
 
         b.Entity<PromoCode>(e =>

@@ -82,6 +82,11 @@ internal sealed class SubmitSecurityReportHandler(
             return Result.Failure(Error.Validation(
                 $"Every check needs an outcome. Missing: {string.Join(", ", missing)}."));
 
+        // Every check is answered: it passed or it did not. "Not applicable" is no longer offered;
+        // reports filed with it before stay as they were.
+        if (command.Checks.Any(c => c.Outcome is not (CheckOutcome.Pass or CheckOutcome.Fail)))
+            return Result.Failure(Error.Validation("Each check either passes or fails."));
+
         var reviewerId = currentUser.RequireId();
         var contact = await users.GetContactAsync(reviewerId, ct);
         var failed = command.Checks.Any(c => c.Outcome == CheckOutcome.Fail);

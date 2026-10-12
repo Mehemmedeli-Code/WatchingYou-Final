@@ -17,6 +17,17 @@ public sealed class DirectThread : BaseEntity, ISoftDeletable
 
     public DateTime LastMessageAtUtc { get; set; } = DateTime.UtcNow;
 
+    /// <summary>Set while the thread is a request to a private account: the person who wrote
+    /// first, who may send nothing more until it is accepted. Null once open.</summary>
+    public Guid? RequestedById { get; set; }
+
+    /// <summary>The private account said no. The thread stays closed; the request is not
+    /// shown to them again and the writer is not told.</summary>
+    public bool RequestDeclined { get; set; }
+
+    /// <summary>The one message pinned to the top of the conversation, for both people.</summary>
+    public Guid? PinnedMessageId { get; set; }
+
     public List<DirectMessage> Messages { get; set; } = [];
 
     public bool IsDeleted { get; set; }
@@ -35,6 +46,27 @@ public sealed class DirectMessage : BaseEntity
     public required string Body { get; set; }
 
     public DateTime? SeenAtUtc { get; set; }
+
+    /// <summary>The message this one answers, from the same thread.</summary>
+    public Guid? ReplyToId { get; set; }
+    public bool Forwarded { get; set; }
+    public DateTime? EditedAtUtc { get; set; }
+
+    /// <summary>Deleted for everyone by its sender: the text is wiped, the place stays.</summary>
+    public DateTime? DeletedAtUtc { get; set; }
+}
+
+/// <summary>
+/// One person's own marks on one message: their reaction, their star, and "delete for me".
+/// Per person, so a star or a hidden message is nobody else's business.
+/// </summary>
+public sealed class DirectMessageMark : BaseEntity
+{
+    public Guid MessageId { get; set; }
+    public Guid UserId { get; set; }
+    public string? Reaction { get; set; }
+    public bool Starred { get; set; }
+    public bool Hidden { get; set; }
 }
 
 /// <summary>

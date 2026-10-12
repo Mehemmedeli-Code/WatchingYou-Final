@@ -27,6 +27,11 @@ internal sealed class CatalogApi(CatalogDbContext db) : ICatalogApi
         return affected == 1;
     }
 
+    public async Task<IReadOnlyDictionary<Guid, string>> GetPostersAsync(IReadOnlyCollection<Guid> movieIds, CancellationToken ct = default) =>
+        await db.Movies.AsNoTracking()
+            .Where(m => movieIds.Contains(m.Id) && m.PosterUrl != null)
+            .ToDictionaryAsync(m => m.Id, m => m.PosterUrl!, ct);
+
     public async Task ReleaseCopyAsync(Guid movieId, CancellationToken ct = default) =>
         await db.Movies
             .Where(m => m.Id == movieId && m.AvailableCopies < m.TotalCopies)

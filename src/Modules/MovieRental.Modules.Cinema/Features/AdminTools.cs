@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Cinema.Domain;
+using MovieRental.Modules.Cinema.Infrastructure;
 using MovieRental.Modules.Cinema.Persistence;
 using MovieRental.SharedKernel.Contracts;
 using MovieRental.SharedKernel.Cqrs;
@@ -179,20 +180,60 @@ internal sealed class ExportBookingsHandler(CinemaDbContext db, IUserDirectory u
         var contacts = await users.GetContactsAsync([.. payments.Select(p => p.UserId).Distinct()], ct);
         string Email(Guid id) => contacts.GetValueOrDefault(id)?.Email ?? "";
 
+        // Times in Baku, where the cinema is; money in the order a person reads it, ending in what
+        // the order actually brought in.
+        DateTime? Local(DateTime? utc) => utc is { } u ? SalesReceiptPdf.Baku(u) : null;
         var rows = payments.Select(p => (IReadOnlyList<object?>)new object?[]
         {
-            p.Reference, p.Status.ToString(), p.ConfirmedAtUtc, Email(p.UserId),
-            p.Screening?.MovieTitle, p.Screening?.Hall, p.Screening?.StartsAtUtc,
+            p.Reference, Local(p.ConfirmedAtUtc ?? p.CreatedAtUtc), p.Status == PaymentStatus.Refunded ? "Refunded" : "Paid",
+            p.Provider == PaymentProvider.BoxOffice ? $"Box office{(p.Tender is { } t ? $" ({t})" : "")}" : p.Provider == PaymentProvider.Stripe ? "Stripe" : "Online card",
+            Email(p.UserId), p.Screening?.MovieTitle, p.Screening?.Hall, Local(p.Screening?.StartsAtUtc),
             string.Join(" ", p.Seats.OrderBy(s => s.Row).ThenBy(s => s.Number).Select(s => $"{(char)('A' + s.Row - 1)}{s.Number}")),
             p.Seats.Count, p.Subtotal, p.PromoCode, p.PromoDiscount, p.PointsRedeemed, p.PointsDiscount,
-            p.Amount, p.RefundedAmount, p.Provider.ToString(), p.PointsEarned
+            p.Amount, p.RefundedAmount ?? 0m, p.Amount - (p.RefundedAmount ?? 0m), p.PointsEarned
         });
 
         return Csv.Build(
-            ["Reference", "Status", "Confirmed (UTC)", "Customer", "Film", "Hall", "Starts (UTC)",
-             "Seats", "Seat count", "Subtotal", "Promo code", "Promo discount", "Points used", "Points discount",
-             "Paid", "Refunded", "Provider", "Points earned"],
+            ["Order", "Date (Baku)", "Status", "Payment method", "Customer", "Film", "Hall", "Screening (Baku)",
+             "Seats", "Tickets", "Ticket value AZN", "Promo code", "Promo discount AZN", "Points used", "Points discount AZN",
+             "Paid AZN", "Refunded AZN", "Net AZN", "Points earned"],
             rows);
+    }
+}
+
+// ------------------------------------------------------------------ sales receipt (PDF)
+
+/// <param name="From">First day, Baku time, yyyy-MM-dd; today when left out.</param>
+/// <param name="To">Last day, inclusive; the first day when left out.</param>
+public sealed record SalesReceiptQuery(string? From, string? To) : IQuery<Result<byte[]>>;
+
+internal sealed class SalesReceiptHandler(CinemaDbContext db) : IQueryHandler<SalesReceiptQuery, Result<byte[]>>
+{
+    public async Task<Result<byte[]>> Handle(SalesReceiptQuery query, CancellationToken ct)
+    {
+        var today = DateOnly.FromDateTime(SalesReceiptPdf.Baku(DateTime.UtcNow));
+        if (!TryDay(query.From, today, out var from) || !TryDay(query.To, from, out var to) || to < from || to.DayNumber - from.DayNumber > 92)
+            return Result.Failure<byte[]>(Error.Validation("Pick a period of up to three months (yyyy-MM-dd)."));
+
+        // A sale belongs to the day it was paid, in Baku.
+        var fromUtc = from.ToDateTime(TimeOnly.MinValue).AddHours(-4);
+        var toUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue).AddHours(-4);
+        var payments = await db.SeatPayments.AsNoTracking()
+            .Include(p => p.Seats)
+            .Include(p => p.Screening)
+            .Where(p => (p.Status == PaymentStatus.Confirmed || p.Status == PaymentStatus.Refunded)
+                     && (p.ConfirmedAtUtc ?? p.CreatedAtUtc) >= fromUtc && (p.ConfirmedAtUtc ?? p.CreatedAtUtc) < toUtc)
+            .Take(ExportBookingsHandler.MaxRows)
+            .ToListAsync(ct);
+
+        return Result.Success(SalesReceiptPdf.Render(payments, from, to, DateTime.UtcNow));
+    }
+
+    private static bool TryDay(string? value, DateOnly fallback, out DateOnly day)
+    {
+        day = fallback;
+        return string.IsNullOrWhiteSpace(value)
+            || DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out day);
     }
 }
 
@@ -217,5 +258,15 @@ public static class CinemaAdminToolEndpoints
                 Results.File(await dispatcher.Ask(new ExportBookingsQuery(from, to), ct), Csv.ContentType,
                     $"watchingyou-bookings-{DateTime.UtcNow:yyyyMMdd}.csv"))
             .WithName("ExportBookings");
+
+        // The till prints it too, at the end of the day: admins and cashiers.
+        app.MapGet("/api/backoffice/reports/sales-receipt.pdf", async Task<IResult> (string? from, string? to, IDispatcher dispatcher, CancellationToken ct) =>
+            {
+                var result = await dispatcher.Ask(new SalesReceiptQuery(from, to), ct);
+                return result.IsSuccess
+                    ? Results.File(result.Value, "application/pdf", $"watchingyou-sales-{from ?? DateTime.UtcNow.AddHours(4).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}.pdf")
+                    : Results.BadRequest(result.Error);
+            })
+            .WithTags("Back office").WithName("SalesReceipt").RequireAuthorization(AppPolicies.BackOffice);
     }
 }

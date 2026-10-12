@@ -137,9 +137,6 @@ internal sealed class RefundBookingHandler(
         RefundOutcome.AlreadyRefunded => "This booking has already been refunded.",
         RefundOutcome.AlreadyUsed => "These seats were scanned at the door, so they cannot be refunded.",
         RefundOutcome.Started => "The screening has already started.",
-        RefundOutcome.TooLate =>
-            $"Refunds close {screening.RefundWindowHours ?? RefundPolicy.DefaultWindowHours} hours before the start. " +
-            $"There {(quote.HoursUntilStart == 1 ? "is" : "are")} {Math.Max(quote.HoursUntilStart, 0)} left.",
         _ => "This booking cannot be refunded."
     };
 
@@ -149,7 +146,7 @@ internal sealed class RefundBookingHandler(
         if (contact is null) return;
 
         var feeLine = quote.Fee > 0
-            ? $"<p>A cancellation fee of {quote.Fee:0.00} was kept, as the booking was cancelled more than " +
+            ? $"<p>A cancellation fee of {quote.Fee:0.00} was kept, as the booking was cancelled less than " +
               $"{screening.RefundWindowHours ?? RefundPolicy.DefaultWindowHours} hours before the screening.</p>"
             : screening.IsCancelled
                 ? "<p>The screening was cancelled, so the full amount goes back — no fee.</p>"
