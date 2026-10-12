@@ -50,13 +50,7 @@ export function TasteCompare({
         <Panel>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              {member.avatarUrl ? (
-                <img src={member.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
-              ) : (
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-ink-mute">
-                  {member.displayName.slice(0, 1).toUpperCase()}
-                </span>
-              )}
+              <img src={member.avatarUrl || "/icons/avatar.svg"} alt="" className="h-10 w-10 rounded-full object-cover" />
               <div>
                 <p className="font-display text-xl text-ink">{member.displayName}</p>
                 <p className="text-xs text-ink-mute">{t("globe.compare")}</p>

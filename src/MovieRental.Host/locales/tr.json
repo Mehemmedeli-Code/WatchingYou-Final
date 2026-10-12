@@ -1146,5 +1146,18 @@
   "welcome.link.f2": "Mesajlar ve istekler",
   "welcome.link.f2d": "Tepkiler, yanıtlar, iletme; gizli hesaplara istekle.",
   "welcome.link.f3": "Üç başkentte sinema",
-  "welcome.link.f3d": "Bakü, Ankara ve Moskova — koltuğunu seç, kodla onayla."
+  "welcome.link.f3d": "Bakü, Ankara ve Moskova — koltuğunu seç, kodla onayla.",
+  "staff.title": "Personel girişi",
+  "staff.lede": "Devam etmek için personel PIN'ini gir.",
+  "staff.pin": "Personel PIN'i",
+  "staff.enter": "Devam et",
+  "staff.back": "Siteye dön",
+  "staff.wrong": "PIN yanlış. {0} deneme hakkı kaldı.",
+  "staff.locked": "Çok fazla yanlış deneme. {0} dakika sonra tekrar dene.",
+  "staff.noPin": "Senin için henüz PIN belirlenmedi. Site sahibine başvur.",
+  "admin.setPin": "PIN belirle",
+  "admin.pinPrompt": "Yeni PIN (4–12 rakam). Boş bırakırsan PIN silinir.",
+  "admin.pinSet": "PIN güncellendi.",
+  "admin.noPinYet": "PIN yok",
+  "admin.owner": "Sahip"
 }

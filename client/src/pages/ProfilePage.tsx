@@ -134,7 +134,7 @@ export default function ProfilePage() {
       <header className="grid grid-cols-[auto_1fr] items-center gap-5 md:gap-12 md:px-8">
         <div className="relative">
           <div className="rounded-full bg-gradient-to-tr from-accent-dim via-accent to-accent-bright p-[3px]">
-            <img src={profile.avatarUrl || "/icons/icon.svg"} alt=""
+            <img src={profile.avatarUrl || "/icons/avatar.svg"} alt=""
               className="h-20 w-20 rounded-full border-4 border-surface bg-surface object-cover md:h-36 md:w-36" />
           </div>
           {profile.isOnline ? (

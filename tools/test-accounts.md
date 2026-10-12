@@ -14,6 +14,12 @@ Yalnız development üçün. Bu hesablar bazaya seed ilə yazılıb, heç birin�
 
 Seed şifrələri src/MovieRental.Host/Infrastructure/DevelopmentDatabaseBootstrapper.cs-dədir. Sonradan saytda dəyişilibsə, yeni şifrə keçərlidir.
 
+## İşçi PIN-i
+
+Admin, Security və Kassa test hesabları işçi səhifələrinə girəndə PIN soruşulur: `580417` (yalnız development).
+İşçi səhifələrinin ünvanı gizlidir: `dotnet user-secrets list --project src/MovieRental.Host` → `Staff:PathKey`.
+Admin paneli: `https://localhost:7139/<PathKey>/admin`, Security: `/<PathKey>/security`, Back office: `/<PathKey>/backoffice`.
+
 ## Demo istifadəçilər
 
 Hamısının şifrəsi: `Demo12345` (DemoPeople.Password). Bir-birini izləyirlər, aralarında mesajlar və filmlər var.

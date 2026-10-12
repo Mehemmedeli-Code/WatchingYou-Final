@@ -276,13 +276,7 @@ export function DirectChat({
         <Panel>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              {thread?.otherAvatarUrl ? (
-                <img src={thread.otherAvatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
-              ) : (
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-ink-mute">
-                  {(thread?.otherName ?? "?").slice(0, 1).toUpperCase()}
-                </span>
-              )}
+              <img src={thread?.otherAvatarUrl || "/icons/avatar.svg"} alt="" className="h-10 w-10 rounded-full object-cover" />
               <div>
                 <p className="font-display text-lg text-ink">{thread?.otherName ?? "…"}</p>
                 {thread?.otherCity ? <p className="text-xs text-ink-mute">{thread.otherCity}</p> : null}
@@ -537,9 +531,7 @@ function ForwardPicker({ line, exclude, onClose, onDone }: {
             <li key={row.otherUserId}>
               <button type="button" disabled={busy} onClick={() => void forward(row)}
                 className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm text-ink transition hover:bg-surface disabled:opacity-50">
-                {row.otherAvatarUrl
-                  ? <img src={row.otherAvatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
-                  : <span className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-ink-mute">{row.otherName.slice(0, 1).toUpperCase()}</span>}
+                <img src={row.otherAvatarUrl || "/icons/avatar.svg"} alt="" className="h-8 w-8 rounded-full object-cover" />
                 {row.otherName}
               </button>
             </li>

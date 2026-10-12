@@ -203,13 +203,7 @@ export default function GlobePage() {
                 {online?.items.map((member) => (
                   <div key={member.userId} className="flex items-center justify-between gap-3 rounded-lg border border-line p-2">
                     <div className="flex min-w-0 items-center gap-2">
-                      {member.avatarUrl ? (
-                        <img src={member.avatarUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
-                      ) : (
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface text-xs text-ink-mute">
-                          {member.displayName.slice(0, 1).toUpperCase()}
-                        </span>
-                      )}
+                      <img src={member.avatarUrl || "/icons/avatar.svg"} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
                       <span className="min-w-0">
                         <span className="block truncate text-sm text-ink">{member.displayName}</span>
                         <span className="block truncate text-xs text-ink-mute">
@@ -261,13 +255,7 @@ export default function GlobePage() {
                 {members.map((member) => (
                   <div key={member.userId} className="flex items-center justify-between gap-3 rounded-lg border border-line p-2">
                     <div className="flex min-w-0 items-center gap-2">
-                      {member.avatarUrl ? (
-                        <img src={member.avatarUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
-                      ) : (
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface text-xs text-ink-mute">
-                          {member.displayName.slice(0, 1).toUpperCase()}
-                        </span>
-                      )}
+                      <img src={member.avatarUrl || "/icons/avatar.svg"} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
                       <span className="truncate text-sm text-ink">{member.displayName}</span>
                     </div>
 

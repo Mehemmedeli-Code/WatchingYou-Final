@@ -64,7 +64,7 @@ export default function ProfileEditPage() {
   function showInHeader(profile: UserProfile) {
     auth.setUser(profile);
     const header = document.querySelector<HTMLImageElement>(".rr-avatar img");
-    if (header) header.src = profile.avatarUrl || "/icons/icon.svg";
+    if (header) header.src = profile.avatarUrl || "/icons/avatar.svg";
   }
 
   async function run(work: () => Promise<UserProfile>, done: string) {
@@ -140,7 +140,7 @@ export default function ProfileEditPage() {
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-gradient-to-r from-accent/10 via-surface-raised to-surface-raised p-5">
         <div className="flex min-w-0 items-center gap-4">
           <div className="shrink-0 rounded-full bg-gradient-to-tr from-accent-dim via-accent to-accent-bright p-[3px]">
-            <img src={user.avatarUrl || "/icons/icon.svg"} alt="" className="h-16 w-16 rounded-full border-[3px] border-surface bg-surface object-cover" />
+            <img src={user.avatarUrl || "/icons/avatar.svg"} alt="" className="h-16 w-16 rounded-full border-[3px] border-surface bg-surface object-cover" />
           </div>
           <div className="min-w-0">
             <p className="truncate font-semibold text-ink">{user.username ? `@${user.username}` : user.fullName}</p>
@@ -230,7 +230,7 @@ export default function ProfileEditPage() {
           ) : (
             <div key={person.id} className="flex items-center justify-between gap-3">
               <a href={person.username ? `/u/${person.username}` : undefined} className="flex min-w-0 items-center gap-3">
-                <img src={person.avatarUrl || "/icons/icon.svg"} alt="" className="h-11 w-11 shrink-0 rounded-full border border-line object-cover" />
+                <img src={person.avatarUrl || "/icons/avatar.svg"} alt="" className="h-11 w-11 shrink-0 rounded-full border border-line object-cover" />
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium text-ink">{person.fullName}</span>
                   <span className="block truncate text-xs text-ink-mute">{person.username ? `@${person.username}` : ""}</span>

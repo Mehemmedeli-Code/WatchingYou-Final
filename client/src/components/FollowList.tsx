@@ -75,7 +75,7 @@ export function PersonRow({ person, onToggle }: { person: PersonCard; onToggle: 
     <div className="flex items-center justify-between gap-3">
       <a href={person.username ? `/u/${encodeURIComponent(person.username)}` : undefined} className="group flex min-w-0 items-center gap-3">
         <span className="relative shrink-0">
-          <img src={person.avatarUrl || "/icons/icon.svg"} alt="" className="h-11 w-11 rounded-full border border-line object-cover" />
+          <img src={person.avatarUrl || "/icons/avatar.svg"} alt="" className="h-11 w-11 rounded-full border border-line object-cover" />
           {person.isOnline ? <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-surface bg-good" title={t("people.online", "Online")} /> : null}
         </span>
         <span className="min-w-0">

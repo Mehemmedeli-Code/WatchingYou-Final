@@ -29,6 +29,13 @@ const MESSAGES: Record<string, Row> = {
   "You cannot remove your own Admin role.": ["Öz Admin rolunuzu silə bilməzsiniz.", "Нельзя снять с себя роль администратора.", "Kendi Admin rolünüzü kaldıramazsınız."],
   "You cannot suspend yourself.": ["Özünüzü dayandıra bilməzsiniz.", "Нельзя заблокировать самого себя.", "Kendinizi askıya alamazsınız."],
   "This is the last active admin.": ["Bu, sonuncu aktiv admindir.", "Это последний активный администратор.", "Bu, son aktif yöneticidir."],
+  "The owner's roles cannot be changed.": ["Sahibin rolları dəyişdirilə bilməz.", "Роли владельца нельзя изменить.", "Sahibin rolleri değiştirilemez."],
+  "Only the owner can give or take the Admin role.": ["Admin rolunu yalnız sahib verə və ya ala bilər.", "Только владелец может выдать или снять роль администратора.", "Admin rolünü yalnızca sahip verebilir veya alabilir."],
+  "The owner cannot be suspended.": ["Sahibi bloklamaq olmaz.", "Владельца нельзя заблокировать.", "Sahip askıya alınamaz."],
+  "Only the owner can suspend an admin.": ["Admini yalnız sahib bloklaya bilər.", "Только владелец может заблокировать администратора.", "Bir yöneticiyi yalnızca sahip askıya alabilir."],
+  "The PIN is 4 to 12 digits.": ["PIN 4–12 rəqəmdən ibarət olmalıdır.", "PIN — от 4 до 12 цифр.", "PIN 4–12 rakamdan oluşmalı."],
+  "Only staff have a PIN. Give this person a staff role first.": ["PIN yalnız işçilərdə olur. Əvvəlcə bu şəxsə işçi rolu ver.", "PIN есть только у сотрудников. Сначала выдайте роль сотрудника.", "PIN yalnızca personelde olur. Önce bu kişiye personel rolü ver."],
+  "The owner's PIN is set on the server (Staff:OwnerPin), not here.": ["Sahibin PIN-i burada yox, serverdə (Staff:OwnerPin) təyin olunur.", "PIN владельца задаётся на сервере (Staff:OwnerPin), а не здесь.", "Sahibin PIN'i burada değil, sunucuda (Staff:OwnerPin) belirlenir."],
   "This is the last admin. Promote someone else first.": ["Bu, sonuncu admindir. Əvvəlcə başqasını admin edin.", "Это последний администратор. Сначала назначьте другого.", "Bu son yönetici. Önce başka birini yönetici yapın."],
   "Unknown role(s): {0}.": ["Naməlum rol: {0}.", "Неизвестная роль: {0}.", "Bilinmeyen rol: {0}."],
 

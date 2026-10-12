@@ -7,6 +7,7 @@
 // Writes real rows into the dev database (a rental, a booking + refund, a message, ...).
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
+import { execFileSync } from "node:child_process";
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // the local dev certificate
 const BASE = process.argv[2] ?? "https://localhost:7140";
@@ -21,10 +22,19 @@ const LOG = process.argv[3] ?? new URL("../logs/site-output.log", import.meta.ur
 const failures = [];
 let checks = 0;
 
+// Staff screens and APIs also want the staff PIN (StaffGate). The seeded staff share the
+// development PIN; the secret path comes from the host's user secrets.
+const STAFF_PIN = process.env.STAFF_PIN ?? "580417";
+const STAFF_BASE = "/" + (process.env.STAFF_KEY ?? execFileSync("dotnet",
+  ["user-secrets", "list", "--project", new URL("../src/MovieRental.Host", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")],
+  { encoding: "utf8" }).match(/Staff:PathKey = (\S+)/)?.[1]);
+const staffCookies = new Map();   // access token -> its wy.staff cookie
+
 async function call(method, path, { token, body, cookie } = {}) {
   const headers = {};
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (cookie) headers.Cookie = cookie;
+  const jar = [cookie, staffCookies.get(token)].filter(Boolean).join("; ");
+  if (jar) headers.Cookie = jar;
   if (body !== undefined) headers["Content-Type"] = "application/json";
   const res = await fetch(BASE + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), redirect: "manual" });
   const text = await res.text();
@@ -42,7 +52,23 @@ function expect(label, ok, detail = "") {
 async function login(email, password) {
   const r = await call("POST", "/api/auth/login", { body: { email, password } });
   if (r.status !== 200) throw new Error(`login ${email}: ${r.status} ${r.text}`);
-  return { token: r.json.accessToken, refresh: r.json.refreshToken, user: r.json.user, cookie: r.headers.get("set-cookie")?.split(";")[0] };
+  const session = { token: r.json.accessToken, refresh: r.json.refreshToken, user: r.json.user, cookie: r.headers.get("set-cookie")?.split(";")[0] };
+  if (r.json.user.roles.some((role) => ["SuperAdmin", "Admin", "Security", "Cashier", "Moderator"].includes(role))) await unlockStaff(session);
+  return session;
+}
+
+async function unlockStaff(session) {
+  const page = await call("GET", STAFF_BASE + "/unlock", { token: session.token });
+  const form = /name="__RequestVerificationToken" type="hidden" value="([^"]+)"/.exec(page.text)?.[1];
+  const res = await fetch(BASE + STAFF_BASE + "/unlock", {
+    method: "POST", redirect: "manual",
+    headers: { Authorization: `Bearer ${session.token}`, "Content-Type": "application/x-www-form-urlencoded",
+               Cookie: page.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ") },
+    body: new URLSearchParams({ pin: STAFF_PIN, returnUrl: "", __RequestVerificationToken: form ?? "" }),
+  });
+  const staff = res.headers.getSetCookie().map((c) => c.split(";")[0]).find((c) => c.startsWith("wy.staff="));
+  if (!staff) throw new Error(`staff PIN refused for ${session.user.email}: ${res.status}`);
+  staffCookies.set(session.token, staff);
 }
 
 const admin = await login("admin@reelandrow.test", "Admin1234");
@@ -85,7 +111,7 @@ function ownerOf(path) {
 }
 
 // ---------------------------------------------------------------- 1. sweep
-const doc = (await call("GET", "/swagger/v1/swagger.json", { cookie: admin.cookie })).json;
+const doc = (await call("GET", "/swagger/v1/swagger.json", { token: admin.token, cookie: admin.cookie })).json;
 expect("openapi document", !!doc?.paths, "admin could not read /swagger/v1/swagger.json");
 
 // Side effects nobody wants from an empty-body sweep: re-seeding, shifts, sessions, accounts.

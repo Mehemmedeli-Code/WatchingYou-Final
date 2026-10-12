@@ -78,14 +78,14 @@ export default function AccountPage() {
       // missed "/<tab>/evil.com": browsers drop tabs and newlines from URLs, leaving "//evil.com".
       const safe = sameOriginPath(requested);
 
-      // Staff accounts land in the back office, not the public catalogue: the manager and the
-      // cashier sign in to work, and the site is one click away from there if they want it.
+      // Staff land on the site like anyone else: their screens sit at a secret address (in
+      // their menu), so the sign-in page must not name it.
       const roles = session.user.roles;
-      const isStaff = roles.includes("Admin") || roles.includes("Cashier");
+      const isStaff = ["SuperAdmin", "Admin", "Security", "Cashier", "Moderator"].some((r) => roles.includes(r));
       // Chose Watching PRO on the welcome page: paying for it comes before the site opens.
       // Otherwise the free account goes where it was heading.
       if (search.get("plan") === "pro" && !isStaff) { setProGate(true); return; }
-      afterSignIn(safe ?? (isStaff ? "/backoffice" : "/"));
+      afterSignIn(safe ?? "/");
     } catch (err) {
       const api = fail(err, t("account.signInFailed", "Could not sign in. Check your connection and try again."));
       if (api?.code === "email_unconfirmed") {

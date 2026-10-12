@@ -150,11 +150,7 @@ export default function AdminPage() {
   if (!isSignedIn || !isAdmin) {
     return (
       <Section title={t("nav.admin")}>
-        <Empty
-          title={t("admin.accessTitle")}
-          hint="admin@reelandrow.test / Admin1234"
-          action={<a href="/account"><Button>{t("nav.signIn")}</Button></a>}
-        />
+        <Empty title={t("admin.accessTitle")} hint="" />
       </Section>
     );
   }

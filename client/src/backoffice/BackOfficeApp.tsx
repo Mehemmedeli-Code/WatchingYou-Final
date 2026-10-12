@@ -136,7 +136,7 @@ export default function BackOfficeApp() {
       <div className="mt-auto space-y-1 border-t border-line pt-4 text-sm">
         {isAdmin ? (
           <>
-            <a href="/admin" className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-ink-mute hover:bg-line/40 hover:text-ink">
+            <a href={window.location.pathname.replace(/\/backoffice\/?$/, "/admin")} className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-ink-mute hover:bg-line/40 hover:text-ink">
               <ExternalLink size={15} />{t("bo.contentAdmin", "Catalogue & users")}
             </a>
             <a href="/swagger" className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-ink-mute hover:bg-line/40 hover:text-ink">
@@ -181,7 +181,7 @@ export default function BackOfficeApp() {
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden gap-1 text-xs sm:flex">
               {["az", "en", "ru", "tr"].map((code) => (
-                <a key={code} href={`/lang/${code}?returnUrl=${encodeURIComponent("/backoffice" + window.location.hash)}`}
+                <a key={code} href={`/lang/${code}?returnUrl=${encodeURIComponent(window.location.pathname + window.location.hash)}`}
                   className={cn("rounded px-1.5 py-0.5 uppercase", code === lang ? "bg-line text-ink" : "text-ink-mute hover:text-ink")}>
                   {code}
                 </a>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ShieldOff, ShieldCheck } from "lucide-react";
+import { Crown, KeyRound, ShieldOff, ShieldCheck } from "lucide-react";
 import { Panel, Notice, Empty, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { SearchField } from "@/components/SearchField";
@@ -8,6 +8,7 @@ import { get, put, query, ApiError } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/lib/format";
 import { askText } from "@/lib/dialog";
+import { useAuth } from "@/components/useAuth";
 
 interface AdminUser {
   id: string;
@@ -21,9 +22,11 @@ interface AdminUser {
   suspensionReason?: string | null;
   createdAtUtc: string;
   lastLoginAtUtc?: string | null;
+  hasStaffPin: boolean;
 }
 
-const GRANTABLE = ["Admin", "Security", "Cashier"] as const;
+const GRANTABLE = ["Admin", "Security", "Cashier", "Moderator"] as const;
+const STAFF = ["SuperAdmin", "Admin", "Security", "Cashier", "Moderator"];
 
 /**
  * Roles existed from the start but could only be handed out by the seeder, so a second
@@ -34,6 +37,8 @@ const GRANTABLE = ["Admin", "Security", "Cashier"] as const;
  * Studio, and the server appends it regardless of what is sent.
  */
 export function UserAdmin() {
+  // Only the owner makes admins and sets PINs; the server refuses anyone else either way.
+  const { isOwner } = useAuth();
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
@@ -82,6 +87,12 @@ export function UserAdmin() {
     );
   }
 
+  async function setPin(user: AdminUser) {
+    const pin = await askText(t("admin.pinPrompt", "New PIN (4–12 digits). Leave empty to remove the PIN."));
+    if (pin === null) return;      // cancelled the prompt
+    return run(user.id, () => put(`/api/admin/users/${user.id}/staff-pin`, { pin: pin.trim() || null }), `${user.email} — ${t("admin.pinSet", "PIN updated.")}`);
+  }
+
   return (
     <>
       <div className="mb-4 max-w-sm">
@@ -101,11 +112,14 @@ export function UserAdmin() {
               <p className="text-xs text-ink-mute">{user.email}</p>
 
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {user.roles.map((role) => (
+                {user.roles.map((role) => role === "SuperAdmin" ? (
+                  <Badge key={role} tone="good"><Crown size={12} aria-hidden /> {t("admin.owner", "Owner")}</Badge>
+                ) : (
                   <Badge key={role} tone={role === "Admin" ? "good" : role === "Security" ? "warn" : undefined}>
                     {role}
                   </Badge>
                 ))}
+                {user.roles.some((r) => STAFF.includes(r)) && !user.hasStaffPin ? <Badge tone="warn">{t("admin.noPinYet", "No PIN")}</Badge> : null}
                 {user.isSuspended ? <Badge tone="bad">{t("admin.suspended")}</Badge> : null}
                 {!user.isEmailConfirmed ? <Badge tone="warn">{t("account.email")}: —</Badge> : null}
               </div>
@@ -121,8 +135,10 @@ export function UserAdmin() {
               </p>
             </div>
 
+            {/* The owner's account is not managed from here: no roles, no suspension. */}
+            {user.roles.includes("SuperAdmin") ? null : (
             <div className="flex flex-wrap gap-2">
-              {GRANTABLE.map((role) => (
+              {GRANTABLE.filter((role) => role !== "Admin" || isOwner).map((role) => (
                 <Button
                   key={role}
                   size="sm"
@@ -143,7 +159,14 @@ export function UserAdmin() {
                 {user.isSuspended ? <ShieldCheck size={14} aria-hidden /> : <ShieldOff size={14} aria-hidden />}
                 {user.isSuspended ? t("admin.unsuspend") : t("admin.suspend")}
               </Button>
+
+              {isOwner && user.roles.some((r) => STAFF.includes(r)) ? (
+                <Button size="sm" variant="outline" disabled={busyId === user.id} onClick={() => setPin(user)}>
+                  <KeyRound size={14} aria-hidden /> {t("admin.setPin", "Set PIN")}
+                </Button>
+              ) : null}
             </div>
+            )}
           </Panel>
         ))}
       </div>

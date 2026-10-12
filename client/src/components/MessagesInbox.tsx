@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { MessageCircle } from "lucide-react";
 import { Section, Empty, Spinner } from "@/components/Shell";
 import { Badge } from "@/components/ui/badge";
 import { DirectChat } from "@/components/DirectChat";
@@ -57,13 +56,7 @@ export function MessagesInbox() {
                 onClick={() => setOpen(row.otherUserId)}
                 className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-surface"
               >
-                {row.otherAvatarUrl ? (
-                  <img src={row.otherAvatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
-                ) : (
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-ink-mute">
-                    <MessageCircle size={16} aria-hidden />
-                  </span>
-                )}
+                <img src={row.otherAvatarUrl || "/icons/avatar.svg"} alt="" className="h-10 w-10 rounded-full object-cover" />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center justify-between gap-2">
                     <span className={row.unread > 0 ? "font-semibold text-ink" : "text-ink"}>{row.otherName}</span>

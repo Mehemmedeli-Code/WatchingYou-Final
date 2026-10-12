@@ -226,8 +226,8 @@ export default function MobileApp() {
         {isSecurity ? <Tab active={current === "door"} onClick={() => go("door")} icon={<ScanLine size={22} />} label={t("door.title", "Door")} /> : null}
         <Tab active={inDiscover} onClick={() => go("more")} icon={<Compass size={22} />} label={t("app.more", "Discover")} />
         <Tab active={isSocial(current)} onClick={() => go("profile")} label={t("nav.profile", "Profile")}
-          icon={user?.avatarUrl
-            ? <img src={user.avatarUrl} alt="" className={cn("h-[24px] w-[24px] rounded-full object-cover", isSocial(current) && "ring-2 ring-accent")} />
+          icon={user
+            ? <img src={user.avatarUrl || "/icons/avatar.svg"} alt="" className={cn("h-[24px] w-[24px] rounded-full object-cover", isSocial(current) && "ring-2 ring-accent")} />
             : <UserRound size={22} />} />
         <Tab active={current === "account"} onClick={() => go("account")} icon={<Settings size={22} />} label={t("nav.account", "Account")} />
       </nav>
