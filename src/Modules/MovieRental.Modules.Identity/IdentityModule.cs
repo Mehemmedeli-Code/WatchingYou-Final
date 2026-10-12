@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -77,6 +77,7 @@ public sealed class IdentityModule : IModule
         ForgotPasswordEndpoints.Map(endpoints);
         ManageUsersEndpoints.Map(endpoints);
         AuditEndpoints.Map(endpoints);
+        StaffPinEndpoints.Map(endpoints);
         GlobeEndpoints.Map(endpoints);
         HelpDeskEndpoints.Map(endpoints);
         DirectMessageEndpoints.Map(endpoints);
