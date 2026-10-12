@@ -383,6 +383,13 @@ public static class DevelopmentDatabaseBootstrapper
             await identity.SaveChangesAsync(ct);
         }
 
+        // The seeded staff need a staff PIN to reach their screens (development only; real
+        // staff get theirs from the owner). Listed with the passwords in tools/test-accounts.md.
+        string[] seededStaff = ["admin@reelandrow.test", "security@reelandrow.test", "kassa@reelandrow.test"];
+        var withoutPin = await identity.Users.Where(u => seededStaff.Contains(u.Email) && u.StaffPinHash == null).ToListAsync(ct);
+        foreach (var user in withoutPin) user.StaffPinHash = hasher.Hash("580417");
+        if (withoutPin.Count > 0) await identity.SaveChangesAsync(ct);
+
         var catalog = services.GetRequiredService<CatalogDbContext>();
         if (!await catalog.Movies.AnyAsync(ct))
         {

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using MovieRental.Host.Infrastructure.Localization;
 using MovieRental.SharedKernel.Security;
@@ -67,7 +67,8 @@ internal sealed class PageShellFactory(
     {
         var isSignedIn = currentUser.IsAuthenticated;
         var isAdmin = currentUser.IsInRole(AppRoles.Admin);
-        var isSecurity = isAdmin || currentUser.IsInRole(AppRoles.Security);
+        // Moderators work at the security desk too (help requests, reported messages).
+        var isSecurity = isAdmin || currentUser.IsInRole(AppRoles.Security) || currentUser.IsInRole(AppRoles.Moderator);
 
         var nav = new List<NavItem>
         {
@@ -97,12 +98,12 @@ internal sealed class PageShellFactory(
             nav.Add(new NavItem("studio", "/studio", language["nav.studio"]));
         }
 
-        if (isSecurity) nav.Add(new NavItem("security", "/security", language["nav.security"]));
+        if (isSecurity) nav.Add(new NavItem("security", Infrastructure.StaffPaths.Security, language["nav.security"]));
         if (isAdmin || currentUser.IsInRole(AppRoles.Cashier))
-            nav.Add(new NavItem("backoffice", "/backoffice", language["nav.backoffice"]));
+            nav.Add(new NavItem("backoffice", Infrastructure.StaffPaths.BackOffice, language["nav.backoffice"]));
         if (isAdmin)
         {
-            nav.Add(new NavItem("admin", "/admin", language["nav.admin"]));
+            nav.Add(new NavItem("admin", Infrastructure.StaffPaths.Admin, language["nav.admin"]));
             nav.Add(new NavItem("api", "/swagger", language["nav.api"]));
         }
 

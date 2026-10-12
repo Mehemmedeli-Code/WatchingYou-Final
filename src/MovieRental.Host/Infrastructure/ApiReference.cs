@@ -17,9 +17,9 @@ public static class ApiReference
             context => context.Request.Path.StartsWithSegments("/swagger"),
             branch => branch.Use(async (context, next) =>
             {
-                if (!context.User.IsInRole(AppRoles.Admin))
+                if (!context.User.IsInRole(AppRoles.Admin) || !StaffUnlock.IsUnlocked(context))
                 {
-                    context.Response.Redirect("/account?denied=api");
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;   // like any staff screen: nothing here
                     return;
                 }
 

@@ -1146,5 +1146,18 @@
   "welcome.link.f2": "Mesajlar və sorğular",
   "welcome.link.f2d": "Reaksiyalar, cavablar, yönləndirmə; gizli hesablara isə sorğu ilə.",
   "welcome.link.f3": "Üç paytaxtda kinoteatr",
-  "welcome.link.f3d": "Bakı, Ankara və Moskva — yerini seç, kodla təsdiqlə."
+  "welcome.link.f3d": "Bakı, Ankara və Moskva — yerini seç, kodla təsdiqlə.",
+  "staff.title": "İşçi girişi",
+  "staff.lede": "Davam etmək üçün işçi PIN-ini yaz.",
+  "staff.pin": "İşçi PIN-i",
+  "staff.enter": "Daxil ol",
+  "staff.back": "Sayta qayıt",
+  "staff.wrong": "PIN səhvdir. {0} cəhd qalıb.",
+  "staff.locked": "Çox səhv cəhd. {0} dəqiqə sonra yenidən yoxla.",
+  "staff.noPin": "Sənin üçün hələ PIN təyin olunmayıb. Saytın sahibinə müraciət et.",
+  "admin.setPin": "PIN təyin et",
+  "admin.pinPrompt": "Yeni PIN (4–12 rəqəm). Boş buraxsan, PIN silinir.",
+  "admin.pinSet": "PIN yeniləndi.",
+  "admin.noPinYet": "PIN yoxdur",
+  "admin.owner": "Sahib"
 }

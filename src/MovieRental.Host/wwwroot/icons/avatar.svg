@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- The default profile picture: the WatchingYou eye, close up. -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="70%">
+      <stop offset="0" stop-color="#0d3a22"/>
+      <stop offset="1" stop-color="#03140b"/>
+    </radialGradient>
+    <radialGradient id="iris" cx="50%" cy="50%" r="50%">
+      <stop offset="0.55" stop-color="#0f6b3a"/>
+      <stop offset="0.8" stop-color="#1fb864"/>
+      <stop offset="1" stop-color="#3ee88a"/>
+    </radialGradient>
+    <radialGradient id="pupil" cx="45%" cy="45%" r="60%">
+      <stop offset="0" stop-color="#062a17"/>
+      <stop offset="1" stop-color="#010805"/>
+    </radialGradient>
+  </defs>
+  <rect width="128" height="128" fill="url(#bg)"/>
+  <circle cx="64" cy="64" r="56" fill="none" stroke="#1d9e57" stroke-width="10" opacity=".55"/>
+  <circle cx="64" cy="64" r="47" fill="url(#iris)"/>
+  <circle cx="64" cy="64" r="40" fill="#14a356" opacity=".55"/>
+  <circle cx="66" cy="68" r="27" fill="url(#pupil)"/>
+  <circle cx="44" cy="43" r="8" fill="#f2fff6"/>
+</svg>

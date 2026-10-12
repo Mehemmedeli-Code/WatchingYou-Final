@@ -1,4 +1,4 @@
-namespace MovieRental.SharedKernel.Security;
+﻿namespace MovieRental.SharedKernel.Security;
 
 public interface ICurrentUser
 {
@@ -24,6 +24,19 @@ public static class AppRoles
     /// open cash shift. Sees the back office's point-of-sale screens and nothing else of it —
     /// prices, menus and reports belong to the manager.</summary>
     public const string Cashier = "Cashier";
+
+    /// <summary>The site's owner. Exactly one account holds it, named in configuration
+    /// (Staff:OwnerEmail) and given it at start-up; it can never be handed out, taken away,
+    /// suspended or deleted through the site. Only the owner promotes or demotes admins and
+    /// sets the staff PINs. The owner also holds Admin, so every admin screen works for them.</summary>
+    public const string SuperAdmin = "SuperAdmin";
+
+    /// <summary>Looks after people, not the business: answers help requests and handles
+    /// reported messages. No films, prices, money or roles.</summary>
+    public const string Moderator = "Moderator";
+
+    /// <summary>Every role that opens a staff screen, and so has to pass the staff PIN.</summary>
+    public static readonly string[] Staff = [SuperAdmin, Admin, Security, Cashier, Moderator];
 }
 
 public static class AppPolicies
@@ -34,6 +47,9 @@ public static class AppPolicies
 
     /// <summary>Cashiers plus admins: whoever may stand at a till in the back office.</summary>
     public const string BackOffice = "BackOffice";
+
+    /// <summary>Moderators, security reviewers and admins: help requests and reported messages.</summary>
+    public const string Moderation = "Moderation";
 
     /// <summary>Rate-limit policy names. Declared here, configured by the host, requested by
     /// the slices that need them — guessing attacks are aimed at endpoints, not at modules.</summary>

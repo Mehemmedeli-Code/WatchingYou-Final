@@ -104,13 +104,7 @@ export function GlobeMessages() {
               const blockTab = tab === "blockedByMe" || tab === "blockedMe";
               return (
                 <li key={person.userId} className="flex items-center gap-3 rounded-lg border border-line p-3">
-                  {person.avatarUrl ? (
-                    <img src={person.avatarUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
-                  ) : (
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface text-sm text-ink-mute">
-                      {person.name.slice(0, 1).toUpperCase()}
-                    </span>
-                  )}
+                  <img src={person.avatarUrl || "/icons/avatar.svg"} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
 
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-2 text-sm text-ink">

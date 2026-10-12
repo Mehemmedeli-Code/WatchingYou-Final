@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Microsoft.AspNetCore.Authorization;
 using MovieRental.Host.Infrastructure;
 using MovieRental.Host.Infrastructure.Localization;
 using MovieRental.Host.Middleware;
@@ -176,10 +177,16 @@ builder.Services
         };
     });
 
+// Every staff policy also asks for the staff PIN (StaffGate): the role alone, from a stolen
+// session or a guessed password, does not open a staff API.
+StaffPaths.Configure(builder.Configuration);
+builder.Services.AddSingleton<IAuthorizationHandler, StaffUnlockedHandler>();
 builder.Services.AddAuthorizationBuilder()
-    .AddPolicy(AppRoles.Admin, policy => policy.RequireRole(AppRoles.Admin))
-    .AddPolicy(AppPolicies.SecurityDesk, policy => policy.RequireRole(AppRoles.Security, AppRoles.Admin))
-    .AddPolicy(AppPolicies.BackOffice, policy => policy.RequireRole(AppRoles.Cashier, AppRoles.Admin))
+    .AddPolicy(AppRoles.SuperAdmin, policy => policy.RequireRole(AppRoles.SuperAdmin).AddRequirements(new StaffUnlockedRequirement()))
+    .AddPolicy(AppRoles.Admin, policy => policy.RequireRole(AppRoles.Admin).AddRequirements(new StaffUnlockedRequirement()))
+    .AddPolicy(AppPolicies.SecurityDesk, policy => policy.RequireRole(AppRoles.Security, AppRoles.Admin).AddRequirements(new StaffUnlockedRequirement()))
+    .AddPolicy(AppPolicies.BackOffice, policy => policy.RequireRole(AppRoles.Cashier, AppRoles.Admin).AddRequirements(new StaffUnlockedRequirement()))
+    .AddPolicy(AppPolicies.Moderation, policy => policy.RequireRole(AppRoles.Moderator, AppRoles.Security, AppRoles.Admin).AddRequirements(new StaffUnlockedRequirement()))
     .AddPolicy(AppRoles.Customer, policy => policy.RequireAuthenticatedUser());
 
 static bool IsHubTokenRequest(HttpRequest request) =>
@@ -233,7 +240,16 @@ builder.Services.AddRateLimiter(options =>
 // Presentation
 // ---------------------------------------------------------------------------
 builder.Services.AddPublicApiCaching();
-builder.Services.AddRazorPages();
+// The staff screens answer only under the secret segment; /admin and the rest are not routes.
+builder.Services.AddRazorPages(options =>
+{
+    foreach (var (page, path) in new[] { ("/Admin", StaffPaths.Admin), ("/Security", StaffPaths.Security),
+                                         ("/BackOffice", StaffPaths.BackOffice), ("/StaffUnlock", StaffPaths.Unlock) })
+        options.Conventions.AddPageRouteModelConvention(page, model =>
+        {
+            foreach (var selector in model.Selectors) selector.AttributeRouteModel!.Template = path.TrimStart('/');
+        });
+});
 // The OpenAPI document comes from ASP.NET Core's own generator (built in since .NET 9);
 // Swashbuckle is kept only for its UI page, which reads that document.
 builder.Services.AddOpenApi("v1", options => options.AddDocumentTransformer((document, _, _) =>
@@ -420,6 +436,7 @@ else
     await DevelopmentDatabaseBootstrapper.ApplyMigrationsAsync(app.Services);
     app.UseHsts();
 }
+await MovieRental.Modules.Identity.Features.StaffOwner.EnsureAsync(app.Services);
 
 app.UseHttpsRedirection();
 app.UseResponseCompression();

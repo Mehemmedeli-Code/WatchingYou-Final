@@ -23,7 +23,7 @@ const blankDraft = (): Draft =>
   Object.fromEntries(SECURITY_CHECKS.map((c) => [c, { outcome: "Pass" as CheckOutcome, note: "" }])) as Draft;
 
 export default function SecurityPage() {
-  const { isSecurity, isSignedIn } = useAuth();
+  const { isSecurity, isModerator, isSignedIn } = useAuth();
   const [queue, setQueue] = useState<ShortFilmDetail[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(blankDraft);
@@ -75,15 +75,25 @@ export default function SecurityPage() {
     }
   }
 
-  if (!isSignedIn || !isSecurity) {
+  if (!isSignedIn || !(isSecurity || isModerator)) {
     return (
       <Section title={t("security.title")} lede={t("security.lede")}>
-        <Empty
-          title={t("common.signInFirst")}
-          hint="security@reelandrow.test / Security1234"
-          action={<a href="/account"><Button>{t("nav.signIn")}</Button></a>}
-        />
+        <Empty title={t("common.signInFirst")} hint="" />
       </Section>
+    );
+  }
+
+  // A moderator looks after people: the help requests and the reported messages.
+  if (!isSecurity) {
+    return (
+      <>
+        <Section title={t("help.requests")} lede={t("help.fromOthers")}>
+          <HelpInbox />
+        </Section>
+        <Section title={t("reports.title")} lede={t("reports.lede")}>
+          <ReportQueue />
+        </Section>
+      </>
     );
   }
 

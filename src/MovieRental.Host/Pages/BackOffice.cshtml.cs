@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+using MovieRental.Host.Infrastructure;
 using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Host.Pages;
@@ -8,11 +8,10 @@ namespace MovieRental.Host.Pages;
 /// its own layout — a sidebar and no public nav — because the people using it are at a till
 /// or behind a desk, not browsing films.
 ///
-/// Guarded on the page as well as on every API it calls. An anonymous visitor is sent to
-/// sign in and comes straight back here.
+/// Guarded on the page as well as on every API it calls.
 /// </summary>
-[Authorize(Policy = AppPolicies.BackOffice)]
-public sealed class BackOfficeModel(IPageShellFactory shell) : AppPageModel
+public sealed class BackOfficeModel(IPageShellFactory shell) : StaffPageModel
 {
+    protected override string[] AllowedRoles => [AppRoles.Cashier, AppRoles.Admin];
     public void OnGet() => View = shell.Create("nav.backoffice", "footer.note", "backoffice", "backoffice");
 }

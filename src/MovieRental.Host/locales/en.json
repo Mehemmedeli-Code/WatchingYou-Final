@@ -1146,5 +1146,18 @@
   "welcome.link.f2": "Messages and requests",
   "welcome.link.f2d": "Reactions, replies and forwarding; private accounts by request.",
   "welcome.link.f3": "Cinemas in three capitals",
-  "welcome.link.f3d": "Baku, Ankara and Moscow — pick a seat, confirm with a code."
+  "welcome.link.f3d": "Baku, Ankara and Moscow — pick a seat, confirm with a code.",
+  "staff.title": "Staff sign-in",
+  "staff.lede": "Enter your staff PIN to continue.",
+  "staff.pin": "Staff PIN",
+  "staff.enter": "Continue",
+  "staff.back": "Back to the site",
+  "staff.wrong": "Wrong PIN. {0} attempts left.",
+  "staff.locked": "Too many wrong attempts. Try again in {0} minutes.",
+  "staff.noPin": "No PIN has been set for you yet. Ask the site's owner.",
+  "admin.setPin": "Set PIN",
+  "admin.pinPrompt": "New PIN (4–12 digits). Leave empty to remove the PIN.",
+  "admin.pinSet": "PIN updated.",
+  "admin.noPinYet": "No PIN",
+  "admin.owner": "Owner"
 }
