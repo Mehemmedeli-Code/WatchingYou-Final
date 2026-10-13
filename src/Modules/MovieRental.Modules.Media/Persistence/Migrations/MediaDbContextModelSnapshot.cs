@@ -199,6 +199,22 @@ namespace MovieRental.Modules.Media.Persistence.Migrations
                     b.ToTable("ShortFilms", "media");
                 });
 
+            modelBuilder.Entity("MovieRental.Modules.Media.Domain.ShortFilmLike", b =>
+                {
+                    b.Property<Guid>("ShortFilmId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("ShortFilmId", "UserId");
+
+                    b.ToTable("ShortFilmLikes", "media");
+                });
+
             modelBuilder.Entity("MovieRental.Modules.Media.Domain.SubmissionComment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -265,6 +281,15 @@ namespace MovieRental.Modules.Media.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("ShortFilm");
+                });
+
+            modelBuilder.Entity("MovieRental.Modules.Media.Domain.ShortFilmLike", b =>
+                {
+                    b.HasOne("MovieRental.Modules.Media.Domain.ShortFilm", null)
+                        .WithMany()
+                        .HasForeignKey("ShortFilmId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("MovieRental.Modules.Media.Domain.SubmissionComment", b =>
