@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -158,17 +158,26 @@ internal sealed class SubscribeProHandler(
 
         var contact = await users.GetContactAsync(userId, ct);
         if (contact is not null)
-            await email.SendAsync(new EmailRequest(contact.Email, $"{RentalPricing.PlanName} abunəliyiniz aktivləşdirildi",
+        {
+            var plan = RentalPricing.PlanName;
+            var until = starts.AddMonths(1).ToString("dd.MM.yyyy");
+            await email.SendAsync(new EmailRequest(contact.Email,
+                Lang.Pick($"{plan} abunəliyiniz aktivləşdirildi", $"Your {plan} subscription is active",
+                          $"Подписка {plan} активирована", $"{plan} aboneliğiniz etkinleştirildi"),
                 "<div style=\"font-family:Arial,sans-serif;max-width:560px;color:#111;line-height:1.6\">" +
-                $"<p>Hörmətli {System.Net.WebUtility.HtmlEncode(contact.FullName)},</p>" +
-                $"<p>{RentalPricing.PlanName} abunəliyiniz uğurla aktivləşdirildi. " +
-                $"<strong>{starts.AddMonths(1):dd.MM.yyyy}</strong> tarixinədək bütün filmlərə limitsiz girişiniz var.</p>" +
-                $"<p>Ödəniş: ${RentalPricing.MonthlyPrice:0.00}, {brand} •••• {last4}.<br>" +
-                "Abunəlik avtomatik yenilənmir və kart məlumatlarınız saxlanılmır.</p>" +
-                "<p>Hörmətlə,<br>WatchingYou komandası</p>" +
-                "<hr style=\"border:none;border-top:1px solid #ddd;margin:24px 0 12px\">" +
-                $"<p style=\"color:#666;font-size:12px\"><strong>In English:</strong> Your {RentalPricing.PlanName} subscription is active " +
-                $"until {starts.AddMonths(1):dd MMM yyyy}. It does not renew automatically and your card details are not stored.</p></div>"), ct);
+                $"<p>{Lang.Pick("Hörmətli", "Dear", "Здравствуйте,", "Sayın")} {System.Net.WebUtility.HtmlEncode(contact.FullName)},</p>" +
+                "<p>" + Lang.Pick(
+                    $"{plan} abunəliyiniz uğurla aktivləşdirildi. <strong>{until}</strong> tarixinədək bütün filmlərə limitsiz girişiniz var.",
+                    $"Your {plan} subscription is active. You can watch every film without limits until <strong>{until}</strong>.",
+                    $"Подписка {plan} активирована. До <strong>{until}</strong> вам доступны все фильмы без ограничений.",
+                    $"{plan} aboneliğiniz etkinleştirildi. <strong>{until}</strong> tarihine kadar tüm filmlere sınırsız erişiminiz var.") + "</p>" +
+                $"<p>{Lang.Pick("Ödəniş", "Payment", "Оплата", "Ödeme")}: ${RentalPricing.MonthlyPrice:0.00}, {brand} •••• {last4}.<br>" +
+                Lang.Pick("Abunəlik avtomatik yenilənmir və kart məlumatlarınız saxlanılmır.",
+                          "The subscription does not renew automatically and your card details are not stored.",
+                          "Подписка не продлевается автоматически, данные карты не сохраняются.",
+                          "Abonelik otomatik yenilenmez ve kart bilgileriniz saklanmaz.") + "</p>" +
+                $"<p>{Lang.Pick("Hörmətlə,<br>WatchingYou komandası", "Best wishes,<br>the WatchingYou team", "С уважением,<br>команда WatchingYou", "Saygılarımızla,<br>WatchingYou ekibi")}</p></div>"), ct);
+        }
 
         return Result.Success(await dispatcher.Ask(new GetProStatusQuery(), ct));
     }
