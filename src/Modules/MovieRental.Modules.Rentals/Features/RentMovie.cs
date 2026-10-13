@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -83,8 +83,12 @@ internal sealed class RentMovieHandler(
 
         var contact = await users.GetContactAsync(userId, ct);
         if (contact is not null)
-            await email.SendAsync(new EmailRequest(contact.Email, $"You rented {movie.Title}",
-                $"<p>Enjoy the film. Please return it by <strong>{rental.DueAtUtc:dd MMM yyyy}</strong>.</p>"), ct);
+            await email.SendAsync(new EmailRequest(contact.Email,
+                Lang.Pick($"{movie.Title} icarəyə götürüldü", $"You rented {movie.Title}", $"Вы взяли напрокат «{movie.Title}»", $"{movie.Title} kiralandı"),
+                "<p>" + Lang.Pick($"Xoş seyrlər. İcarə <strong>{rental.DueAtUtc:dd.MM.yyyy}</strong> tarixində bitir.",
+                                  $"Enjoy the film. Please return it by <strong>{rental.DueAtUtc:dd MMM yyyy}</strong>.",
+                                  $"Приятного просмотра. Прокат заканчивается <strong>{rental.DueAtUtc:dd.MM.yyyy}</strong>.",
+                                  $"İyi seyirler. Kiralama <strong>{rental.DueAtUtc:dd.MM.yyyy}</strong> tarihinde bitiyor.") + "</p>"), ct);
 
         return Result.Success(rental.ToResponse(new LateFeePolicy(), DateTime.UtcNow));
     }

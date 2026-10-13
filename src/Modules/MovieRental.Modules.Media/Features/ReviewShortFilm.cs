@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
@@ -92,24 +92,31 @@ internal sealed class DecideShortFilmHandler(
         var failures = film.SecurityReport?.Failures.ToArray() ?? [];
         var failureList = failures.Length == 0
             ? string.Empty
-            : "<p>Checks that did not pass:</p><ul>" +
+            : $"<p>{Lang.Pick("Keçməyən yoxlamalar:", "Checks that did not pass:", "Непройденные проверки:", "Geçmeyen kontroller:")}</p><ul>" +
               string.Join("", failures.Select(f =>
                   $"<li><strong>{f.Check}</strong>{(string.IsNullOrWhiteSpace(f.Note) ? "" : $" — {f.Note}")}</li>")) +
               "</ul>";
 
         var gallery = film.Origin == ShortFilmOrigin.AiGenerated ? "AI Catalog" : "Human Craft";
-        var next = approved
+        var next = "<p>" + (approved
             ? film.Visibility == ShortFilmVisibility.Public
-                ? $"<p>It is live in the {gallery} gallery now.</p>"
-                : $"<p>It is approved. Switch it to public in Studio whenever you want it to appear in {gallery}.</p>"
-            : "<p>You are welcome to revise it and submit again.</p>";
+                ? Lang.Pick($"Film artıq {gallery} qalereyasında yayımdadır.", $"It is live in the {gallery} gallery now.",
+                            $"Фильм уже опубликован в галерее {gallery}.", $"Film artık {gallery} galerisinde yayında.")
+                : Lang.Pick($"Film təsdiqləndi. {gallery} qalereyasında görünməsi üçün Studiyada açıq edin.",
+                            $"It is approved. Switch it to public in Studio whenever you want it to appear in {gallery}.",
+                            $"Фильм одобрен. Сделайте его публичным в Студии, чтобы он появился в {gallery}.",
+                            $"Film onaylandı. {gallery} galerisinde görünmesi için Stüdyo'da herkese açık yapın.")
+            : Lang.Pick("Düzəliş edib yenidən göndərə bilərsiniz.", "You are welcome to revise it and submit again.",
+                        "Вы можете доработать фильм и отправить его снова.", "Düzeltip yeniden gönderebilirsiniz.")) + "</p>";
 
-        var subject = approved ? $"\"{film.Title}\" was approved" : $"\"{film.Title}\" was not accepted";
+        var subject = approved
+            ? Lang.Pick($"\"{film.Title}\" təsdiqləndi", $"\"{film.Title}\" was approved", $"«{film.Title}» одобрен", $"\"{film.Title}\" onaylandı")
+            : Lang.Pick($"\"{film.Title}\" qəbul olunmadı", $"\"{film.Title}\" was not accepted", $"«{film.Title}» не принят", $"\"{film.Title}\" kabul edilmedi");
 
         await email.SendAsync(new EmailRequest(contact.Email, subject,
             $"""
-             <p>Hi {System.Net.WebUtility.HtmlEncode(contact.FullName)},</p>
-             <p>Your submission <strong>{System.Net.WebUtility.HtmlEncode(film.Title)}</strong> has been reviewed.</p>
+             <p>{Lang.Pick("Salam", "Hi", "Здравствуйте", "Merhaba")} {System.Net.WebUtility.HtmlEncode(contact.FullName)},</p>
+             <p>{Lang.Pick("Göndərdiyiniz film yoxlanıldı:", "Your submission has been reviewed:", "Ваша работа проверена:", "Gönderiniz incelendi:")} <strong>{System.Net.WebUtility.HtmlEncode(film.Title)}</strong></p>
              {(string.IsNullOrWhiteSpace(film.ReviewerNote) ? "" : $"<p>{System.Net.WebUtility.HtmlEncode(film.ReviewerNote)}</p>")}
              {(string.IsNullOrWhiteSpace(film.SecurityReport?.Summary) ? "" : $"<p><em>{System.Net.WebUtility.HtmlEncode(film.SecurityReport!.Summary)}</em></p>")}
              {failureList}

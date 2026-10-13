@@ -65,6 +65,67 @@ function Camera({ country, home }: { country: CountryPoint | null; home: { cente
   return null;
 }
 
+/** A card's place against its city's dot: top-left corner relative to the dot's centre,
+ *  and where its leader line meets it (null when the card sits right at the dot). */
+export interface Callout { dx: number; dy: number; lead: { x: number; y: number } | null }
+
+type Box = { x0: number; y0: number; x1: number; y1: number };
+const CARD_W = 132;
+const area = (a: Box, b: Box) =>
+  Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+// Up first, then the sides, then down; the diagonals after.
+const DIRECTIONS: [number, number][] = [[0, -1], [1, 0], [-1, 0], [0, 1], [1, -1], [-1, -1], [1, 1], [-1, 1]];
+const DISTANCES = [8, 36, 70, 110];
+
+/**
+ * Lays the cards out like a map's callouts: each next to its dot if there is room, otherwise
+ * pulled out along a short leader line to the nearest free spot — biggest cities first, so
+ * they keep the natural place just above. The dot itself never moves.
+ */
+export function planCallouts(points: { x: number; y: number }[], heights: number[], width: number, height: number): Callout[] {
+  const dots: Box[] = points.map((p) => ({ x0: p.x - 6, x1: p.x + 6, y0: p.y - 6, y1: p.y + 6 }));
+  const taken: Box[] = [];
+  return points.map((p, i) => {
+    const h = heights[i];
+    let best: { box: Box; anchor: { x: number; y: number }; d: number } | null = null, bestCost = Infinity;
+    search: for (const d of DISTANCES) {
+      for (const [ux, uy] of DIRECTIONS) {
+        const step = ux !== 0 && uy !== 0 ? d / Math.SQRT2 : d;
+        const anchor = { x: p.x + ux * step, y: p.y + uy * step };
+        const x0 = ux < 0 ? anchor.x - CARD_W : ux > 0 ? anchor.x : anchor.x - CARD_W / 2;
+        const y0 = uy < 0 ? anchor.y - h : uy > 0 ? anchor.y : anchor.y - h / 2;
+        const box = { x0, y0, x1: x0 + CARD_W, y1: y0 + h };
+        const offMap = CARD_W * h - area(box, { x0: 0, y0: 0, x1: width, y1: height });
+        const cost = offMap + [...taken, ...dots.filter((_, j) => j !== i)].reduce((sum, other) => sum + area(box, other), 0);
+        if (cost < bestCost) { best = { box, anchor, d }; bestCost = cost; }
+        if (cost === 0) break search;
+      }
+    }
+    taken.push(best!.box);
+    return { dx: best!.box.x0 - p.x, dy: best!.box.y0 - p.y, lead: best!.d > 8 ? { x: best!.anchor.x - p.x, y: best!.anchor.y - p.y } : null };
+  });
+}
+
+/** Re-plans the callouts in screen pixels whenever the camera stops: what collides depends on the zoom. */
+function CardSides({ cities, onChange }: { cities: GlobeMapCity[]; onChange: (callouts: Map<GlobeMapCity, Callout>) => void }) {
+  const map = useVenueMap();
+  useEffect(() => {
+    if (!map) return;
+    const plan = () => {
+      const canvas = map.getCanvas();
+      const callouts = planCallouts(
+        cities.map((c) => map.project([c.longitude, c.latitude])),
+        cities.map((c) => 24 + 15 * Math.min(2, c.faces.length) + (moreThanTwo(c.memberCount) ? 15 : 0)),
+        canvas.clientWidth, canvas.clientHeight);
+      onChange(new Map(cities.map((c, i) => [c, callouts[i]])));
+    };
+    plan();
+    map.on("moveend", plan);
+    return () => { map.off("moveend", plan); };
+  }, [map, cities, onChange]);
+  return null;
+}
+
 function GlobeMembersMap({
   cities,
   selectedCity,
@@ -79,7 +140,7 @@ function GlobeMembersMap({
 }) {
   const [countryCode, setCountryCode] = useState<string | null>(null);
   useEffect(() => { onCountryChange?.(countryCode); }, [countryCode, onCountryChange]);
-  const placed = cities.filter((c) => c.latitude !== 0 || c.longitude !== 0);
+  const placed = useMemo(() => cities.filter((c) => c.latitude !== 0 || c.longitude !== 0), [cities]);
 
   // Members per country, for the badges on the flags.
   const membersByCountry = useMemo(() => {
@@ -100,29 +161,20 @@ function GlobeMembersMap({
   }), [placed]);
 
   const country = countryCode ? COUNTRIES.find((c) => c.code === countryCode) ?? null : null;
-  const citiesHere = country
+  const citiesHere = useMemo(() => country
     ? placed.filter((c) => countryOf(c) === country.code).sort((a, b) => b.memberCount - a.memberCount)
-    : [];
+    : [], [placed, country]);
 
-  // Neighbouring cities (Baku and Sumqayit are 30 km apart) would draw their cards on top of
-  // each other. Each card that lands near one already placed steps down below it instead.
-  const offsets = useMemo(() => {
-    const placedSoFar: GlobeMapCity[] = [];
-    const result = new Map<GlobeMapCity, [number, number]>();
-    for (const city of citiesHere) {
-      const crowd = placedSoFar.filter((other) =>
-        Math.abs(other.latitude - city.latitude) < 1.2 && Math.abs(other.longitude - city.longitude) < 2.5).length;
-      result.set(city, [0, crowd * 78]);
-      placedSoFar.push(city);
-    }
-    return result;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countryCode, cities]);
+  // Every city keeps its dot exactly where it is; only its card moves (pushing whole cards
+  // down used to drop Sumqayit and Shamakhi next to Lankaran). Which side it opens on is
+  // worked out in screen pixels, after every camera move — see CardSides.
+  const [callouts, setCallouts] = useState<Map<GlobeMapCity, Callout>>(new Map());
 
   return (
     <div className="relative h-[420px] overflow-hidden rounded-xl border border-line bg-[#05080a] sm:h-[520px]">
       <VenueMap center={home.center} zoom={home.zoom} globe spin={!country} clickToActivate>
         <Camera country={country} home={home} />
+        <CardSides cities={citiesHere} onChange={setCallouts} />
 
         {/* World: a flag on every country. */}
         {!country && COUNTRIES.map((point) => {
@@ -155,18 +207,26 @@ function GlobeMembersMap({
           const more = moreThanTwo(city.memberCount);
           return (
             <MapMarker key={`${city.city}-${city.latitude}`} longitude={city.longitude} latitude={city.latitude}
-                       offset={offsets.get(city)} hideWhenBehind onClick={() => onSelect(city)}>
+                       hideWhenBehind onClick={() => onSelect(city)}>
+              {/* The dot is the city itself (its centre is 5,5 in this box); the card hangs off it,
+                  on a leader line when it had to move away to find room. */}
+              <span className="relative block h-2.5 w-2.5 rounded-full border-2 border-surface bg-accent shadow" aria-hidden />
+              {(() => { const lead = callouts.get(city)?.lead; return lead ? (
+                <span aria-hidden className="pointer-events-none absolute left-[5px] top-[5px] h-px origin-left bg-accent/80"
+                  style={{ width: Math.hypot(lead.x, lead.y), transform: `rotate(${Math.atan2(lead.y, lead.x)}rad)` }} />
+              ) : null; })()}
               <button
                 type="button"
                 aria-pressed={active}
+                style={{ left: 5 + (callouts.get(city)?.dx ?? -66), top: 5 + (callouts.get(city)?.dy ?? -60) }}
                 className={
-                  "min-w-[120px] -translate-y-1/2 rounded-lg border px-2.5 py-1.5 text-left shadow-lg transition-colors " +
-                  (active ? "border-accent bg-accent text-surface" : "border-line bg-surface/95 text-ink hover:border-accent")
+                  "absolute w-[132px] rounded-lg border px-2.5 py-1.5 text-left shadow-lg transition-colors " +
+                  (active ? "z-10 border-accent bg-accent text-surface" : "border-line bg-surface/95 text-ink hover:border-accent")
                 }
               >
                 <span className="flex items-center gap-1.5 text-xs font-semibold">
                   <img src={flagUrl(country.code)} alt="" className="h-3 w-4 rounded-[2px] object-cover" />
-                  {city.city}
+                  <span className="truncate">{city.city}</span>
                 </span>
                 {city.faces.slice(0, 2).map((face) => (
                   <span key={face.userId} className="mt-0.5 block truncate text-[11px] leading-tight">{face.displayName}</span>

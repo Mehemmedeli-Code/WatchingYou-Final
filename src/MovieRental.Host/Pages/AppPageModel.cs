@@ -65,6 +65,7 @@ internal sealed class PageShellFactory(
 
     public AppPageViewModel Create(string titleKey, string taglineKey, string activeNav, string reactMount)
     {
+
         var isSignedIn = currentUser.IsAuthenticated;
         var isAdmin = currentUser.IsInRole(AppRoles.Admin);
         // Moderators work at the security desk too (help requests, reported messages).

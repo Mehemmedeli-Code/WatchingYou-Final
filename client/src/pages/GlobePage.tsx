@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Globe2, MapPin, Users, X } from "lucide-react";
+import { ArrowLeft, Globe2, MapPin, Users, X } from "lucide-react";
 import { Section, Panel, Notice, Empty, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Input, Field } from "@/components/ui/input";
@@ -55,14 +55,128 @@ interface GlobeMemberPage {
   items: GlobeMember[];
 }
 
+/** The city in the address (?city=Baku&country=AZ): its own page with everyone in it. */
+type CityRef = { city: string; country?: string | null };
+function useCityPage(): [CityRef | null, (to: CityRef | null) => void] {
+  const read = (): CityRef | null => {
+    const params = new URLSearchParams(location.search);
+    const city = params.get("city");
+    return city ? { city, country: params.get("country") } : null;
+  };
+  const [page, setPage] = useState(read);
+  useEffect(() => {
+    const onPop = () => setPage(read());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  return [page, (to) => {
+    history.pushState(null, "", to ? "/globe" + query({ city: to.city, country: to.country ?? undefined }) : "/globe");
+    setPage(to);
+    window.scrollTo({ top: 0 });
+  }];
+}
+
 export default function GlobePage() {
-  const { isSignedIn, user } = useAuth();
+  const [cityPage, goCity] = useCityPage();
+  const { isSignedIn } = useAuth();
+  if (isSignedIn && cityPage) return <CityPeople city={cityPage.city} country={cityPage.country ?? null} onBack={() => goCity(null)} />;
+  return <GlobeHome onMore={goCity} />;
+}
+
+/** One person in a list: picture, name, and — if it is not you — compare and write. */
+function MemberRow({ member, detail, onCompare, onWrite }: {
+  member: { userId: string; displayName: string; avatarUrl?: string | null };
+  detail?: string;
+  onCompare: () => void;
+  onWrite: () => void;
+}) {
+  const { user } = useAuth();
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-line p-2">
+      <div className="flex min-w-0 items-center gap-2">
+        <img src={member.avatarUrl || "/icons/avatar.svg"} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+        <span className="min-w-0">
+          <span className="block truncate text-sm text-ink">{member.displayName}</span>
+          {detail ? <span className="block truncate text-xs text-ink-mute">{detail}</span> : null}
+        </span>
+      </div>
+      {member.userId === user?.id ? (
+        <Badge>{t("globe.you")}</Badge>
+      ) : (
+        <div className="flex shrink-0 gap-1.5">
+          <Button size="sm" variant="outline" onClick={onCompare}>{t("globe.match")}</Button>
+          <Button size="sm" onClick={onWrite}>{t("dm.message")}</Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Everyone in one city, a page at a time, with a way back to the map. */
+function CityPeople({ city, country, onBack }: { city: string; country: string | null; onBack: () => void }) {
+  const [members, setMembers] = useState<GlobeMember[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [compareWith, setCompareWith] = useState<GlobeMember | null>(null);
+  const [writeTo, setWriteTo] = useState<GlobeMember | null>(null);
+  const code = country ?? findCity(city)?.country;
+
+  useEffect(() => {
+    setMembers(null);
+    void get<GlobeMemberPage>("/api/globe/members" + query({ city, page: 1 })).catch(() => null).then((first) => {
+      setMembers(first?.items ?? []);
+      setTotal(first?.total ?? 0);
+      setPage(1);
+    });
+  }, [city]);
+
+  async function more() {
+    setLoading(true);
+    const next = await get<GlobeMemberPage>("/api/globe/members" + query({ city, page: page + 1 })).catch(() => null);
+    if (next) { setMembers((current) => [...(current ?? []), ...next.items]); setPage(next.page); }
+    setLoading(false);
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
+      <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-ink-mute hover:border-accent hover:text-ink">
+        <ArrowLeft size={15} aria-hidden /> {t("common.back", "Back")}
+      </button>
+
+      <h1 className="mt-6 flex items-center gap-2 font-display text-3xl text-ink">
+        <Flag country={code} className="h-5 w-[26px]" /> {city}
+      </h1>
+      <p className="mt-1 flex items-center gap-1.5 text-sm text-ink-mute">
+        <Users size={14} aria-hidden /> {members === null ? "…" : total} {t("globe.members")}
+      </p>
+
+      <div className="mt-6 space-y-2">
+        {members === null ? <Spinner label={t("common.loading")} /> : null}
+        {members?.map((member) => (
+          <MemberRow key={member.userId} member={member} onCompare={() => setCompareWith(member)} onWrite={() => setWriteTo(member)} />
+        ))}
+        {members && members.length < total ? (
+          <Button className="w-full" variant="outline" disabled={loading} onClick={() => void more()}>
+            {loading ? t("common.loading") : `${t("globe.loadMore")} (${total - members.length})`}
+          </Button>
+        ) : null}
+      </div>
+
+      {compareWith ? <TasteCompare member={compareWith} onClose={() => setCompareWith(null)} /> : null}
+      {writeTo ? <DirectChat userId={writeTo.userId} onClose={() => setWriteTo(null)} /> : null}
+    </div>
+  );
+}
+
+const NO_CITIES: GlobeCityMarker[] = [];   // stable, so the map does not re-plan on every render
+
+function GlobeHome({ onMore }: { onMore: (to: CityRef) => void }) {
+  const { isSignedIn } = useAuth();
   const [cities, setCities] = useState<GlobeCityMarker[] | null>(null);
   const [open, setOpen] = useState<GlobeCityMarker | null>(null);
   const [members, setMembers] = useState<GlobeMember[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [compareWith, setCompareWith] = useState<GlobeMember | null>(null);
   const [writeTo, setWriteTo] = useState<GlobeMember | null>(null);
   const [messagesKey, setMessagesKey] = useState(0);
@@ -107,26 +221,14 @@ export default function GlobePage() {
   useEffect(() => { void loadCities(); }, [loadCities]);
 
   const openCity = useCallback(async (marker: GlobeCityMarker) => {
+    setOnlineOpen(false);   // a city was asked for: its people, not the country's online list
     setOpen(marker);
     setCompareWith(null);
-    setPage(1);
     const first = await get<GlobeMemberPage>("/api/globe/members" + query({ city: marker.city, page: 1 }))
       .catch(() => null);
     setMembers(first?.items ?? []);
     setTotal(first?.total ?? 0);
   }, []);
-
-  async function loadMore() {
-    if (!open || members.length >= total) return;
-    setLoadingMore(true);
-    const next = await get<GlobeMemberPage>("/api/globe/members" + query({ city: open.city, page: page + 1 }))
-      .catch(() => null);
-    if (next) {
-      setMembers((current) => [...current, ...next.items]);
-      setPage(next.page);
-    }
-    setLoadingMore(false);
-  }
 
   if (!isSignedIn) {
     return (
@@ -150,7 +252,7 @@ export default function GlobePage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
         <div className="rounded-xl border border-line bg-surface-raised p-6">
           {/* The real Earth: the members, pinned to the cities they chose. */}
-          <GlobeMembersMap cities={cities ?? []} selectedCity={open?.city} onSelect={openCity} onCountryChange={setCountry} />
+          <GlobeMembersMap cities={cities ?? NO_CITIES} selectedCity={open?.city} onSelect={openCity} onCountryChange={setCountry} />
 
           {/* Under the globe: only the country chosen on the map above, and only how many of its
               people are online now. A row per city stopped working long before a million users;
@@ -201,29 +303,10 @@ export default function GlobePage() {
                   <p className="text-sm text-ink-mute">{t("globe.nobodyOnline", "Nobody from here is online right now.")}</p>
                 ) : null}
                 {online?.items.map((member) => (
-                  <div key={member.userId} className="flex items-center justify-between gap-3 rounded-lg border border-line p-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <img src={member.avatarUrl || "/icons/avatar.svg"} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm text-ink">{member.displayName}</span>
-                        <span className="block truncate text-xs text-ink-mute">
-                          {member.username ? `@${member.username}` : ""}{member.city ? ` · ${member.city}` : ""}
-                        </span>
-                      </span>
-                    </div>
-                    {member.userId === user?.id ? (
-                      <Badge>{t("globe.you")}</Badge>
-                    ) : (
-                      <div className="flex shrink-0 gap-1.5">
-                        <Button size="sm" variant="outline" onClick={() => setCompareWith({ ...member, joinedAtUtc: "" })}>
-                          {t("globe.match")}
-                        </Button>
-                        <Button size="sm" onClick={() => setWriteTo({ ...member, joinedAtUtc: "" })}>
-                          {t("dm.message")}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                  <MemberRow key={member.userId} member={member}
+                    detail={`${member.username ? `@${member.username}` : ""}${member.city ? ` · ${member.city}` : ""}`}
+                    onCompare={() => setCompareWith({ ...member, joinedAtUtc: "" })}
+                    onWrite={() => setWriteTo({ ...member, joinedAtUtc: "" })} />
                 ))}
                 {online && online.items.length < online.total ? (
                   <Button className="w-full" size="sm" variant="outline" onClick={() => void openOnline(country, online.page + 1)}>
@@ -252,31 +335,15 @@ export default function GlobePage() {
               </div>
 
               <div className="mt-4 space-y-2">
-                {members.map((member) => (
-                  <div key={member.userId} className="flex items-center justify-between gap-3 rounded-lg border border-line p-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <img src={member.avatarUrl || "/icons/avatar.svg"} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
-                      <span className="truncate text-sm text-ink">{member.displayName}</span>
-                    </div>
-
-                    {member.userId === user?.id ? (
-                      <Badge>{t("globe.you")}</Badge>
-                    ) : (
-                      <div className="flex shrink-0 gap-1.5">
-                        <Button size="sm" variant="outline" onClick={() => setCompareWith(member)}>
-                          {t("globe.match")}
-                        </Button>
-                        <Button size="sm" onClick={() => setWriteTo(member)}>
-                          {t("dm.message")}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                {/* Two here, as on the map card; everyone else on the city's own page. */}
+                {members.slice(0, 2).map((member) => (
+                  <MemberRow key={member.userId} member={member} onCompare={() => setCompareWith(member)} onWrite={() => setWriteTo(member)} />
                 ))}
 
-                {members.length < total ? (
-                  <Button className="w-full" size="sm" variant="outline" disabled={loadingMore} onClick={loadMore}>
-                    {loadingMore ? t("common.loading") : `${t("globe.loadMore")} (${total - members.length})`}
+                {total > 2 ? (
+                  <Button className="w-full" size="sm" variant="outline"
+                    onClick={() => onMore({ city: open.city, country: open.countryCode ?? findCity(open.city)?.country })}>
+                    {`${t("globe.more", "More")} (${total - 2})`}
                   </Button>
                 ) : null}
               </div>

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
@@ -145,21 +145,33 @@ internal sealed class RefundBookingHandler(
         var contact = await users.GetContactAsync(payment.UserId, ct);
         if (contact is null) return;
 
+        var hours = screening.RefundWindowHours ?? RefundPolicy.DefaultWindowHours;
         var feeLine = quote.Fee > 0
-            ? $"<p>A cancellation fee of {quote.Fee:0.00} was kept, as the booking was cancelled less than " +
-              $"{screening.RefundWindowHours ?? RefundPolicy.DefaultWindowHours} hours before the screening.</p>"
+            ? "<p>" + Lang.Pick(
+                $"Bron seansdan {hours} saatdan az qalmış ləğv edildiyi üçün {quote.Fee:0.00} AZN ləğv haqqı tutuldu.",
+                $"A cancellation fee of {quote.Fee:0.00} AZN was kept, as the booking was cancelled less than {hours} hours before the screening.",
+                $"Удержан сбор за отмену {quote.Fee:0.00} AZN: бронь отменена меньше чем за {hours} ч до сеанса.",
+                $"Rezervasyon seanstan {hours} saatten az kala iptal edildiği için {quote.Fee:0.00} AZN iptal ücreti alındı.") + "</p>"
             : screening.IsCancelled
-                ? "<p>The screening was cancelled, so the full amount goes back — no fee.</p>"
+                ? "<p>" + Lang.Pick("Seans ləğv olundu, ona görə məbləğin hamısı qaytarılır — haqq tutulmur.",
+                                    "The screening was cancelled, so the full amount goes back — no fee.",
+                                    "Сеанс отменён, поэтому вся сумма возвращается — без сбора.",
+                                    "Seans iptal edildi, bu yüzden tutarın tamamı iade ediliyor — ücret yok.") + "</p>"
                 : "";
+        var card = payment.Provider == PaymentProvider.Stripe
+            ? Lang.Pick("Stripe ilə ödədiyiniz karta", "the card you paid with through Stripe", "на карту, которой вы платили через Stripe", "Stripe ile ödediğiniz karta")
+            : Lang.Pick($"sonu {payment.Last4} olan karta", $"the card ending {payment.Last4}", $"на карту, оканчивающуюся на {payment.Last4}", $"sonu {payment.Last4} olan karta");
 
         await email.SendAsync(new EmailRequest(contact.Email,
-            $"Refunded — {payment.Reference}",
+            Lang.Pick($"Pul qaytarıldı — {payment.Reference}", $"Refunded — {payment.Reference}", $"Возврат — {payment.Reference}", $"İade edildi — {payment.Reference}"),
             $"""
-             <p>Hi {System.Net.WebUtility.HtmlEncode(contact.FullName)},</p>
-             <p>Your booking for <strong>{screening.MovieTitle}</strong> has been cancelled.</p>
-             <p><strong>{quote.Refund:0.00}</strong> is on its way back to {(payment.Provider == PaymentProvider.Stripe ? "the card you paid with through Stripe" : $"the card ending {payment.Last4}")}.</p>
+             <p>{Lang.Pick("Salam", "Hi", "Здравствуйте", "Merhaba")} {System.Net.WebUtility.HtmlEncode(contact.FullName)},</p>
+             <p>{Lang.Pick("Bu film üçün bronunuz ləğv olundu:", "Your booking has been cancelled for", "Ваша бронь отменена:", "Rezervasyonunuz iptal edildi:")} <strong>{screening.MovieTitle}</strong></p>
+             <p>{Lang.Pick($"<strong>{quote.Refund:0.00} AZN</strong> {card} qaytarılır.", $"<strong>{quote.Refund:0.00} AZN</strong> is on its way back to {card}.",
+                           $"<strong>{quote.Refund:0.00} AZN</strong> возвращается {card}.", $"<strong>{quote.Refund:0.00} AZN</strong> {card} iade ediliyor.")}</p>
              {feeLine}
-             <p>Reference {payment.Reference}. The seats are back on sale.</p>
+             <p>{Lang.Pick($"Kod {payment.Reference}. Yerlər yenidən satışdadır.", $"Reference {payment.Reference}. The seats are back on sale.",
+                           $"Код {payment.Reference}. Места снова в продаже.", $"Kod {payment.Reference}. Koltuklar yeniden satışta.")}</p>
              """), ct);
     }
 }

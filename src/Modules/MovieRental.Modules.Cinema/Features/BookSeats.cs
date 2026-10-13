@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -174,13 +174,17 @@ internal sealed class CheckoutHandler(
             return Result.Failure<CheckoutStarted>(Error.Validation(Pricing.Explain(PromoRejection.UsedUp)));
 
         await email.SendAsync(new EmailRequest(contact.Email,
-            $"Your WatchingYou booking code — {payment.Reference}",
+            Lang.Pick($"WatchingYou bron kodunuz — {payment.Reference}", $"Your WatchingYou booking code — {payment.Reference}",
+                      $"Код бронирования WatchingYou — {payment.Reference}", $"WatchingYou rezervasyon kodunuz — {payment.Reference}"),
             $"""
-             <p>Hi {System.Net.WebUtility.HtmlEncode(contact.FullName)},</p>
-             <p>Confirm your seats for <strong>{screening.MovieTitle}</strong> with this code:</p>
+             <p>{Lang.Pick("Salam", "Hi", "Здравствуйте", "Merhaba")} {System.Net.WebUtility.HtmlEncode(contact.FullName)},</p>
+             <p>{Lang.Pick("Bu kodla yerlərinizi təsdiqləyin:", "Confirm your seats with this code:", "Подтвердите места этим кодом:", "Koltuklarınızı bu kodla onaylayın:")} <strong>{screening.MovieTitle}</strong></p>
              <p style="font-size:22px;letter-spacing:4px"><strong>{code}</strong></p>
-             <p>{command.Seats.Count} seat(s) · {payment.Amount:0.00} · {brand} ending {last4}</p>
-             <p>The seats are held until {payment.ExpiresAtUtc:HH:mm} UTC. After that they go back on sale.</p>
+             <p>{command.Seats.Count} {Lang.Pick("yer", "seat(s)", "мест(а)", "koltuk")} · {payment.Amount:0.00} AZN · {brand} •••• {last4}</p>
+             <p>{Lang.Pick($"Yerlər {payment.ExpiresAtUtc:HH:mm} UTC-dək saxlanılır, sonra yenidən satışa çıxır.",
+                           $"The seats are held until {payment.ExpiresAtUtc:HH:mm} UTC. After that they go back on sale.",
+                           $"Места удерживаются до {payment.ExpiresAtUtc:HH:mm} UTC, потом снова поступают в продажу.",
+                           $"Koltuklar {payment.ExpiresAtUtc:HH:mm} UTC'ye kadar tutulur, sonra yeniden satışa çıkar.")}</p>
              """), ct);
 
         return Result.Success(new CheckoutStarted(

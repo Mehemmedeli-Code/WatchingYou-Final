@@ -451,6 +451,11 @@ app.UseWhen(
     context => !context.Request.Path.StartsWithSegments("/api") && !context.Request.Path.StartsWithSegments("/hubs"),
     branch => branch.UseStatusCodePagesWithReExecute("/error/{0}"));
 
+// Routing after the re-execute, on purpose. Left implicit, WebApplication routes at the very
+// start of the pipeline, so the re-executed "/error/404" never found its page and every
+// missing address came back as an empty 404 instead of the site's own page.
+app.UseRouting();
+
 // The web-app manifest is served with its proper type, which install prompts check for.
 var staticTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
 staticTypes.Mappings[".webmanifest"] = "application/manifest+json";
@@ -506,6 +511,14 @@ app.Use(async (context, next) =>
         context.Response.Redirect("/welcome?returnUrl=" + Uri.EscapeDataString(back));
         return;
     }
+    await next();
+});
+
+// Signing out ends the staff unlock too: the next person at this browser is asked for the PIN.
+app.Use(async (context, next) =>
+{
+    if (HttpMethods.IsPost(context.Request.Method) && context.Request.Path.Equals("/api/auth/logout", StringComparison.OrdinalIgnoreCase))
+        StaffUnlock.Clear(context);
     await next();
 });
 

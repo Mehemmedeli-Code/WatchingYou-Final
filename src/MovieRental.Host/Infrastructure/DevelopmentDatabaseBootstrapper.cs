@@ -506,8 +506,8 @@ public static class DevelopmentDatabaseBootstrapper
 
         // The schedule. It used to be seeded once, a few days ahead, so after those days passed
         // the cinema page and the listings were empty until someone scheduled shows by hand.
-        // Now a week of shows is laid out for any city with nothing left on sale, at that city's
-        // own hours.
+        // Now every start tops each city up to a week ahead, at that city's own hours: only the
+        // days after its last show are added, so nothing already on sale is doubled.
         var showcase = await catalog.Movies.AsNoTracking()
             .Where(m => m.PosterUrl != null && m.PosterUrl != "")
             .OrderByDescending(m => m.AverageRating).ThenBy(m => m.Title)
@@ -516,20 +516,20 @@ public static class DevelopmentDatabaseBootstrapper
 
         foreach (var city in cities)
         {
-            if (await cinema.Screenings.AnyAsync(
-                    s => s.StartsAtUtc > DateTime.UtcNow && !s.IsCancelled && s.HallRoom!.Venue!.City == city.City, ct))
-                continue;
-
             var halls = await cinema.Halls.AsNoTracking()
                 .Where(h => h.Venue!.City == city.City)
                 .OrderBy(h => h.VenueId).ThenBy(h => h.Name).ToListAsync(ct);
             if (halls.Count == 0) continue;
 
             var todayLocal = (DateTime.UtcNow + city.Offset).Date;
+            var lastShow = await cinema.Screenings
+                .Where(s => s.StartsAtUtc > DateTime.UtcNow && !s.IsCancelled && s.HallRoom!.Venue!.City == city.City)
+                .MaxAsync(s => (DateTime?)s.StartsAtUtc, ct);
+            var firstDay = lastShow is { } last ? ((last + city.Offset).Date - todayLocal).Days + 1 : 0;
 
             // Each film plays twice a day for a week, rotating through every cinema and room.
             var n = 0;
-            for (var day = 0; day < 7; day++)
+            for (var day = firstDay; day < 7; day++)
             foreach (var (movie, index) in showcase.Select((m, i) => (m, i)))
             for (var show = 0; show < 2; show++, n++)
             {

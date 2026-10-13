@@ -46,8 +46,8 @@ const CARDS: StackSpreadCard[] = [...WORD].map((letter, i) => ({
 // Mechanism
 // ---------------------------------------------------------------------------
 
-const SCATTER_START = 0.12;
-const SCATTER_END = 0.9;
+const SCATTER_START = 0.02;
+const SCATTER_END = 0.8;
 
 const PARALLAX_X = 2.6;
 const PARALLAX_Y = 2.2;
@@ -246,7 +246,9 @@ interface StackSpreadStageProps extends StackSpreadProps {
 
 function StackSpreadStage({
   cards,
-  scrollLength = 350,
+  // 1.3 screens tall: a third of a screen of scrolling opens the word, then the page scrolls on
+  // as usual. It began at 3.5 screens, then 2; both still made thumbs ache.
+  scrollLength = 130,
   bgColor = "var(--color-surface)",
   clusterRotation = true,
   stackScale = 0.82,

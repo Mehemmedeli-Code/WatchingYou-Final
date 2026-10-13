@@ -216,3 +216,22 @@
     mask-image: linear-gradient(to bottom, transparent 0, #000 14px, #000 calc(100% - 28px), transparent 100%);
   }
 }
+
+/* Soft transitions. Between pages: the browser's own cross-document view transition, a short
+   cross-fade instead of the page blinking white and redrawing. Inside a page: panels, lists,
+   notices and empty states fade up as they appear, so switching a filter or a tab eases in
+   (the rentals list showed the feel people liked). Reduced motion turns both off above. */
+@view-transition { navigation: auto; }
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: 0.28s; animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1); }
+
+@keyframes rr-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.rr-enter { animation: rr-enter 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+@keyframes rr-fade { from { opacity: 0; } to { opacity: 1; } }
+.rr-fade { animation: rr-fade 0.2s ease-out both; }
