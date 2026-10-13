@@ -52,7 +52,7 @@ export function Modal({
 
   return createPortal(
     <div
-      className="fixed inset-0 flex items-start justify-center overflow-y-auto bg-black/80 p-4 backdrop-blur-sm sm:p-8"
+      className="rr-fade fixed inset-0 flex items-start justify-center overflow-y-auto bg-black/80 p-4 backdrop-blur-sm sm:p-8"
       style={{ zIndex: layer }}
       role="dialog"
       aria-modal="true"
@@ -60,7 +60,7 @@ export function Modal({
       onClick={onClose}
     >
       {/* Clicks inside the dialog stop here, so only the backdrop closes it. */}
-      <div className={cn("my-auto w-full", width)} onClick={(event) => event.stopPropagation()}>
+      <div className={cn("rr-enter my-auto w-full", width)} onClick={(event) => event.stopPropagation()}>
         {children}
       </div>
     </div>,

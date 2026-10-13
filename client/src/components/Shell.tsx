@@ -15,7 +15,7 @@ export function Section({
   className?: string;
 }) {
   return (
-    <section className={cn("mx-auto w-full max-w-6xl px-4 py-12 sm:px-6", className)}>
+    <section className={cn("rr-enter mx-auto w-full max-w-6xl px-4 py-12 sm:px-6", className)}>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-[60ch]">
           <h2 className="font-display text-3xl font-normal tracking-tight text-ink">{title}</h2>
@@ -30,13 +30,13 @@ export function Section({
 
 export function Panel({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn("rounded-xl border border-line bg-surface-raised p-5", className)}>{children}</div>
+    <div className={cn("rr-enter rounded-xl border border-line bg-surface-raised p-5", className)}>{children}</div>
   );
 }
 
 export function Empty({ title, hint, action }: { title: string; hint: string; action?: ReactNode }) {
   return (
-    <div className="rounded-xl border border-dashed border-line px-6 py-14 text-center">
+    <div className="rr-enter rounded-xl border border-dashed border-line px-6 py-14 text-center">
       <p className="font-display text-xl text-ink">{title}</p>
       <p className="mx-auto mt-2 max-w-[46ch] text-sm text-ink-mute">{hint}</p>
       {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
@@ -52,7 +52,7 @@ export function Notice({ tone = "info", children }: { tone?: "info" | "error" | 
   } as const;
 
   return (
-    <p role={tone === "error" ? "alert" : "status"} className={cn("rounded-md border px-3 py-2 text-sm", tones[tone])}>
+    <p role={tone === "error" ? "alert" : "status"} className={cn("rr-enter rounded-md border px-3 py-2 text-sm", tones[tone])}>
       {children}
     </p>
   );

@@ -17,9 +17,16 @@ public static class ApiReference
             context => context.Request.Path.StartsWithSegments("/swagger"),
             branch => branch.Use(async (context, next) =>
             {
-                if (!context.User.IsInRole(AppRoles.Admin) || !StaffUnlock.IsUnlocked(context))
+                // Like any staff screen: nothing here for anyone but an admin...
+                if (!context.User.IsInRole(AppRoles.Admin))
                 {
-                    context.Response.StatusCode = StatusCodes.Status404NotFound;   // like any staff screen: nothing here
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return;
+                }
+                // ...and an admin who has not passed the PIN yet is asked for it, then sent back.
+                if (!StaffUnlock.IsUnlocked(context))
+                {
+                    context.Response.Redirect(StaffPaths.Unlock + "?returnUrl=" + Uri.EscapeDataString("/swagger/index.html"));
                     return;
                 }
 

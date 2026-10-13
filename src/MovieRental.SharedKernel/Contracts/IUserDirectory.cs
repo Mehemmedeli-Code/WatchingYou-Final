@@ -17,4 +17,5 @@ public interface IUserDirectory
     Task<IReadOnlySet<Guid>> PrivateAccountsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct = default);
 }
 
-public sealed record UserContact(Guid Id, string FullName, string Email, string? PhoneNumber, bool ShareOnGlobe = false);
+/// <param name="Username">The public handle (/u/{name}), when the person has one.</param>
+public sealed record UserContact(Guid Id, string FullName, string Email, string? PhoneNumber, bool ShareOnGlobe = false, string? Username = null, string? AvatarUrl = null);

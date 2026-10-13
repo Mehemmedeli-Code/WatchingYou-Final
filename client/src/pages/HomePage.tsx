@@ -98,10 +98,15 @@ export default function HomePage() {
   const [trailer, setTrailer] = useState<MovieListItem | null>(null);
 
   // Watch plays the film when the site has it, and otherwise its trailer, full screen over the
-  // catalogue. Details always opens the dialog.
-  const openMovie = useCallback((movie: MovieListItem, mode: "details" | "watch") => {
-    if (mode === "watch" && !movie.hasVideo && movie.trailerUrl) setTrailer(movie);
-    else setDialog({ id: movie.id, mode });
+  // catalogue — but only once the server says this account may watch (a rental, PRO or staff).
+  // It used to open the trailer straight away, so a free account "watched" without renting.
+  // When the answer is no, the dialog explains and offers the rental. Details always opens it.
+  const openMovie = useCallback(async (movie: MovieListItem, mode: "details" | "watch") => {
+    if (mode === "watch" && !movie.hasVideo && movie.trailerUrl) {
+      const answer = await get<{ allowed: boolean }>(`/api/movies/${movie.id}/watch`).catch(() => null);
+      if (answer?.allowed) { setTrailer(movie); return; }
+    }
+    setDialog({ id: movie.id, mode });
   }, []);
 
   const refreshFeatured = useCallback(async () => {
@@ -248,6 +253,22 @@ export default function HomePage() {
           }}
         />
       ) : null}
+
+      {/* Search first, right under the header: many come in for one film. The first letter
+          typed brings the results into view, so the answer is on screen, not three scrolls away. */}
+      {inApp ? null : (
+        <div className="mx-auto w-full max-w-3xl px-4 pt-5 sm:px-6">
+          <SearchField
+            value={search}
+            onChange={(next) => {
+              if (!search.trim() && next.trim())
+                requestAnimationFrame(() => document.getElementById("catalogue")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+              setSearch(next);
+            }}
+            placeholder={t("home.searchPlaceholder")}
+          />
+        </div>
+      )}
 
       {/* The eye, not a headline: the posters used to scatter across the words and leave
           half a sentence showing. The eye says the name without text to cover. */}

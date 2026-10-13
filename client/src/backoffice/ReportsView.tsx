@@ -62,8 +62,8 @@ export function ReportsView() {
           <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-8 w-auto" aria-label={t("bo.from", "From")} />
           <span className="text-ink-mute">–</span>
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-8 w-auto" aria-label={t("bo.to", "To")} />
-          <Button size="sm" variant="outline" onClick={() => void download(`/api/admin/export/bookings.csv${query({ from, to })}`, "bookings.csv")}>
-            <Download size={14} />{t("bo.bookingsCsv", "Bookings CSV")}
+          <Button size="sm" variant="outline" onClick={() => void download(`/api/admin/export/bookings.pdf${query({ from, to })}`, "bookings.pdf")}>
+            <Download size={14} />{t("bo.bookingsCsv", "Bookings (PDF)")}
           </Button>
         </div>
       }

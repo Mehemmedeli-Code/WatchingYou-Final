@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Download, FileText, X } from "lucide-react";
+import { FileText, X } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Section, Panel, Notice, Empty, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
@@ -165,10 +165,10 @@ export default function AdminPage() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => run(() => download("/api/admin/export/bookings.csv", "watchingyou-bookings.csv"), t("export.done", "Download started."))}
+              onClick={() => run(() => download("/api/admin/export/bookings.pdf", "watchingyou-bookings.pdf"), t("export.done", "Download started."))}
             >
-              <Download size={14} aria-hidden />
-              {t("export.bookings", "Bookings CSV")}
+              <FileText size={14} aria-hidden />
+              {t("export.bookings", "Bookings (PDF)")}
             </Button>
             <Button
               size="sm"
@@ -181,10 +181,10 @@ export default function AdminPage() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => run(() => download("/api/admin/export/rentals.csv", "watchingyou-rentals.csv"), t("export.done", "Download started."))}
+              onClick={() => run(() => download("/api/admin/export/rentals.pdf", "watchingyou-rentals.pdf"), t("export.done", "Download started."))}
             >
-              <Download size={14} aria-hidden />
-              {t("export.rentals", "Rentals CSV")}
+              <FileText size={14} aria-hidden />
+              {t("export.rentals", "Rentals (PDF)")}
             </Button>
           </div>
         }

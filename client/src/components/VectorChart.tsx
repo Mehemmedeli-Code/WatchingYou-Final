@@ -18,12 +18,23 @@ export interface ChartSeries {
  * Hand-drawn SVG rather than a charting library: three small series do not justify
  * shipping a chart engine, and plain SVG inherits the page's palette and focus styles.
  */
+/** The server names its charts in English; the key picks the reader's words ({0} is the caption's number). */
+function labelOf(series: ChartSeries) {
+  const n = series.caption.match(/\d+/)?.[0] ?? "";
+  return {
+    title: t(`chart.${series.key}.title`, series.title),
+    unit: t(`chart.${series.key}.unit`, series.unit),
+    caption: t(`chart.${series.key}.caption`, series.caption).replace("{0}", n),
+  };
+}
+
 export function VectorBarChart({ series }: { series: ChartSeries }) {
+  const label = labelOf(series);
   if (series.points.length === 0) {
     return (
       <div className="rounded-xl border border-line bg-surface-raised p-5">
-        <h3 className="font-display text-lg text-ink">{series.title}</h3>
-        <p className="mt-1 text-sm text-ink-mute">{series.caption}</p>
+        <h3 className="font-display text-lg text-ink">{label.title}</h3>
+        <p className="mt-1 text-sm text-ink-mute">{label.caption}</p>
         <p className="mt-8 mb-6 text-center text-sm text-ink-mute">
           {t("chart.empty")}
         </p>
@@ -44,11 +55,11 @@ export function VectorBarChart({ series }: { series: ChartSeries }) {
   return (
     <figure className="rounded-xl border border-line bg-surface-raised p-4">
       <figcaption className="mb-3">
-        <h3 className="font-display text-lg text-ink">{series.title}</h3>
-        <p className="text-xs text-ink-mute">{series.caption}</p>
+        <h3 className="font-display text-lg text-ink">{label.title}</h3>
+        <p className="text-xs text-ink-mute">{label.caption}</p>
       </figcaption>
 
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full" role="img" aria-label={`${series.title}, ${series.unit}`}>
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full" role="img" aria-label={`${label.title}, ${label.unit}`}>
         {[0, 0.25, 0.5, 0.75, 1].map((t) => {
           const y = 14 + plotH * (1 - t);
           return (
@@ -86,7 +97,7 @@ export function VectorBarChart({ series }: { series: ChartSeries }) {
         })}
       </svg>
 
-      <p className="mt-1 text-right text-[11px] text-ink-mute">{series.unit}</p>
+      <p className="mt-1 text-right text-[11px] text-ink-mute">{label.unit}</p>
     </figure>
   );
 }

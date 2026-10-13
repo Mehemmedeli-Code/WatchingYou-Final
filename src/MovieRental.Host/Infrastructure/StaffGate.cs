@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
@@ -37,9 +37,10 @@ public static partial class StaffPaths
 }
 
 /// <summary>
-/// "This browser passed the staff PIN, for this account, a little while ago": an encrypted,
-/// time-limited, HttpOnly cookie. Bound to the user id, so signing in as someone else in the
-/// same browser does not inherit it.
+/// "This browser passed the staff PIN, for this account, since signing in": an encrypted,
+/// HttpOnly session cookie. It ends when the browser closes, on signing out (Program.cs),
+/// and after four hours at most — not on every page, which asked for the PIN every minute.
+/// Bound to the user id, so signing in as someone else in the same browser does not inherit it.
 /// </summary>
 public static class StaffUnlock
 {
@@ -61,8 +62,7 @@ public static class StaffUnlock
             Secure = true,
             SameSite = SameSiteMode.Strict,
             Path = "/",
-            MaxAge = Lifetime,
-            IsEssential = true
+            IsEssential = true      // no MaxAge: gone when the browser closes
         });
     }
 

@@ -62,8 +62,9 @@ public sealed class StaffUnlockModel(IDispatcher dispatcher, ILanguageContext la
     private string Safe(string? returnUrl)
     {
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)
-            && returnUrl.StartsWith(StaffPaths.Base + "/", StringComparison.Ordinal)
-            && !returnUrl.StartsWith(StaffPaths.Unlock, StringComparison.Ordinal))
+            && !returnUrl.StartsWith(StaffPaths.Unlock, StringComparison.Ordinal)
+            && (returnUrl.StartsWith(StaffPaths.Base + "/", StringComparison.Ordinal)
+                || (returnUrl == "/swagger/index.html" && User.IsInRole(AppRoles.Admin))))
             return returnUrl;
         if (User.IsInRole(AppRoles.Admin)) return StaffPaths.Admin;
         if (User.IsInRole(AppRoles.Cashier)) return StaffPaths.BackOffice;
