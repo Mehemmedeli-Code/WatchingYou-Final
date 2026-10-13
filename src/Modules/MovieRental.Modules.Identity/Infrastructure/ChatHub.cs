@@ -29,7 +29,7 @@ public sealed class ChatHub(IdentityDbContext db, Presence presence, ILogger<Cha
 
     public override async Task OnConnectedAsync()
     {
-        if (Context.User?.IsInRole(AppRoles.Security) == true || Context.User?.IsInRole(AppRoles.Admin) == true)
+        if (Context.User?.IsInRole(AppRoles.Security) == true || Context.User?.IsInRole(AppRoles.Admin) == true || Context.User?.IsInRole(AppRoles.Moderator) == true)
             await Groups.AddToGroupAsync(Context.ConnectionId, DeskGroup);
 
         if (MyId() is { } me) presence.Connected(me);
@@ -57,7 +57,7 @@ public sealed class ChatHub(IdentityDbContext db, Presence presence, ILogger<Cha
         var me = MyId();
         if (me is null) return;
 
-        var isDesk = Context.User?.IsInRole(AppRoles.Security) == true || Context.User?.IsInRole(AppRoles.Admin) == true;
+        var isDesk = Context.User?.IsInRole(AppRoles.Security) == true || Context.User?.IsInRole(AppRoles.Admin) == true || Context.User?.IsInRole(AppRoles.Moderator) == true;
 
         if (isDesk && conversationId is { } id)
         {
