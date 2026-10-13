@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MovieRental.Modules.Cinema.Domain;
 using MovieRental.Modules.Cinema.Features;
@@ -120,21 +120,30 @@ internal sealed class BookingFinalizer(
 
             var pdf = TicketPdf.Render(ticket, VenueOf(payment));
             var seats = string.Join(", ", ticket.Seats.Select(s => s.Label));
-            var discounts = payment.PromoDiscount + payment.PointsDiscount > 0
-                ? $"<p>Saved {payment.PromoDiscount + payment.PointsDiscount:0.00}" +
-                  (payment.PromoCode is null ? "" : $" with {payment.PromoCode}") +
-                  (payment.PointsRedeemed > 0 ? $" and {payment.PointsRedeemed} points" : "") + ".</p>"
+            var saved = payment.PromoDiscount + payment.PointsDiscount;
+            var how = string.Join(" + ", new[] { payment.PromoCode,
+                payment.PointsRedeemed > 0 ? $"{payment.PointsRedeemed} " + Lang.Pick("xal", "points", "баллов", "puan") : null }.Where(x => x is not null));
+            var discounts = saved > 0
+                ? $"<p>{Lang.Pick("Qənaət", "Saved", "Экономия", "Tasarruf")}: {saved:0.00} AZN{(how.Length > 0 ? $" ({how})" : "")}.</p>"
+                : "";
+            var earned = payment.PointsEarned > 0
+                ? Lang.Pick($"{payment.PointsEarned} xal qazandınız.", $"You earned {payment.PointsEarned} loyalty points.",
+                            $"Вы получили {payment.PointsEarned} баллов.", $"{payment.PointsEarned} puan kazandınız.")
                 : "";
 
             await email.SendAsync(new EmailRequest(contact.Email,
-                $"Your tickets — {ticket.MovieTitle} · {ticket.Reference}",
+                Lang.Pick($"Biletləriniz — {ticket.MovieTitle} · {ticket.Reference}", $"Your tickets — {ticket.MovieTitle} · {ticket.Reference}",
+                          $"Ваши билеты — {ticket.MovieTitle} · {ticket.Reference}", $"Biletleriniz — {ticket.MovieTitle} · {ticket.Reference}"),
                 $"""
-                 <p>Hi {System.Net.WebUtility.HtmlEncode(contact.FullName)},</p>
-                 <p>You are booked for <strong>{ticket.MovieTitle}</strong>, hall {ticket.Hall}, seats {seats}.</p>
-                 <p>Your tickets are attached as a PDF — one page per seat, each with its own QR code to show at the door.</p>
-                 <p>Paid {ticket.Amount:0.00}. {(payment.PointsEarned > 0 ? $"You earned {payment.PointsEarned} loyalty points." : "")}</p>
+                 <p>{Lang.Pick("Salam", "Hi", "Здравствуйте", "Merhaba")} {System.Net.WebUtility.HtmlEncode(contact.FullName)},</p>
+                 <p><strong>{ticket.MovieTitle}</strong> · {Lang.Pick("zal", "hall", "зал", "salon")} {ticket.Hall} · {Lang.Pick("yerlər", "seats", "места", "koltuklar")} {seats}</p>
+                 <p>{Lang.Pick("Biletləriniz PDF kimi əlavədədir — hər yer üçün bir səhifə, hər birində girişdə göstəriləcək öz QR kodu.",
+                               "Your tickets are attached as a PDF — one page per seat, each with its own QR code to show at the door.",
+                               "Билеты во вложении в PDF — по странице на место, у каждого свой QR-код для входа.",
+                               "Biletleriniz PDF olarak ekte — her koltuk için bir sayfa, her birinde girişte gösterilecek kendi QR kodu.")}</p>
+                 <p>{Lang.Pick("Ödənilib", "Paid", "Оплачено", "Ödendi")}: {ticket.Amount:0.00} AZN. {earned}</p>
                  {discounts}
-                 <p>Reference {ticket.Reference}.</p>
+                 <p>{Lang.Pick("Kod", "Reference", "Код", "Kod")} {ticket.Reference}.</p>
                  """)
             {
                 Attachments = [new EmailAttachment($"WatchingYou-{ticket.Reference}.pdf", "application/pdf", pdf)]
