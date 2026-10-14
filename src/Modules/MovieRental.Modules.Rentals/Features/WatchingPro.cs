@@ -245,7 +245,8 @@ public static class WatchingProEndpoints
 
         pro.MapGet("", async (IDispatcher dispatcher, CancellationToken ct) =>
                 TypedResults.Ok(await dispatcher.Ask(new GetProStatusQuery(), ct)))
-            .WithName("GetProStatus");
+            .WithName("GetProStatus")
+            .WithSummary("My Watching PRO subscription: active or not, until when, and my payments");
 
         pro.MapPost("/subscribe",
             async Task<Results<Ok<ProStatus>, BadRequest<Error>>> (
@@ -254,15 +255,21 @@ public static class WatchingProEndpoints
                 var result = await dispatcher.Send(command, ct);
                 return result.IsSuccess ? TypedResults.Ok(result.Value) : TypedResults.BadRequest(result.Error);
             })
-            .WithName("SubscribePro");
+            .WithName("SubscribePro")
+            .WithSummary("Subscribe to Watching PRO, paid by card")
+            .WithDescription("Every film, no rentals needed. `card` as for renting (test card 4242 4242 4242 4242). " +
+                             "400: the card is not valid.");
 
         pro.MapPost("/cancel", async (IDispatcher dispatcher, CancellationToken ct) =>
                 TypedResults.Ok(await dispatcher.Send(new CancelProCommand(), ct)))
-            .WithName("CancelPro");
+            .WithName("CancelPro")
+            .WithSummary("Cancel Watching PRO")
+            .WithDescription("Answers with the subscription as it now stands. Cancelling when not subscribed changes nothing.");
 
         app.MapGet("/api/pro/subscribers", async (IDispatcher dispatcher, CancellationToken ct) =>
                 TypedResults.Ok(await dispatcher.Ask(new GetProOverviewQuery(), ct)))
             .WithName("GetProSubscribers").WithTags("Watching PRO")
+            .WithSummary("Who subscribes to Watching PRO, and the takings")
             .RequireAuthorization(AppPolicies.SecurityDesk);
     }
 }

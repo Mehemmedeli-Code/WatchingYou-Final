@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using MovieRental.Modules.Catalog.Persistence;
+using MovieRental.SharedKernel.Results;
 
 namespace MovieRental.Modules.Catalog.Features;
 
@@ -30,15 +31,19 @@ public static partial class MovieTrailers
         SlugPattern().IsMatch(slug) ? Path.Combine(environment.ContentRootPath, Folder, slug + ".webm") : null;
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapGet("/api/trailers/{slug}", Results<PhysicalFileHttpResult, NotFound> (string slug, IHostEnvironment environment, HttpContext http) =>
+        app.MapGet("/api/trailers/{slug}", Results<PhysicalFileHttpResult, NotFound<Error>> (string slug, IHostEnvironment environment, HttpContext http) =>
             {
                 var path = PathFor(environment, slug);
-                if (path is null || !File.Exists(path)) return TypedResults.NotFound();
+                if (path is null || !File.Exists(path)) return TypedResults.NotFound(Error.NotFound("Trailer"));
                 http.Response.Headers.CacheControl = "public, max-age=604800";
                 // Range requests, so the player can seek and start before the whole file arrives.
                 return TypedResults.PhysicalFile(path, "video/webm", enableRangeProcessing: true);
             })
-        .WithName("GetMovieTrailer").WithTags("Catalog").AllowAnonymous();
+        .WithName("GetMovieTrailer").WithTags("Catalog").AllowAnonymous()
+        .WithSummary("A stored trailer (WebM video), by the film's slug")
+        .WithDescription("Seekable (Range requests). Films whose trailer is on YouTube have no file here: 404.")
+        .Produces(StatusCodes.Status200OK, typeof(Stream), "video/webm")
+        .Produces(StatusCodes.Status206PartialContent, typeof(Stream), "video/webm");
 
     /// <summary>Gives every film without a trailer its stored one, or else its YouTube one.</summary>
     public static async Task<int> FillMissingAsync(CatalogDbContext db, IHostEnvironment environment, CancellationToken ct)

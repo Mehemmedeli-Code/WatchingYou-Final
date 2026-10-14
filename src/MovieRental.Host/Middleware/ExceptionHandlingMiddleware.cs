@@ -63,6 +63,10 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
     /// <summary>Nginx's convention for "the caller hung up"; ASP.NET Core has no constant for it.</summary>
     private const int ClientClosedRequest = 499;
 
+    /// <summary>"$.seats[0].row" → "Seats[0].Row", the way the validation errors name fields.</summary>
+    private static string FieldName(string jsonPath) =>
+        string.Join('.', jsonPath.TrimStart('$', '.').Split('.').Select(part => part.Length > 0 ? char.ToUpperInvariant(part[0]) + part[1..] : part));
+
     private static (int Status, string Title, IDictionary<string, string[]>? Errors) Describe(Exception ex) => ex switch
     {
         ValidationException validation => (
@@ -76,6 +80,13 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
         // query value that cannot be read as the type the endpoint declares (?from=yesterday
         // for a date), a missing required parameter. It carries the right status, usually 400
         // — falling through to the catch-all below made every one of those a 500.
+        BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge } => (StatusCodes.Status413PayloadTooLarge, "The upload is too large.", null),
+        // Valid JSON with a field of the wrong type ("email": 5, "seats": "A1"): name the field.
+        BadHttpRequestException { InnerException: JsonException { Path: { Length: > 1 } path } } => (
+            StatusCodes.Status400BadRequest,
+            "One or more fields need fixing.",
+            new Dictionary<string, string[]> { [FieldName(path)] = ["This field has the wrong type or format."] }),
+        BadHttpRequestException { InnerException: JsonException } => (StatusCodes.Status400BadRequest, "The body is not valid JSON.", null),
         BadHttpRequestException bad => (bad.StatusCode, "The request could not be read. Check the body and the parameters.", null),
         JsonException => (StatusCodes.Status400BadRequest, "The body is not valid JSON.", null),
 

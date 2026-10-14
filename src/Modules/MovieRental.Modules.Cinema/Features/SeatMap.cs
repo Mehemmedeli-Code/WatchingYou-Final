@@ -8,6 +8,7 @@ using MovieRental.Modules.Cinema.Domain;
 using MovieRental.Modules.Cinema.Persistence;
 using MovieRental.SharedKernel.Contracts;
 using MovieRental.SharedKernel.Cqrs;
+using MovieRental.SharedKernel.Results;
 using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Cinema.Features;
@@ -107,15 +108,18 @@ public static class SeatMapEndpoints
     public static void Map(IEndpointRouteBuilder app)
     {
         app.MapGet("/api/screenings", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetScreeningsQuery(), ct)))
-            .WithName("GetScreenings").WithTags("Cinema").AllowAnonymous().CacheOutput(AppPolicies.CinemaCache);
+                TypedResults.Ok(await dispatcher.Ask(new GetScreeningsQuery(), ct)))
+            .WithName("GetScreenings").WithTags("Cinema").AllowAnonymous().CacheOutput(AppPolicies.CinemaCache)
+            .WithSummary("Upcoming screenings, soonest first, with seats left");
 
         app.MapGet("/api/screenings/{id:guid}/seats",
-            async Task<Results<Ok<SeatMapResponse>, NotFound>> (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
+            async Task<Results<Ok<SeatMapResponse>, NotFound<Error>>> (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var map = await dispatcher.Ask(new GetSeatMapQuery(id), ct);
-                return map is null ? TypedResults.NotFound() : TypedResults.Ok(map);
+                return map is null ? TypedResults.NotFound(Error.NotFound("Screening")) : TypedResults.Ok(map);
             })
-        .WithName("GetSeatMapWithId").WithTags("Cinema").AllowAnonymous();
+        .WithName("GetSeatMapWithId").WithTags("Cinema").AllowAnonymous()
+        .WithSummary("A screening's seat map: which seats are free, held or taken")
+        .WithDescription("Open to everyone. Signed in, `isMine` marks the seats you hold.");
     }
 }

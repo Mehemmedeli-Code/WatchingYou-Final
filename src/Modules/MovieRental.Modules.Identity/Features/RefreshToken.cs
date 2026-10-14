@@ -141,13 +141,19 @@ public static class RefreshTokenEndpoints
     public static void Map(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/auth/refresh",
-            async Task<Results<Ok<AuthResponse>, UnauthorizedHttpResult>> (
+            async Task<Results<Ok<AuthResponse>, JsonHttpResult<Error>>> (
                 RefreshTokenCommand command, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var result = await dispatcher.Send(command, ct);
-                return result.IsSuccess ? TypedResults.Ok(result.Value) : TypedResults.Unauthorized();
+                return result.IsSuccess
+                    ? TypedResults.Ok(result.Value)
+                    : TypedResults.Json(result.Error, statusCode: StatusCodes.Status401Unauthorized);
             })
-        .WithName("RefreshToken").WithTags("Auth").AllowAnonymous();
+        .WithName("RefreshToken").WithTags("Auth").AllowAnonymous()
+        .WithSummary("Swap a refresh token for a new access token")
+        .WithDescription("Send the `refreshToken` from sign-in. It is used up: the answer carries a new pair. " +
+                         "401: the token is unknown, expired, or was already used (that ends every session of the account).")
+        .Produces<Error>(StatusCodes.Status401Unauthorized);
 
         // The page cookie and the app's refresh token are two halves of one sign-in. When the
         // token is gone (expired, revoked, another tab's replay) while the cookie is still good,
@@ -171,6 +177,8 @@ public static class RefreshTokenEndpoints
                 return TypedResults.Ok(new AuthResponse(access.Value, access.ExpiresAtUtc, handedOut, user.ToProfile()));
             })
         .WithName("SessionFromCookie").WithTags("Auth")
+        .WithSummary("Get a token pair from the website's session cookie")
+        .WithDescription("For the website, which signs in with a cookie. 401 without that cookie.")
         .RequireAuthorization(new Microsoft.AspNetCore.Authorization.AuthorizeAttribute
         {
             AuthenticationSchemes = AuthCookie.SchemeName
@@ -178,14 +186,17 @@ public static class RefreshTokenEndpoints
 
         app.MapPost("/api/auth/logout",
             async Task<NoContent> (
-                RevokeTokenCommand command, IDispatcher dispatcher, HttpContext context, CancellationToken ct) =>
+                RevokeTokenCommand? command, IDispatcher dispatcher, HttpContext context, CancellationToken ct) =>
             {
-                await dispatcher.Send(command, ct);
+                await dispatcher.Send(command ?? new RevokeTokenCommand(null), ct);
                 await AuthCookie.SignOutAsync(context);
 
                 // Always no-content: an unknown refresh token still means "I am signed out".
                 return TypedResults.NoContent();
             })
-        .WithName("Logout").WithTags("Auth").AllowAnonymous();
+        .WithName("Logout").WithTags("Auth").AllowAnonymous()
+        .WithSummary("Sign out")
+        .WithDescription("Revokes the refresh token in the body (optional) and clears the session cookies. " +
+                         "Always 204: an unknown or missing token still means signed out.");
     }
 }

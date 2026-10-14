@@ -117,6 +117,9 @@ internal sealed class UploadShortFilmHandler(
     }
 }
 
+/// <summary>The upload form, as the API reference shows it.</summary>
+public sealed record ShortFilmUploadForm(IFormFile File, string Title, string? Synopsis, ShortFilmOrigin Origin, ShortFilmVisibility? Visibility);
+
 public static class UploadShortFilmEndpoints
 {
     public static void Map(IEndpointRouteBuilder app)
@@ -144,6 +147,13 @@ public static class UploadShortFilmEndpoints
                 return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
             })
         .WithName("UploadShortFilm").WithTags("Shorts").RequireAuthorization().RequireRateLimiting(AppPolicies.WriteRateLimit)
+        .WithSummary("Upload a short film for review")
+        .WithDescription("multipart/form-data: `file` (the video, up to 512 MB), `title` (up to 120), `synopsis` (up to 2000), " +
+                         "`origin` AiGenerated or HandCrafted, `visibility` Public or Private (default Private). Security watches it, " +
+                         "then an admin decides. 400: a field is missing or wrong, or three films are already waiting.")
+        .Accepts<ShortFilmUploadForm>("multipart/form-data")
+        .Produces<ShortFilmSummary>()
+        .Produces<Error>(StatusCodes.Status400BadRequest)
         // Kestrel (30 MB) and the form reader (128 MB) cut uploads off well below the 512 MB the
         // handler allows. Raise both to match, for this endpoint only.
         .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(UploadShortFilmHandler.MaxBytes + 1024 * 1024))

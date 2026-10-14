@@ -33,7 +33,7 @@ public sealed record CheckInResult(
 /// <param name="Payload">Either the full QR payload or a bare reference. Seat is optional:
 /// scanning one seat's code admits that seat, while a typed reference admits the next
 /// unused seat on the booking.</param>
-public sealed record CheckInCommand(string Payload, Guid? ScreeningId) : ICommand<CheckInResult>;
+public sealed record CheckInCommand(string Payload, Guid? ScreeningId = null) : ICommand<CheckInResult>;
 
 internal sealed class CheckInValidator : AbstractValidator<CheckInCommand>
 {
@@ -129,7 +129,10 @@ public static class CheckInEndpoint
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPost("/api/tickets/check-in",
             async (CheckInCommand body, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Send(body, ct)))
+                TypedResults.Ok(await dispatcher.Send(body, ct)))
         .WithName("CheckInTicket").WithTags("Cinema")
+        .WithSummary("Check a ticket in at the door")
+        .WithDescription("`payload`: the scanned QR text or the typed reference; `screeningId` limits it to one show. " +
+                         "A ticket that is not valid (unknown, used, wrong show) is still a 200: `outcome` says which.")
         .RequireAuthorization(AppPolicies.SecurityDesk);
 }

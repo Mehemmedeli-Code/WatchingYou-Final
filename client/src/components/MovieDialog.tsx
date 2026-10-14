@@ -220,11 +220,7 @@ export function MovieDialog({
               )}
 
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                <Badge tone={detail.availableCopies > 0 ? "good" : "bad"}>
-                  {detail.availableCopies > 0
-                    ? `${detail.availableCopies} ${t("movie.onShelf")}`
-                    : t("movie.allOut")}
-                </Badge>
+                {detail.availableCopies > 0 ? null : <Badge tone="bad">{t("movie.allOut")}</Badge>}
                 {isStaff || inApp ? null : <Badge>{formatUsd(0.5)} / 3 {t("pro.days", "days")}</Badge>}
                 {detail.reviewCount > 0 ? (
                   <Badge tone="warn">

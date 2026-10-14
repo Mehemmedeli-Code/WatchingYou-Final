@@ -19,7 +19,8 @@ import { t, genreName } from "@/lib/i18n";
 import { isApp } from "@/lib/platform";
 import { PaymentSheet } from "@/components/CardPayment";
 import { formatUsd, RENTAL_PRICE } from "@/lib/format";
-import { Clapperboard as RentIcon } from "lucide-react";
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, Clapperboard as RentIcon, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const SORTS = [
   { value: "newest", label: t("sort.newest") },
@@ -68,7 +69,20 @@ export default function HomePage() {
   // The phone app lists the films but sells none: the stores require their own billing for
   // digital content, so there is no rent button there (see MobileApp).
   const inApp = isApp();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isSecurity: isStaff } = useAuth();
+  // What this account may watch: PRO and staff everything, a free account only what it has
+  // rented. Each film then offers one action: Watch when it may, Rent when it may not.
+  const [access, setAccess] = useState<{ pro: boolean; rented: Set<string> }>({ pro: false, rented: new Set() });
+  const loadAccess = useCallback(async () => {
+    if (!isSignedIn) return;
+    const [pro, mine] = await Promise.all([
+      get<{ active: boolean }>("/api/pro").catch(() => null),
+      get<Paged<{ movieId: string }>>("/api/rentals/mine" + query({ status: "active", pageSize: 50 })).catch(() => null),
+    ]);
+    setAccess({ pro: !!pro?.active, rented: new Set(mine?.items.map((r) => r.movieId) ?? []) });
+  }, [isSignedIn]);
+  useEffect(() => { void loadAccess(); }, [loadAccess]);
+  const canWatch = useCallback((movie: MovieListItem) => isStaff || access.pro || access.rented.has(movie.id), [isStaff, access]);
   const watchlist = useWatchlist();
   const initial = useMemo(readFilters, []);
   const [genres, setGenres] = useState<string[]>([]);
@@ -116,6 +130,15 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => { void refreshFeatured(); }, [refreshFeatured]);
+
+  // The catalogue always opens at the top, with the word gathered round the eye. Left to the
+  // browser, a reload came back half-way down, frozen mid-scatter. A #link still lands where
+  // it points.
+  useEffect(() => {
+    if (inApp || window.location.hash) return;
+    window.history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+  }, [inApp]);
 
   const refreshRecommended = useCallback(async () => {
     const list = await get<RecommendationList>("/api/recommendations" + query({ take: 4 })).catch(() => null);
@@ -223,7 +246,7 @@ export default function HomePage() {
   // After the receipt: copies, shelves and recommendations have all changed.
   async function rented(movie: MovieListItem) {
     setToast({ id: Date.now(), tone: "ok", text: `${movie.title} — ${t("movie.rented")}` });
-    await Promise.all([load(), refreshFeatured(), refreshRecommended()]);
+    await Promise.all([load(), refreshFeatured(), refreshRecommended(), loadAccess()]);
   }
 
   return (
@@ -254,19 +277,25 @@ export default function HomePage() {
         />
       ) : null}
 
-      {/* Search first, right under the header: many come in for one film. The first letter
-          typed brings the results into view, so the answer is on screen, not three scrolls away. */}
+      {/* Search first, right under the header: many come in for one film. A small pill, not a
+          second search box (two boxes for one query typed into one and showed the other) —
+          it glides down to the catalogue's own search and puts the cursor in it. */}
       {inApp ? null : (
-        <div className="mx-auto w-full max-w-3xl px-4 pt-5 sm:px-6">
-          <SearchField
-            value={search}
-            onChange={(next) => {
-              if (!search.trim() && next.trim())
-                requestAnimationFrame(() => document.getElementById("catalogue")?.scrollIntoView({ behavior: "smooth", block: "start" }));
-              setSearch(next);
+        <div className="flex justify-center px-4 pt-5">
+          <button
+            type="button"
+            onClick={() => {
+              // Lands with the search just under the sticky header, not tucked beneath it.
+              const box = document.getElementById("catalogue-search");
+              const header = document.querySelector("header")?.getBoundingClientRect().height ?? 0;
+              if (box) window.scrollTo({ top: box.getBoundingClientRect().top + window.scrollY - header - 24, behavior: "smooth" });
+              box?.querySelector("input")?.focus({ preventScroll: true });
             }}
-            placeholder={t("home.searchPlaceholder")}
-          />
+            className="group inline-flex items-center gap-2 rounded-full border border-accent/40 bg-surface/70 px-5 py-2 text-sm font-medium text-ink shadow-[0_0_24px_-8px] shadow-accent/60 backdrop-blur transition hover:border-accent hover:text-accent"
+          >
+            <Search size={16} aria-hidden className="text-accent transition-transform group-hover:scale-110" />
+            {t("home.searchJump", "Search")}
+          </button>
         </div>
       )}
 
@@ -284,6 +313,7 @@ export default function HomePage() {
             movies={featured}
             onRent={inApp ? undefined : rent}
             onOpen={openMovie}
+            canWatch={inApp ? undefined : canWatch}
             busyId={rentingId}
           />
         </Section>
@@ -305,6 +335,7 @@ export default function HomePage() {
                 note={item.becauseGenre ? `${t("recommend.because", "Because you like")} ${item.becauseGenre}` : null}
                 onRent={inApp ? undefined : rent}
                 onOpen={openMovie}
+                canWatch={inApp ? undefined : canWatch}
                 busy={rentingId === item.movie.id}
                 saved={watchlist.has(item.movie.id)}
                 onToggleSave={isSignedIn ? toggleSave : undefined}
@@ -319,13 +350,13 @@ export default function HomePage() {
         lede={t("home.lede")}
         className="scroll-mt-20"
       >
-        <div id="catalogue" className="mb-3 grid scroll-mt-24 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <SearchField
-            className="sm:col-span-2 lg:col-span-1"
-            value={search}
-            onChange={setSearch}
-            placeholder={t("home.searchPlaceholder")}
-          />
+        {/* The search on its own line, wide and in the middle: where to type a film's name
+            should be the first thing anyone sees here. The filters sit under it. */}
+        <div id="catalogue-search" className="mx-auto mb-5 w-full max-w-3xl [&_input]:h-14 [&_input]:text-base">
+          <SearchField value={search} onChange={setSearch} placeholder={t("home.searchPlaceholder")} />
+        </div>
+
+        <div id="catalogue" className="mb-3 grid scroll-mt-24 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 
           <Select value={genre} onChange={(e) => { setGenre(e.target.value); setPage(1); }} aria-label={t("home.genre")}>
             <option value="all">{t("home.everyGenre")}</option>
@@ -340,22 +371,34 @@ export default function HomePage() {
             ))}
           </Select>
 
+          {/* Shaped like the selects beside them, so they read as part of the same filter row:
+              an arrow that shows the direction, and a switch that is plainly on or off. */}
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="flex-1"
+            <button
+              type="button"
               onClick={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))}
+              className="flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-line bg-surface-raised px-3 text-sm text-ink transition hover:border-accent focus-visible:border-accent focus-visible:outline-none"
             >
+              {sortDir === "desc"
+                ? <ArrowDownWideNarrow size={16} aria-hidden className="text-accent" />
+                : <ArrowUpNarrowWide size={16} aria-hidden className="text-accent" />}
               {sortDir === "desc" ? t("common.descending") : t("common.ascending")}
-            </Button>
-            <Button
-              variant={onlyAvailable ? "solid" : "outline"}
-              className="flex-1"
-              aria-pressed={onlyAvailable}
+            </button>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={onlyAvailable}
               onClick={() => { setOnlyAvailable((v) => !v); setPage(1); }}
+              className={cn(
+                "flex h-10 flex-1 items-center justify-center gap-2 rounded-md border px-3 text-sm transition focus-visible:outline-none",
+                onlyAvailable ? "border-accent bg-accent/15 text-accent" : "border-line bg-surface-raised text-ink hover:border-accent",
+              )}
             >
+              <span aria-hidden className={cn("relative h-4 w-7 shrink-0 rounded-full transition-colors", onlyAvailable ? "bg-accent" : "bg-line")}>
+                <span className={cn("absolute top-0.5 h-3 w-3 rounded-full bg-surface transition-[left]", onlyAvailable ? "left-[14px]" : "left-0.5")} />
+              </span>
               {t("home.inStock")}
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -409,6 +452,7 @@ export default function HomePage() {
                   index={i}
                   onRent={inApp ? undefined : rent}
                   onOpen={openMovie}
+                  canWatch={inApp ? undefined : canWatch}
                   busy={rentingId === movie.id}
                   saved={watchlist.has(movie.id)}
                   onToggleSave={isSignedIn ? toggleSave : undefined}

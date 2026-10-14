@@ -98,16 +98,25 @@ public static class RentMovieEndpoint
 {
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPost("/api/rentals",
-            async Task<Results<Ok<RentalResponse>, Conflict<Error>, NotFound<Error>>> (
+            async Task<Results<Ok<RentalResponse>, BadRequest<Error>, Conflict<Error>, NotFound<Error>>> (
                 RentMovieCommand command, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var result = await dispatcher.Send(command, ct);
                 if (result.IsSuccess) return TypedResults.Ok(result.Value);
-                return result.Error.Code == "not_found"
-                    ? TypedResults.NotFound(result.Error)
-                    : TypedResults.Conflict(result.Error);
+                // A card typed wrong is the caller's input (400); "already rented", "no copy free"
+                // and "PRO already has it" are the state of things (409). Both used to be 409.
+                return result.Error.Code switch
+                {
+                    "not_found" => TypedResults.NotFound(result.Error),
+                    "validation" => TypedResults.BadRequest(result.Error),
+                    _ => TypedResults.Conflict(result.Error)
+                };
             })
-        .WithName("RentMovie").WithTags("Rentals").RequireAuthorization();
+        .WithName("RentMovie").WithTags("Rentals").RequireAuthorization()
+        .WithSummary("Rent a film for three days, paid by card")
+        .WithDescription("Always three days for $0.50 (`days` is ignored). `card`: number, expiryMonth, expiryYear, cvc, holderName " +
+                         "(test card 4242 4242 4242 4242). 400: the card is not valid. 409: you already have it out, every copy is out, " +
+                         "or Watching PRO already includes it.");
 }
 
 internal static class RentalMapper

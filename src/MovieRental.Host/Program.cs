@@ -181,6 +181,7 @@ builder.Services
 // session or a guessed password, does not open a staff API.
 StaffPaths.Configure(builder.Configuration);
 builder.Services.AddSingleton<IAuthorizationHandler, StaffUnlockedHandler>();
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationMiddlewareResultHandler, ApiAuthorizationResultHandler>();
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(AppRoles.SuperAdmin, policy => policy.RequireRole(AppRoles.SuperAdmin).AddRequirements(new StaffUnlockedRequirement()))
     .AddPolicy(AppRoles.Admin, policy => policy.RequireRole(AppRoles.Admin).AddRequirements(new StaffUnlockedRequirement()))
@@ -252,21 +253,7 @@ builder.Services.AddRazorPages(options =>
 });
 // The OpenAPI document comes from ASP.NET Core's own generator (built in since .NET 9);
 // Swashbuckle is kept only for its UI page, which reads that document.
-builder.Services.AddOpenApi("v1", options => options.AddDocumentTransformer((document, _, _) =>
-{
-    document.Info = new OpenApiInfo { Title = "WatchingYou API", Version = "v1" };
-    document.Components ??= new OpenApiComponents();
-    document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
-    document.Components.SecuritySchemes["Bearer"] = new OpenApiSecurityScheme
-    {
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        Description = "Paste the access token returned by /api/auth/login."
-    };
-    document.Security = [new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference("Bearer", document)] = [] }];
-    return Task.CompletedTask;
-}));
+builder.Services.AddOpenApi("v1", ApiReference.Describe);
 
 // Cross-origin callers. The website itself is served by this host and needs none of this.
 //  - The phone app (Capacitor) loads its screens from the device: capacitor://localhost on iOS,
@@ -450,6 +437,8 @@ app.UseResponseCompression();
 app.UseWhen(
     context => !context.Request.Path.StartsWithSegments("/api") && !context.Request.Path.StartsWithSegments("/hubs"),
     branch => branch.UseStatusCodePagesWithReExecute("/error/{0}"));
+// The API's own errors left empty (a bare 401, 404, 405, 415) get a { code, message } body.
+app.UseWhen(ApiErrors.IsApi, branch => branch.UseStatusCodePages(ApiErrors.DescribeStatus));
 
 // Routing after the re-execute, on purpose. Left implicit, WebApplication routes at the very
 // start of the pipeline, so the re-executed "/error/404" never found its page and every
@@ -533,7 +522,10 @@ app.MapModules();
 AnalyticsEndpoints.Map(app);
 LanguageEndpoints.Map(app);
 
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok", utc = DateTime.UtcNow }))
-   .WithTags("System").AllowAnonymous();
+app.MapGet("/api/health", () => TypedResults.Ok(new HealthStatus("ok", DateTime.UtcNow)))
+   .WithTags("System").AllowAnonymous()
+   .WithSummary("Is the site up? Answers ok and the server's time (UTC)");
 
 app.Run();
+
+internal sealed record HealthStatus(string Status, DateTime Utc);

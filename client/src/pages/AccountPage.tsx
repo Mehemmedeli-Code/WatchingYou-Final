@@ -45,14 +45,14 @@ export default function AccountPage() {
   function fail(err: unknown, fallback: string) {
     if (err instanceof ApiError) {
       setFieldErrors(err.fieldErrors ?? {});
-      // A failed sign-in is a bare 401 on purpose — the server will not say which half of the
-      // pair was wrong — so there is no message in it, and "Request failed (401)" is what
-      // people used to see. Say the plain thing instead, and a network failure likewise.
+      // A failed sign-in is one 401 for both mistakes on purpose — the server will not say
+      // which half of the pair was wrong. Say it in the page's language, and a network
+      // failure likewise.
       // The resend cooldown comes back in English from the server; say it in the page's language.
       const wait = /Wait (\d+) more seconds/i.exec(err.message ?? "");
       const text = wait
         ? t("account.waitSeconds", "Wait {s} more seconds before asking for another code.").replace("{s}", wait[1])
-        : err.status === 401 && !err.code
+        : err.status === 401 && (!err.code || err.code === "invalid_credentials")
         ? t("account.badLogin", "E-mail or password is incorrect.")
         : err.status === 0 || err.status >= 500 ? fallback : err.message;
       setMessage({ tone: "error", text });

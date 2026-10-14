@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Cinema.Persistence;
 using MovieRental.SharedKernel.Cqrs;
+using MovieRental.SharedKernel.Results;
 using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Cinema.Features;
@@ -62,14 +64,18 @@ public static class VenueEndpoints
     public static void Map(IEndpointRouteBuilder app)
     {
         app.MapGet("/api/venues", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetVenuesQuery(), ct)))
-            .WithName("GetVenues").WithTags("Cinema").AllowAnonymous().CacheOutput(AppPolicies.VenueCache);
+                TypedResults.Ok(await dispatcher.Ask(new GetVenuesQuery(), ct)))
+            .WithName("GetVenues").WithTags("Cinema").AllowAnonymous().CacheOutput(AppPolicies.VenueCache)
+            .WithSummary("The cinemas and their halls");
 
         app.MapGet("/api/halls/{id:guid}", async (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var hall = await dispatcher.Ask(new GetHallQuery(id), ct);
-                return hall is null ? Results.NotFound() : Results.Ok(hall);
+                return hall is null
+                    ? (Results<Ok<HallGeometry>, NotFound<Error>>)TypedResults.NotFound(Error.NotFound("Hall"))
+                    : TypedResults.Ok(hall);
             })
-            .WithName("GetHallGeometryWithId").WithTags("Cinema").AllowAnonymous().CacheOutput(AppPolicies.VenueCache);
+            .WithName("GetHallGeometryWithId").WithTags("Cinema").AllowAnonymous().CacheOutput(AppPolicies.VenueCache)
+            .WithSummary("One hall's layout: rows, seats per row, gaps");
     }
 }

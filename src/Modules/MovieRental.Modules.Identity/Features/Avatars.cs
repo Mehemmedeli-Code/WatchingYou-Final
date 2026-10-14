@@ -36,7 +36,7 @@ public static class AvatarEndpoints
                 if (extension is null) return Results.BadRequest(Error("Use a JPEG, PNG or WebP picture."));
 
                 var user = await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.RequireId(), ct);
-                if (user is null) return Results.NotFound();
+                if (user is null) return Results.NotFound(MovieRental.SharedKernel.Results.Error.NotFound("Account"));
 
                 var folder = Folder(environment);
                 Directory.CreateDirectory(folder);
@@ -50,6 +50,13 @@ public static class AvatarEndpoints
                 return Results.Ok(user.ToProfile());
             })
             .WithName("UploadAvatar").WithTags("Auth").RequireAuthorization()
+            .WithSummary("Upload my profile picture")
+            .WithDescription("multipart/form-data with the picture in the field `file`: JPEG, PNG or WebP, 2 MB at most " +
+                             "(the type is read from the file itself). Answers with the updated profile.")
+            .Accepts<AvatarForm>("multipart/form-data")
+            .Produces<UserProfileResponse>()
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status400BadRequest)
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status404NotFound)
             .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(MaxBytes + 256 * 1024))
             .RequireRateLimiting(AppPolicies.WriteRateLimit)
             .DisableAntiforgery();
@@ -58,13 +65,16 @@ public static class AvatarEndpoints
                 IHostEnvironment environment, CancellationToken ct) =>
             {
                 var user = await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.RequireId(), ct);
-                if (user is null) return Results.NotFound();
+                if (user is null) return Results.NotFound(MovieRental.SharedKernel.Results.Error.NotFound("Account"));
                 DeleteOwnFile(environment, user.Id, user.AvatarUrl);
                 user.AvatarUrl = null;
                 await db.SaveChangesAsync(ct);
                 return Results.Ok(user.ToProfile());
             })
-            .WithName("RemoveAvatar").WithTags("Auth").RequireAuthorization();
+            .WithName("RemoveAvatar").WithTags("Auth").RequireAuthorization()
+            .WithSummary("Remove my profile picture (back to the default eye)")
+            .Produces<UserProfileResponse>()
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status404NotFound);
 
         // The header's round picture. One stable URL for the page to use, whoever is signed in:
         // it redirects to their picture, or to the eye logo for no picture or no session.
@@ -75,7 +85,9 @@ public static class AvatarEndpoints
                 var url = await db.Users.Where(u => u.Id == id).Select(u => u.AvatarUrl).FirstOrDefaultAsync(ct);
                 return Results.Redirect(string.IsNullOrEmpty(url) ? DefaultAvatar : url);
             })
-            .WithName("MyAvatar").WithTags("Auth").AllowAnonymous();
+            .WithName("MyAvatar").WithTags("Auth").AllowAnonymous()
+            .WithSummary("My profile picture: redirects to it, or to the default eye")
+            .Produces(StatusCodes.Status302Found);
 
         app.MapGet("/api/avatars/{file}", (string file, HttpContext http, IHostEnvironment environment) =>
             {
@@ -89,7 +101,10 @@ public static class AvatarEndpoints
                 var type = Path.GetExtension(file) switch { ".png" => "image/png", ".webp" => "image/webp", _ => "image/jpeg" };
                 return Results.File(path, type);
             })
-            .WithName("GetAvatar").WithTags("Auth").AllowAnonymous();
+            .WithName("GetAvatar").WithTags("Auth").AllowAnonymous()
+            .WithSummary("A profile picture file, by the name in a profile's `avatarUrl`")
+            .Produces(StatusCodes.Status200OK, typeof(Stream), "image/jpeg", "image/png", "image/webp")
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status404NotFound);
     }
 
     private static string Folder(IHostEnvironment environment) =>
@@ -111,6 +126,9 @@ public static class AvatarEndpoints
         : h[0] == 0x89 && h[1] == 0x50 && h[2] == 0x4E && h[3] == 0x47 ? ".png"
         : h[0] == 0x52 && h[1] == 0x49 && h[2] == 0x46 && h[3] == 0x46 && h[8] == 0x57 && h[9] == 0x45 && h[10] == 0x42 && h[11] == 0x50 ? ".webp"
         : null;
+
+    /// <summary>The upload form, as the API reference shows it.</summary>
+    private sealed record AvatarForm(IFormFile File);
 
     private static MovieRental.SharedKernel.Results.Error Error(string message) =>
         MovieRental.SharedKernel.Results.Error.Validation(message);

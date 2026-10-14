@@ -16,7 +16,7 @@ using MovieRental.SharedKernel.Security;
 namespace MovieRental.Modules.Identity.Features;
 
 // Feature 1 — registration. One file holds the whole slice: contract, rules, handler, route.
-public sealed record RegisterCommand(string FullName, string Email, string Password, string? PhoneNumber)
+public sealed record RegisterCommand(string FullName, string Email, string Password, string? PhoneNumber = null)
     : ICommand<Result<RegistrationResponse>>;
 
 internal sealed class RegisterValidator : AbstractValidator<RegisterCommand>
@@ -100,6 +100,9 @@ public static class RegisterEndpoint
             })
         .WithName("Register")
         .WithTags("Auth")
+        .WithSummary("Create an account; a six-digit code is e-mailed to confirm it")
+        .WithDescription("Sign-in works once the code is confirmed (POST /api/auth/verification/confirm). " +
+                         "Password: 8+ characters with a capital letter and a digit. 409: the e-mail is already registered.")
         .AllowAnonymous()
         .RequireRateLimiting(AppPolicies.AuthRateLimit);
 }

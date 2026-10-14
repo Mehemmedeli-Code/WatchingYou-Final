@@ -177,15 +177,15 @@ html.rr { background: var(--surface); }
   opacity: 0.5;
 }
 
-/* A scrim over the field. Text contrast is the constraint here: without this the pale
-   green crests come close enough to the body colour to make small type swim. */
+/* A scrim over the field, even from top to bottom: the green light runs behind the whole
+   page, not just the strip under the header (it used to fade to solid black below the fold).
+   Text contrast is still the constraint: panels and cards keep their own solid fill, and the
+   scrim dims the crests enough that loose small type does not swim. */
 .rr-shader::after {
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(120% 80% at 50% 0%, transparent 0%, var(--surface) 78%),
-    linear-gradient(to bottom, color-mix(in srgb, var(--surface) 35%, transparent), var(--surface));
+  background: color-mix(in srgb, var(--surface) 45%, transparent);
 }
 
 /* Content above the field. Without a stacking context the canvas would paint over it. */

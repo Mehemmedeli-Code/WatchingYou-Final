@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+﻿using System.Text.Json.Serialization;
+using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -28,8 +29,9 @@ public sealed record CardDetails(string Number, int ExpiryMonth, int ExpiryYear,
 
 /// <param name="PromoCode">Optional discount code.</param>
 /// <param name="UsePoints">Spend loyalty points on this booking, up to half its price.</param>
+/// <param name="ScreeningId">From the address; not read from the body.</param>
 public sealed record CheckoutCommand(
-    Guid ScreeningId, IReadOnlyList<SeatSelection> Seats, CardDetails Card,
+    [property: JsonIgnore] Guid ScreeningId, IReadOnlyList<SeatSelection> Seats, CardDetails Card,
     string? PromoCode = null, bool UsePoints = false) : ICommand<Result<CheckoutStarted>>;
 
 public sealed record CheckoutStarted(
@@ -51,6 +53,10 @@ internal sealed class CheckoutValidator : AbstractValidator<CheckoutCommand>
     {
         RuleFor(x => x.Seats).NotEmpty().WithMessage("Pick at least one seat.");
         RuleFor(x => x.Seats.Count).LessThanOrEqualTo(8).WithMessage("Eight seats is the limit per booking.").When(x => x.Seats is not null);
+        // [null] used to reach seat.Row and answer 500; the same seat twice, the seat index.
+        RuleForEach(x => x.Seats).NotNull().WithMessage("A seat is missing its row and number.");
+        RuleFor(x => x.Seats).Must(s => s.Where(x => x is not null).DistinctBy(x => (x.Row, x.Number)).Count() == s.Count(x => x is not null))
+            .WithMessage("The same seat is picked twice.").When(x => x.Seats is not null);
         RuleFor(x => x.Card).NotNull().WithMessage("Enter the card details.");
         RuleFor(x => x.Card.HolderName).NotEmpty().MaximumLength(120).WithMessage("Enter the name on the card.").When(x => x.Card is not null);
     }
@@ -233,7 +239,7 @@ internal sealed class CheckoutHandler(
     }
 }
 
-public sealed record ConfirmBookingCommand(Guid PaymentId, string Code) : ICommand<Result<TicketResponse>>;
+public sealed record ConfirmBookingCommand([property: JsonIgnore] Guid PaymentId, string Code) : ICommand<Result<TicketResponse>>;
 
 internal sealed class ConfirmBookingValidator : AbstractValidator<ConfirmBookingCommand>
 {
@@ -430,10 +436,15 @@ public static class BookSeatsEndpoint
                     _ => TypedResults.BadRequest(result.Error)
                 };
             })
-        .WithName("StartSeatCheckoutWithId").WithTags("Cinema").RequireAuthorization();
+        .WithName("StartSeatCheckoutWithId").WithTags("Cinema").RequireAuthorization()
+        .WithSummary("Book seats and pay by card: step 1, hold the seats")
+        .WithDescription("Up to 8 seats (`row`, `number` from the seat map), the card (test card 4242 4242 4242 4242), an optional " +
+                         "`promoCode` and `usePoints`. The seats are held for a few minutes and a six-digit code is e-mailed: send it to " +
+                         "/api/bookings/{paymentId}/confirm. 400: a seat or the card is not valid. 409: a seat is taken, the show has " +
+                         "started or was cancelled, or you have an unfinished checkout.");
 
         app.MapPost("/api/bookings/{paymentId:guid}/confirm",
-            async Task<Results<Ok<TicketResponse>, BadRequest<Error>, NotFound<Error>, ForbidHttpResult>> (
+            async Task<Results<Ok<TicketResponse>, BadRequest<Error>, NotFound<Error>, JsonHttpResult<Error>, Conflict<Error>>> (
                 Guid paymentId, ConfirmBookingCommand body, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var result = await dispatcher.Send(body with { PaymentId = paymentId }, ct);
@@ -441,30 +452,40 @@ public static class BookSeatsEndpoint
                 return result.Error.Code switch
                 {
                     "not_found" => TypedResults.NotFound(result.Error),
-                    "forbidden" => TypedResults.Forbid(),
+                    "forbidden" => TypedResults.Json(result.Error, statusCode: StatusCodes.Status403Forbidden),
+                    "conflict" => TypedResults.Conflict(result.Error),
                     _ => TypedResults.BadRequest(result.Error)
                 };
             })
-        .WithName("ConfirmBookingWithId").WithTags("Cinema").RequireAuthorization();
+        .WithName("ConfirmBookingWithId").WithTags("Cinema").RequireAuthorization()
+        .WithSummary("Book seats and pay by card: step 2, confirm with the e-mailed code")
+        .WithDescription("Answers with the ticket. Confirming twice gives the same ticket. 400: wrong code (`message` says how many " +
+                         "tries are left) or the hold expired. 403: someone else's booking. 409: it expired while you typed.")
+        .Produces<Error>(StatusCodes.Status403Forbidden);
 
         app.MapPost("/api/bookings/{paymentId:guid}/cancel",
-            async Task<Results<NoContent, Conflict<Error>, ForbidHttpResult>> (
+            async Task<Results<NoContent, Conflict<Error>, JsonHttpResult<Error>>> (
                 Guid paymentId, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var result = await dispatcher.Send(new CancelBookingCommand(paymentId), ct);
                 if (result.IsSuccess) return TypedResults.NoContent();
                 return result.Error.Code == "forbidden"
-                    ? TypedResults.Forbid()
+                    ? TypedResults.Json(result.Error, statusCode: StatusCodes.Status403Forbidden)
                     : TypedResults.Conflict(result.Error);
             })
-        .WithName("CancelBookingWithId").WithTags("Cinema").RequireAuthorization();
+        .WithName("CancelBookingWithId").WithTags("Cinema").RequireAuthorization()
+        .WithSummary("Let go of an unfinished checkout, freeing its seats")
+        .WithDescription("204 also when it is already gone. 403: someone else's. 409: already confirmed (ask for a refund instead).")
+        .Produces<Error>(StatusCodes.Status403Forbidden);
 
         app.MapGet("/api/bookings/mine", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetMyTicketsQuery(), ct)))
-            .WithName("GetMyTickets").WithTags("Cinema").RequireAuthorization();
+                TypedResults.Ok(await dispatcher.Ask(new GetMyTicketsQuery(), ct)))
+            .WithName("GetMyTickets").WithTags("Cinema").RequireAuthorization()
+            .WithSummary("My confirmed tickets, the next show first");
 
         app.MapGet("/api/bookings/pending", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetPendingCheckoutsQuery(), ct)))
-            .WithName("GetPendingCheckouts").WithTags("Cinema").RequireAuthorization();
+                TypedResults.Ok(await dispatcher.Ask(new GetPendingCheckoutsQuery(), ct)))
+            .WithName("GetPendingCheckouts").WithTags("Cinema").RequireAuthorization()
+            .WithSummary("My checkouts still waiting for their code");
     }
 }

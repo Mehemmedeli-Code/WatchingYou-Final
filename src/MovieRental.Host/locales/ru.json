@@ -1181,5 +1181,6 @@
   "chart.top-rated.unit": "средняя оценка",
   "chart.top-rated.caption": "Средняя оценка фильмов, у которых есть хотя бы один отзыв.",
   "gallery.like": "Нравится",
-  "gallery.unlike": "Убрать отметку «Нравится»"
+  "gallery.unlike": "Убрать отметку «Нравится»",
+  "home.searchJump": "Поиск"
 }

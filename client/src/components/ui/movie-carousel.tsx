@@ -35,11 +35,14 @@ export function MovieCarousel({
   movies,
   onRent,
   onOpen,
+  canWatch,
   busyId,
 }: {
   movies: MovieListItem[];
   onRent?: (movie: MovieListItem) => void;
   onOpen?: (movie: MovieListItem, mode: "details" | "watch") => void;
+  /** May this account watch the film? Then it gets Watch and no Rent; otherwise Rent only. Left out, both show. */
+  canWatch?: (movie: MovieListItem) => boolean;
   busyId?: string | null;
 }) {
   const total = movies.length;
@@ -237,14 +240,14 @@ export function MovieCarousel({
             </Button>
           ) : null}
 
-          {onOpen && (current.hasVideo || current.trailerUrl) ? (
-            <Button size="sm" variant="outline" onClick={() => onOpen(current, "watch")}>
+          {onOpen && (current.hasVideo || current.trailerUrl) && (canWatch?.(current) ?? true) ? (
+            <Button size="sm" onClick={() => onOpen(current, "watch")}>
               <Play size={14} aria-hidden />
               {t("movie.watch")}
             </Button>
           ) : null}
 
-          {onRent ? (
+          {onRent && !(canWatch?.(current) ?? false) ? (
             <Button size="sm" disabled={busyId === current.id || current.availableCopies === 0} onClick={() => onRent(current)}>
               <Ticket size={14} aria-hidden />
               {busyId === current.id ? t("common.loading") : t("movie.rent")}

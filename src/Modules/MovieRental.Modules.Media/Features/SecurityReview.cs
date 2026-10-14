@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -54,8 +56,21 @@ internal sealed class ClaimForReviewHandler(MediaDbContext db) : ICommandHandler
     }
 }
 
+/// <param name="Id">From the address; not read from the body.</param>
 public sealed record SubmitSecurityReportCommand(
-    Guid Id, bool WatchedInFull, string? Summary, IReadOnlyList<SecurityCheckDto> Checks) : ICommand<Result>;
+    [property: JsonIgnore] Guid Id, bool WatchedInFull, string? Summary, IReadOnlyList<SecurityCheckDto> Checks) : ICommand<Result>;
+
+// "checks" left out, or a null among them, used to reach Checks.All and answer 500.
+internal sealed class SubmitSecurityReportValidator : AbstractValidator<SubmitSecurityReportCommand>
+{
+    public SubmitSecurityReportValidator()
+    {
+        RuleFor(x => x.Checks).NotNull().WithMessage("Every check needs an outcome.");
+        RuleForEach(x => x.Checks).NotNull().WithMessage("A check is missing its name and outcome.");
+        RuleForEach(x => x.Checks).Must(c => c is null || (c.Note?.Length ?? 0) <= 500).WithMessage("A check's note can be 500 characters at most.");
+        RuleFor(x => x.Summary).MaximumLength(2000);
+    }
+}
 
 internal sealed class SubmitSecurityReportHandler(
     MediaDbContext db, ICurrentUser currentUser, IUserDirectory users, IAuditLog audit)
@@ -135,8 +150,9 @@ public static class SecurityReviewEndpoints
             .RequireAuthorization(AppPolicies.SecurityDesk);
 
         desk.MapGet("/queue", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetSecurityQueueQuery(), ct)))
-            .WithName("GetSecurityQueue");
+                TypedResults.Ok(await dispatcher.Ask(new GetSecurityQueueQuery(), ct)))
+            .WithName("GetSecurityQueue")
+            .WithSummary("Films waiting for Security to watch them, oldest first");
 
         desk.MapPost("/{id:guid}/claim",
             async Task<Results<NoContent, Conflict<Error>, NotFound<Error>>> (
@@ -147,7 +163,9 @@ public static class SecurityReviewEndpoints
                 return result.Error.Code == "not_found"
                     ? TypedResults.NotFound(result.Error)
                     : TypedResults.Conflict(result.Error);
-            }).WithName("ClaimShortFilmForReviewWithId");
+            }).WithName("ClaimShortFilmForReviewWithId")
+            .WithSummary("Take a film from the queue to watch it")
+            .WithDescription("409: someone already took it, or it is past the first look.");
 
         desk.MapPost("/{id:guid}/report",
             async Task<Results<NoContent, BadRequest<Error>, Conflict<Error>, NotFound<Error>>> (
@@ -161,6 +179,9 @@ public static class SecurityReviewEndpoints
                     "conflict" => TypedResults.Conflict(result.Error),
                     _ => TypedResults.BadRequest(result.Error)
                 };
-            }).WithName("SubmitSecurityReportWithId");
+            }).WithName("SubmitSecurityReportWithId")
+            .WithSummary("File Security's report on a film")
+            .WithDescription("`watchedInFull` must be true; `checks`: every check with outcome Pass or Fail (and an optional note); " +
+                             "an optional `summary`. Any Fail flags the film for the admin. 409: already reported or decided.");
     }
 }

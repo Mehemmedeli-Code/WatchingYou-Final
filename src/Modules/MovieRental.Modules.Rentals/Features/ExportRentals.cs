@@ -7,6 +7,7 @@ using MovieRental.Modules.Rentals.Persistence;
 using MovieRental.SharedKernel.Contracts;
 using MovieRental.SharedKernel.Cqrs;
 using MovieRental.SharedKernel.Documents;
+using MovieRental.SharedKernel.Results;
 using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Rentals.Features;
@@ -90,13 +91,27 @@ public static class ExportRentalsEndpoint
 {
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapGet("/api/admin/export/rentals.csv", async (DateTime? from, DateTime? to, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.File(await dispatcher.Ask(new ExportRentalsQuery(from, to), ct), Csv.ContentType,
+                from > to ? Results.BadRequest(BackwardsPeriod)
+                : Results.File(await dispatcher.Ask(new ExportRentalsQuery(from, to), ct), Csv.ContentType,
                     $"watchingyou-rentals-{DateTime.UtcNow:yyyyMMdd}.csv"))
-            .WithName("ExportRentals").WithTags("Rentals").RequireAuthorization(AppRoles.Admin);
+            .WithName("ExportRentals").WithTags("Rentals").RequireAuthorization(AppRoles.Admin)
+            .WithSummary("Download rentals as a spreadsheet (CSV)")
+            .WithDescription(PeriodHelp)
+            .Produces(StatusCodes.Status200OK, typeof(Stream), Csv.ContentType)
+            .Produces<Error>(StatusCodes.Status400BadRequest);
+
+    private static readonly Error BackwardsPeriod = Error.Validation("`from` is after `to`.");
+    private const string PeriodHelp = "Rentals that started between `from` and `to` (dates, e.g. 2026-10-01). " +
+                                      "Left out: the last 90 days up to tomorrow.";
 
     public static void MapPdf(IEndpointRouteBuilder app) =>
         app.MapGet("/api/admin/export/rentals.pdf", async (DateTime? from, DateTime? to, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.File(await dispatcher.Ask(new ExportRentalsQuery(from, to, Pdf: true), ct), "application/pdf",
+                from > to ? Results.BadRequest(BackwardsPeriod)
+                : Results.File(await dispatcher.Ask(new ExportRentalsQuery(from, to, Pdf: true), ct), "application/pdf",
                     $"watchingyou-rentals-{DateTime.UtcNow:yyyyMMdd}.pdf"))
-            .WithName("ExportRentalsPdf").WithTags("Rentals").RequireAuthorization(AppRoles.Admin);
+            .WithName("ExportRentalsPdf").WithTags("Rentals").RequireAuthorization(AppRoles.Admin)
+            .WithSummary("Download rentals as a PDF report")
+            .WithDescription(PeriodHelp)
+            .Produces(StatusCodes.Status200OK, typeof(Stream), "application/pdf")
+            .Produces<Error>(StatusCodes.Status400BadRequest);
 }

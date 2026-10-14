@@ -93,6 +93,9 @@ public static class RecommendationsEndpoint
     public static void Map(IEndpointRouteBuilder app) =>
         // Anonymous visitors get the quality ordering; a signed-in one gets their own list.
         app.MapGet("/api/recommendations", async (int? take, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetRecommendationsQuery(take ?? 8), ct)))
-            .WithName("GetRecommendations").WithTags("Catalog").AllowAnonymous();
+                TypedResults.Ok(await dispatcher.Ask(new GetRecommendationsQuery(take ?? 8), ct)))
+            .WithName("GetRecommendations").WithTags("Catalog").AllowAnonymous()
+            .WithSummary("Films picked for me")
+            .WithDescription("From what you rented, saved and reviewed (`personal` true); signed out or with no history, " +
+                             "simply the best-reviewed films (`personal` false). `take` 1 to 24, default 8.");
 }

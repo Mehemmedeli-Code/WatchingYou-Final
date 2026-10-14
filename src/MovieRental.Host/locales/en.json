@@ -1181,5 +1181,6 @@
   "chart.top-rated.unit": "avg stars",
   "chart.top-rated.caption": "Average score of titles with at least one review.",
   "gallery.like": "Like",
-  "gallery.unlike": "Unlike"
+  "gallery.unlike": "Unlike",
+  "home.searchJump": "Search"
 }

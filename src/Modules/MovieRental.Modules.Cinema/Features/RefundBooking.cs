@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using System.Text.Json.Serialization;
+using FluentValidation;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
@@ -49,7 +51,13 @@ internal sealed class GetRefundTermsHandler(CinemaDbContext db, ICurrentUser cur
         screening.IsCancelled);
 }
 
-public sealed record RefundBookingCommand(Guid PaymentId, string? Reason) : ICommand<Result<RefundTerms>>;
+/// <param name="PaymentId">From the address; not read from the body.</param>
+public sealed record RefundBookingCommand([property: JsonIgnore] Guid PaymentId, string? Reason = null) : ICommand<Result<RefundTerms>>;
+
+internal sealed class RefundBookingValidator : AbstractValidator<RefundBookingCommand>
+{
+    public RefundBookingValidator() => RuleFor(x => x.Reason).MaximumLength(300);
+}
 
 internal sealed class RefundBookingHandler(
     CinemaDbContext db, ICurrentUser currentUser, RefundPolicy policy, IUserDirectory users,
@@ -184,12 +192,16 @@ public static class RefundEndpoints
                 Guid paymentId, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var terms = await dispatcher.Ask(new GetRefundTermsQuery(paymentId), ct);
-                return terms is null ? Results.NotFound() : Results.Ok(terms);
+                return terms is null
+                    ? (Results<Ok<RefundTerms>, NotFound<Error>>)TypedResults.NotFound(Error.NotFound("Booking"))
+                    : TypedResults.Ok(terms);
             })
-            .WithName("GetRefundTermsWithId").WithTags("Cinema").RequireAuthorization();
+            .WithName("GetRefundTermsWithId").WithTags("Cinema").RequireAuthorization()
+            .WithSummary("Can this booking be refunded, and how much would come back")
+            .WithDescription("Only for your own booking; anyone else's is a 404.");
 
         app.MapPost("/api/bookings/{paymentId:guid}/refund",
-            async Task<Results<Ok<RefundTerms>, Conflict<Error>, NotFound<Error>, ForbidHttpResult>> (
+            async Task<Results<Ok<RefundTerms>, Conflict<Error>, NotFound<Error>, JsonHttpResult<Error>>> (
                 Guid paymentId, RefundBookingCommand body, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var result = await dispatcher.Send(body with { PaymentId = paymentId }, ct);
@@ -197,10 +209,14 @@ public static class RefundEndpoints
                 return result.Error.Code switch
                 {
                     "not_found" => TypedResults.NotFound(result.Error),
-                    "forbidden" => TypedResults.Forbid(),
+                    "forbidden" => TypedResults.Json(result.Error, statusCode: StatusCodes.Status403Forbidden),
                     _ => TypedResults.Conflict(result.Error)
                 };
             })
-            .WithName("RefundBookingWithId").WithTags("Cinema").RequireAuthorization();
+            .WithName("RefundBookingWithId").WithTags("Cinema").RequireAuthorization()
+            .WithSummary("Refund my booking and free its seats")
+            .WithDescription("`reason` optional (up to 300 characters). A refund twice at once refunds once. 403: someone else's. " +
+                             "409: already refunded, or too close to the start (the terms say until when).")
+            .Produces<Error>(StatusCodes.Status403Forbidden);
     }
 }

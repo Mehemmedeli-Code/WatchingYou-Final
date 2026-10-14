@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -27,8 +28,9 @@ public sealed record TicketTypeDto(
         new(t.Id, t.Name, t.PercentOfBase, t.SortOrder, t.IsActive, t.NameAz, t.NameRu, t.NameTr);
 }
 
+/// <param name="Id">From the address when editing; not read from the body.</param>
 public sealed record SaveTicketTypeCommand(
-    Guid? Id, string Name, decimal PercentOfBase, int SortOrder, bool IsActive,
+    [property: JsonIgnore] Guid? Id, string Name, decimal PercentOfBase, int SortOrder, bool IsActive,
     string? NameAz = null, string? NameRu = null, string? NameTr = null)
     : ICommand<Result<TicketTypeDto>>;
 
@@ -42,6 +44,7 @@ internal sealed class SaveTicketTypeValidator : AbstractValidator<SaveTicketType
         RuleFor(x => x.NameTr).MaximumLength(40);
         // Up to 300%: a VIP or 3D surcharge is a type too.
         RuleFor(x => x.PercentOfBase).InclusiveBetween(0, 300);
+        RuleFor(x => x.SortOrder).InclusiveBetween(0, 999);
     }
 }
 
@@ -82,7 +85,7 @@ internal sealed class SaveTicketTypeHandler(CinemaDbContext db) : ICommandHandle
 
 public sealed record FilmDealDto(Guid Id, Guid MovieId, string MovieTitle, string Distributor, decimal SharePercent, string? Note);
 
-public sealed record SaveFilmDealCommand(Guid MovieId, string Distributor, decimal SharePercent, string? Note)
+public sealed record SaveFilmDealCommand(Guid MovieId, string Distributor, decimal SharePercent, string? Note = null)
     : ICommand<Result<FilmDealDto>>;
 
 internal sealed class SaveFilmDealValidator : AbstractValidator<SaveFilmDealCommand>
@@ -132,43 +135,50 @@ public static class BackOfficeSetupEndpoints
         app.MapGet("/api/backoffice/ticket-types", async (bool? all, CinemaDbContext db, ICurrentUser user, CancellationToken ct) =>
             {
                 var includeInactive = all == true && user.IsInRole(AppRoles.Admin);
-                return Results.Ok(await db.TicketTypes.AsNoTracking()
+                return TypedResults.Ok(await db.TicketTypes.AsNoTracking()
                     .Where(t => includeInactive || t.IsActive)
                     .OrderBy(t => t.SortOrder).ThenBy(t => t.Name)
                     .Select(t => new TicketTypeDto(t.Id, t.Name, t.PercentOfBase, t.SortOrder, t.IsActive, t.NameAz, t.NameRu, t.NameTr))
                     .ToListAsync(ct));
             })
-            .WithTags("Back office").RequireAuthorization(AppPolicies.BackOffice).WithName("GetTicketTypes");
+            .WithTags("Back office").RequireAuthorization(AppPolicies.BackOffice).WithName("GetTicketTypes")
+            .WithSummary("Ticket types (adult, child, …) and their share of the seat price")
+            .WithDescription("Active ones; `all=true` adds the switched-off ones, for admins.");
 
         var types = app.MapGroup("/api/backoffice/ticket-types").WithTags("Back office").RequireAuthorization(AppRoles.Admin);
 
         types.MapPost("", async Task<Results<Ok<TicketTypeDto>, BadRequest<Error>, Conflict<Error>, NotFound<Error>>> (
                 SaveTicketTypeCommand body, IDispatcher dispatcher, CancellationToken ct) =>
                 Map(await dispatcher.Send(body with { Id = null }, ct)))
-            .WithName("CreateTicketType");
+            .WithName("CreateTicketType")
+            .WithSummary("Add a ticket type")
+            .WithDescription("`name` (up to 40, with optional `nameAz`, `nameRu`, `nameTr`), `percentOfBase` 0-300 of the seat price.");
 
         types.MapPut("/{id:guid}", async Task<Results<Ok<TicketTypeDto>, BadRequest<Error>, Conflict<Error>, NotFound<Error>>> (
                 Guid id, SaveTicketTypeCommand body, IDispatcher dispatcher, CancellationToken ct) =>
                 Map(await dispatcher.Send(body with { Id = id }, ct)))
-            .WithName("UpdateTicketType");
+            .WithName("UpdateTicketType")
+            .WithSummary("Change a ticket type");
 
-        types.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound>> (Guid id, CinemaDbContext db, CancellationToken ct) =>
+        types.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>>> (Guid id, CinemaDbContext db, CancellationToken ct) =>
             {
                 var type = await db.TicketTypes.FirstOrDefaultAsync(t => t.Id == id, ct);
-                if (type is null) return TypedResults.NotFound();
+                if (type is null) return TypedResults.NotFound(Error.NotFound("Ticket type"));
                 db.TicketTypes.Remove(type);
                 await db.SaveChangesAsync(ct);
                 return TypedResults.NoContent();
             })
-            .WithName("DeleteTicketType");
+            .WithName("DeleteTicketType")
+            .WithSummary("Delete a ticket type (sold tickets keep it)");
 
         var deals = app.MapGroup("/api/backoffice/deals").WithTags("Back office").RequireAuthorization(AppRoles.Admin);
 
         deals.MapGet("", async (CinemaDbContext db, CancellationToken ct) =>
-                Results.Ok(await db.FilmDeals.AsNoTracking().OrderBy(d => d.MovieTitle)
+                TypedResults.Ok(await db.FilmDeals.AsNoTracking().OrderBy(d => d.MovieTitle)
                     .Select(d => new FilmDealDto(d.Id, d.MovieId, d.MovieTitle, d.Distributor, d.SharePercent, d.Note))
                     .ToListAsync(ct)))
-            .WithName("GetFilmDeals");
+            .WithName("GetFilmDeals")
+            .WithSummary("The distributors' share of each film's takings");
 
         deals.MapPost("", async Task<Results<Ok<FilmDealDto>, BadRequest<Error>, NotFound<Error>>> (
                 SaveFilmDealCommand body, IDispatcher dispatcher, CancellationToken ct) =>
@@ -177,17 +187,20 @@ public static class BackOfficeSetupEndpoints
                 if (result.IsSuccess) return TypedResults.Ok(result.Value);
                 return result.Error.Code == "not_found" ? TypedResults.NotFound(result.Error) : TypedResults.BadRequest(result.Error);
             })
-            .WithName("SaveFilmDeal");
+            .WithName("SaveFilmDeal")
+            .WithSummary("Set a film's distributor and their share")
+            .WithDescription("One deal per film: saving again replaces it. `sharePercent` 0-100.");
 
-        deals.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound>> (Guid id, CinemaDbContext db, CancellationToken ct) =>
+        deals.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>>> (Guid id, CinemaDbContext db, CancellationToken ct) =>
             {
                 var deal = await db.FilmDeals.FirstOrDefaultAsync(d => d.Id == id, ct);
-                if (deal is null) return TypedResults.NotFound();
+                if (deal is null) return TypedResults.NotFound(Error.NotFound("Film deal"));
                 db.FilmDeals.Remove(deal);
                 await db.SaveChangesAsync(ct);
                 return TypedResults.NoContent();
             })
-            .WithName("DeleteFilmDeal");
+            .WithName("DeleteFilmDeal")
+            .WithSummary("Remove a film's distributor deal");
     }
 
     private static Results<Ok<TicketTypeDto>, BadRequest<Error>, Conflict<Error>, NotFound<Error>> Map(Result<TicketTypeDto> result)

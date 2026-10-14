@@ -104,5 +104,8 @@ public static class UpdateProfileEndpoint
                     _ => TypedResults.BadRequest(result.Error)
                 };
             })
-        .WithName("UpdateProfile").WithTags("Auth").RequireAuthorization();
+        .WithName("UpdateProfile").WithTags("Auth").RequireAuthorization()
+        .WithSummary("Change my name, phone, username, privacy or bio")
+        .WithDescription("Fields left out (null) stay as they are; `fullName` is always needed. A new phone number has to be " +
+                         "confirmed again. 409: the username is taken.");
 }
