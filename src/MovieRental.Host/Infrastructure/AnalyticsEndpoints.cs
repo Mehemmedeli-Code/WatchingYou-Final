@@ -23,12 +23,16 @@ public static class AnalyticsEndpoints
                 var occupancy = await cinema.OccupancyAsync(6, ct);
                 var topFilms = await cinema.TopFilmsAsync(6, ct);
 
-                return Results.Ok(new[] { revenue, occupancy, topFilms, mostRented, byGenre, topRated });
+                return TypedResults.Ok(new[] { revenue, occupancy, topFilms, mostRented, byGenre, topRated });
             })
-            .WithName("GetDashboardAnalytics").WithTags("Analytics").RequireAuthorization(AppRoles.Admin);
+            .WithName("GetDashboardAnalytics").WithTags("Analytics").RequireAuthorization(AppRoles.Admin)
+            .WithSummary("The dashboard's six charts")
+            .WithDescription("In display order: cinema revenue by day (10 days), hall occupancy, top cinema films, most rented, " +
+                             "rentals by genre, top rated. Each series has a `key` the page translates its title by, and its points.");
 
         app.MapGet("/api/admin/analytics/cinema-totals",
-            async (ICinemaTotals cinema, CancellationToken ct) => Results.Ok(await cinema.TotalsAsync(ct)))
-            .WithName("GetCinemaTotals").WithTags("Analytics").RequireAuthorization(AppRoles.Admin);
+            async (ICinemaTotals cinema, CancellationToken ct) => TypedResults.Ok(await cinema.TotalsAsync(ct)))
+            .WithName("GetCinemaTotals").WithTags("Analytics").RequireAuthorization(AppRoles.Admin)
+            .WithSummary("This month's cinema figures: revenue, tickets, upcoming shows, live promo codes");
     }
 }

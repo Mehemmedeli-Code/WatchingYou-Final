@@ -34,6 +34,7 @@ export function MovieCard({
   index,
   onRent,
   onOpen,
+  canWatch,
   busy,
   saved,
   onToggleSave,
@@ -50,6 +51,8 @@ export function MovieCard({
   onRent?: (movie: MovieListItem) => void;
   /** Opens the dialog, either on the description or straight into the player. */
   onOpen?: (movie: MovieListItem, mode: "details" | "watch") => void;
+  /** May this account watch the film? Then it gets Watch and no Rent; otherwise Rent only. Left out, both show. */
+  canWatch?: (movie: MovieListItem) => boolean;
   busy?: boolean;
 }) {
   const { isSecurity: isStaff } = useAuth();
@@ -115,9 +118,8 @@ export function MovieCard({
             {isStaff || isApp() ? <span /> : (
               <p className="text-sm text-ink">{formatUsd(0.5)}<span className="text-ink-mute"> / 3 {t("pro.days", "days")}</span></p>
             )}
-            <Badge tone={available ? "good" : "bad"}>
-              {available ? `${movie.availableCopies} ${t("movie.onShelf")}` : t("movie.allOut")}
-            </Badge>
+            {/* How many copies are left is the shop's business; only "none left" is the viewer's. */}
+            {available ? null : <Badge tone="bad">{t("movie.allOut")}</Badge>}
           </div>
 
           {/* Renting and watching are different intentions, so they get different buttons.
@@ -131,7 +133,7 @@ export function MovieCard({
               </Button>
             ) : null}
 
-            {onOpen ? (
+            {onOpen && (canWatch?.(movie) ?? true) ? (
               <Button
                 size="sm"
                 variant={playable ? "solid" : "outline"}
@@ -144,8 +146,8 @@ export function MovieCard({
               </Button>
             ) : null}
 
-            {onRent && !isStaff ? (
-              <Button size="sm" variant="outline" disabled={!available || busy} onClick={() => onRent(movie)}>
+            {onRent && !isStaff && !(canWatch?.(movie) ?? false) ? (
+              <Button size="sm" disabled={!available || busy} onClick={() => onRent(movie)}>
                 {busy ? t("movie.renting") : t("movie.rent")}
               </Button>
             ) : null}

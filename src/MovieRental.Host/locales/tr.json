@@ -1181,5 +1181,6 @@
   "chart.top-rated.unit": "ort. yıldız",
   "chart.top-rated.caption": "En az bir yorumu olan filmlerin ortalama puanı.",
   "gallery.like": "Beğen",
-  "gallery.unlike": "Beğenmeyi geri al"
+  "gallery.unlike": "Beğenmeyi geri al",
+  "home.searchJump": "Ara"
 }

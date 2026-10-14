@@ -195,6 +195,30 @@ const MESSAGES: Record<string, Row> = {
   "You already have {0} films waiting for review. Wait for a decision first.": ["Artıq {0} filminiz yoxlama gözləyir. Əvvəlcə qərarı gözləyin.","У вас уже {0} фильма ждут проверки. Дождитесь решения.","Zaten {0} filminiz inceleme bekliyor. Önce kararı bekleyin."],
   "Send the film as multipart/form-data.": ["Filmi fayl kimi göndərin.","Отправьте фильм как файл.","Filmi dosya olarak gönderin."],
   "PRO sign-up by card is not available yet.": ["PRO-ya kartla qoşulmaq hələ mümkün deyil.","Подписка PRO по карте пока недоступна.","Kartla PRO üyeliği henüz kullanılamıyor."],
+
+  // Every error the API sends now has a message (ApiErrors), and the fields it checks
+  "Sign in first: send the access token from /api/auth/login as \"Authorization: Bearer <token>\".": ["Davam etmək üçün daxil olun.","Войдите, чтобы продолжить.","Devam etmek için giriş yapın."],
+  "The access token is invalid or has expired. Sign in again, or get a new one from /api/auth/refresh.": ["Sessiyanın vaxtı bitib. Yenidən daxil olun.","Срок сеанса истёк. Войдите снова.","Oturum süresi doldu. Tekrar giriş yapın."],
+  "This account is not allowed to do this.": ["Bu hesabın buna icazəsi yoxdur.","У этого аккаунта нет на это прав.","Bu hesabın buna izni yok."],
+  "Enter your staff PIN first: open the staff unlock page in this browser, then try again.": ["Əvvəlcə işçi PIN-ini daxil edin: bu brauzerdə PIN səhifəsini açın, sonra yenidən cəhd edin.","Сначала введите PIN сотрудника на странице разблокировки в этом браузере, затем повторите.","Önce personel PIN'ini girin: bu tarayıcıda PIN sayfasını açın, sonra tekrar deneyin."],
+  "Nothing was found here: the address is wrong, or the item does not exist.": ["Heç nə tapılmadı: ünvan səhvdir və ya belə bir şey yoxdur.","Ничего не найдено: адрес неверный или такого нет.","Hiçbir şey bulunamadı: adres yanlış veya böyle bir şey yok."],
+  "This clashes with the current state of the item. Reload and try again.": ["Bu, mövcud vəziyyətlə uyğun gəlmir. Səhifəni yeniləyib yenidən cəhd edin.","Это противоречит текущему состоянию. Обновите страницу и повторите.","Bu, mevcut durumla çakışıyor. Sayfayı yenileyip tekrar deneyin."],
+  "The upload is too large.": ["Fayl çox böyükdür.","Файл слишком большой.","Dosya çok büyük."],
+  "The request failed.": ["Sorğu alınmadı.","Запрос не выполнен.","İstek başarısız oldu."],
+  "This field has the wrong type or format.": ["Bu sahənin dəyəri düzgün formatda deyil.","Неверный тип или формат значения.","Bu alanın türü veya biçimi yanlış."],
+  "List the roles to give, for example Security. Customer is always kept.": ["Veriləcək rolları yazın, məs. Security. Customer rolu həmişə qalır.","Перечислите роли, например Security. Роль Customer остаётся всегда.","Verilecek rolleri yazın, örn. Security. Customer rolü her zaman kalır."],
+  "A role name is empty.": ["Rol adı boşdur.","Название роли пустое.","Rol adı boş."],
+  "This account is private. Follow it and wait to be accepted to see its lists.": ["Bu hesab gizlidir. Siyahıları görmək üçün izləyin və qəbul olunmağı gözləyin.","Это закрытый аккаунт. Подпишитесь и дождитесь одобрения, чтобы видеть списки.","Bu hesap gizli. Listeleri görmek için takip edin ve kabul edilmeyi bekleyin."],
+  "This account is private. Follow it and wait to be accepted to see its films.": ["Bu hesab gizlidir. Filmləri görmək üçün izləyin və qəbul olunmağı gözləyin.","Это закрытый аккаунт. Подпишитесь и дождитесь одобрения, чтобы видеть фильмы.","Bu hesap gizli. Filmleri görmek için takip edin ve kabul edilmeyi bekleyin."],
+  "This film is not out yet, or its maker shares it with followers only.": ["Bu film hələ yayımlanmayıb və ya müəllifi onu yalnız izləyicilərlə paylaşır.","Этот фильм ещё не вышел или автор показывает его только подписчикам.","Bu film henüz yayında değil veya yapımcısı yalnızca takipçileriyle paylaşıyor."],
+  "A seat is missing its row and number.": ["Yerlərdən birinin sırası və nömrəsi yoxdur.","У одного из мест нет ряда и номера.","Koltuklardan birinin sırası ve numarası yok."],
+  "The same seat is picked twice.": ["Eyni yer iki dəfə seçilib.","Одно и то же место выбрано дважды.","Aynı koltuk iki kez seçildi."],
+  "A line is missing its item and quantity.": ["Səbətdəki sətirlərdən birində məhsul və say yoxdur.","В одной из строк нет товара и количества.","Satırlardan birinde ürün ve adet yok."],
+  "Weekdays run from 0 (Sunday) to 6 (Saturday).": ["Həftənin günləri 0 (bazar) ilə 6 (şənbə) arasındadır.","Дни недели — от 0 (воскресенье) до 6 (суббота).","Haftanın günleri 0 (pazar) ile 6 (cumartesi) arasındadır."],
+  "`from` is after `to`.": ["Başlanğıc tarixi son tarixdən sonradır.","Начальная дата позже конечной.","Başlangıç tarihi bitiş tarihinden sonra."],
+  "Every check needs an outcome.": ["Hər yoxlamanın nəticəsi olmalıdır.","У каждой проверки должен быть результат.","Her kontrolün bir sonucu olmalı."],
+  "A check is missing its name and outcome.": ["Yoxlamalardan birinin adı və nəticəsi yoxdur.","У одной из проверок нет названия и результата.","Kontrollerden birinin adı ve sonucu yok."],
+  "A check's note can be 500 characters at most.": ["Yoxlama qeydi ən çox 500 simvol ola bilər.","Заметка к проверке — не более 500 символов.","Kontrol notu en fazla 500 karakter olabilir."],
 };
 
 // "X was not found." — from Error.NotFound("X").
@@ -204,7 +228,10 @@ const THINGS: Record<string, Row> = {
   Hall: ["Zal", "Зал", "Salon"], Item: ["Məhsul", "Товар", "Ürün"], "Open shift": ["Açıq növbə", "Открытая смена", "Açık vardiya"],
   "Promo code": ["Promo kod", "Промокод", "Promosyon kodu"], Rental: ["İcarə", "Аренда", "Kiralama"], Report: ["Hesabat", "Отчёт", "Rapor"],
   Screening: ["Seans", "Сеанс", "Seans"], Submission: ["Film", "Работа", "Gönderi"], "Ticket type": ["Bilet növü", "Тип билета", "Bilet türü"],
-  User: ["İstifadəçi", "Пользователь", "Kullanıcı"],
+  User: ["İstifadəçi", "Пользователь", "Kullanıcı"], Poster: ["Poster", "Постер", "Afiş"], Trailer: ["Treyler", "Трейлер", "Fragman"],
+  "Film file": ["Film faylı", "Файл фильма", "Film dosyası"], Ticket: ["Bilet", "Билет", "Bilet"], Sale: ["Satış", "Продажа", "Satış"],
+  "Film deal": ["Distribyutor müqaviləsi", "Договор с дистрибьютором", "Dağıtıcı anlaşması"],
+  "Member on the globe": ["Qlobusdakı üzv", "Участник на глобусе", "Küredeki üye"], "Follow request": ["İzləmə istəyi", "Запрос на подписку", "Takip isteği"],
 };
 const NOT_FOUND: Row = ["{0} tapılmadı.", "{0}: не найдено.", "{0} bulunamadı."];
 
@@ -230,7 +257,12 @@ const FIELDS: Record<string, Row> = {
   "Seats": ["Yerlər", "Места", "Koltuklar"], "Share Percent": ["Pay faizi", "Доля, %", "Pay yüzdesi"], "Stars": ["Ulduzlar", "Звёзды", "Yıldızlar"],
   "Stock": ["Qalıq", "Остаток", "Stok"], "Subtitle Language": ["Altyazı dili", "Язык субтитров", "Altyazı dili"], "Tender": ["Ödəniş üsulu", "Способ оплаты", "Ödeme türü"],
   "Times": ["Saatlar", "Время", "Saatler"], "Title": ["Başlıq", "Название", "Başlık"], "Total Copies": ["Nüsxə sayı", "Количество копий", "Kopya sayısı"],
-  "Username": ["İstifadəçi adı", "Имя пользователя", "Kullanıcı adı"],
+  "Username": ["İstifadəçi adı", "Имя пользователя", "Kullanıcı adı"], "Reason": ["Səbəb", "Причина", "Neden"],
+  "Summary": ["Xülasə", "Итог", "Özet"], "Director": ["Rejissor", "Режиссёр", "Yönetmen"], "Poster Url": ["Poster ünvanı", "Адрес постера", "Afiş adresi"],
+  "Trailer Url": ["Treyler ünvanı", "Адрес трейлера", "Fragman adresi"], "Video Url": ["Video ünvanı", "Адрес видео", "Video adresi"],
+  "Refund Note": ["Geri qaytarma qeydi", "Заметка о возврате", "İade notu"], "Refund Window Hours": ["Geri qaytarma müddəti (saat)", "Срок возврата (ч)", "İade süresi (saat)"],
+  "Refund Fee Percent": ["Geri qaytarma haqqı (%)", "Комиссия за возврат (%)", "İade ücreti (%)"], "Sort Order": ["Sıra", "Порядок", "Sıra"],
+  "Roles": ["Rollar", "Роли", "Roller"],
 };
 const FV: [RegExp, Row][] = [
   [/^'(.+)' must not be empty\.$/, ["{0} boş ola bilməz.", "Поле «{0}» не может быть пустым.", "{0} boş olamaz."]],

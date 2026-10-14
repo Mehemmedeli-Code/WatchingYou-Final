@@ -249,7 +249,8 @@ function StackSpreadStage({
   // 1.3 screens tall: a third of a screen of scrolling opens the word, then the page scrolls on
   // as usual. It began at 3.5 screens, then 2; both still made thumbs ache.
   scrollLength = 130,
-  bgColor = "var(--color-surface)",
+  // See-through, so the site's green light runs behind the word as it does behind the rest.
+  bgColor = "transparent",
   clusterRotation = true,
   stackScale = 0.82,
   cardRadius = 8,
