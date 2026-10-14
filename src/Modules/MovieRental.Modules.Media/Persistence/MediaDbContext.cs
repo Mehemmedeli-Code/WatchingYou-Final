@@ -13,6 +13,7 @@ public sealed class MediaDbContext(DbContextOptions<MediaDbContext> options) : M
     public DbSet<SecurityReport> SecurityReports => Set<SecurityReport>();
     public DbSet<SecurityCheckResult> SecurityCheckResults => Set<SecurityCheckResult>();
     public DbSet<SubmissionComment> SubmissionComments => Set<SubmissionComment>();
+    public DbSet<ShortFilmLike> ShortFilmLikes => Set<ShortFilmLike>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -75,6 +76,13 @@ public sealed class MediaDbContext(DbContextOptions<MediaDbContext> options) : M
             e.Property(x => x.AuthorRole).HasMaxLength(30).IsRequired();
             e.Property(x => x.Body).HasMaxLength(2000).IsRequired();
             e.HasIndex(x => new { x.ShortFilmId, x.CreatedAtUtc });
+        });
+
+        b.Entity<ShortFilmLike>(e =>
+        {
+            e.ToTable("ShortFilmLikes");
+            e.HasKey(x => new { x.ShortFilmId, x.UserId });
+            e.HasOne<ShortFilm>().WithMany().HasForeignKey(x => x.ShortFilmId).OnDelete(DeleteBehavior.Cascade);
         });
 
         // A report belongs to its film; hiding one without the other leaves an inspection

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -155,7 +155,8 @@ internal sealed class BulkScheduleHandler(CinemaDbContext db, ICatalogApi catalo
 
 // ------------------------------------------------------------------ CSV export
 
-public sealed record ExportBookingsQuery(DateTime? FromUtc, DateTime? ToUtc) : IQuery<byte[]>;
+/// <param name="Pdf">A printable report instead of the spreadsheet.</param>
+public sealed record ExportBookingsQuery(DateTime? FromUtc, DateTime? ToUtc, bool Pdf = false) : IQuery<byte[]>;
 
 internal sealed class ExportBookingsHandler(CinemaDbContext db, IUserDirectory users)
     : IQueryHandler<ExportBookingsQuery, byte[]>
@@ -183,6 +184,7 @@ internal sealed class ExportBookingsHandler(CinemaDbContext db, IUserDirectory u
         // Times in Baku, where the cinema is; money in the order a person reads it, ending in what
         // the order actually brought in.
         DateTime? Local(DateTime? utc) => utc is { } u ? SalesReceiptPdf.Baku(u) : null;
+        if (query.Pdf) return BookingsPdf(payments, Email, from, to);
         var rows = payments.Select(p => (IReadOnlyList<object?>)new object?[]
         {
             p.Reference, Local(p.ConfirmedAtUtc ?? p.CreatedAtUtc), p.Status == PaymentStatus.Refunded ? "Refunded" : "Paid",
@@ -198,6 +200,41 @@ internal sealed class ExportBookingsHandler(CinemaDbContext db, IUserDirectory u
              "Seats", "Tickets", "Ticket value AZN", "Promo code", "Promo discount AZN", "Points used", "Points discount AZN",
              "Paid AZN", "Refunded AZN", "Net AZN", "Points earned"],
             rows);
+    }
+
+    /// <summary>The same orders on paper: the columns a person reads, totals at the foot.</summary>
+    private static byte[] BookingsPdf(List<SeatPayment> payments, Func<Guid, string> email, DateTime fromUtc, DateTime toUtc)
+    {
+        static string Day(DateTime utc) => SalesReceiptPdf.Baku(utc).ToString("dd.MM.yy HH:mm", CultureInfo.InvariantCulture);
+        static string Money(decimal value) => value.ToString("0.00", CultureInfo.InvariantCulture);
+        var refunded = Lang.PickLatin("Qaytarılıb", "Refunded", "Iade");
+        var rows = payments.Select(p => (IReadOnlyList<string>)
+        [
+            p.Reference, Day(p.ConfirmedAtUtc ?? p.CreatedAtUtc),
+            p.Status == PaymentStatus.Refunded ? refunded : Lang.PickLatin("Ödənilib", "Paid", "Ödendi"),
+            p.Provider == PaymentProvider.BoxOffice ? Lang.PickLatin("Kassa", "Box office", "Gişe") + (p.Tender is { } t ? $" ({t})" : "")
+                : p.Provider == PaymentProvider.Stripe ? "Stripe" : Lang.PickLatin("Onlayn kart", "Online card", "Online kart"),
+            email(p.UserId), p.Screening?.MovieTitle ?? "", p.Screening is { } s ? Day(s.StartsAtUtc) : "",
+            string.Join(" ", p.Seats.OrderBy(x => x.Row).ThenBy(x => x.Number).Select(x => $"{(char)('A' + x.Row - 1)}{x.Number}")),
+            Money(p.Amount), Money(p.RefundedAmount ?? 0m), Money(p.Amount - (p.RefundedAmount ?? 0m)),
+        ]).ToList();
+        var paid = payments.Sum(p => p.Amount);
+        var back = payments.Sum(p => p.RefundedAmount ?? 0m);
+        return TablePdf.Render(
+            Lang.PickLatin("Bilet satışları", "Ticket sales", "Bilet satışları"),
+            $"{SalesReceiptPdf.Baku(fromUtc):dd.MM.yyyy} - {SalesReceiptPdf.Baku(toUtc):dd.MM.yyyy} · {payments.Count} " +
+                Lang.PickLatin("sifariş", "orders", "sipariş") + " · " + Lang.PickLatin("vaxt: Bakı", "times: Baku", "saat: Bakü"),
+            [
+                new(Lang.PickLatin("Sifariş", "Order", "Sipariş"), 12), new(Lang.PickLatin("Tarix", "Date", "Tarih"), 14),
+                new(Lang.PickLatin("Status", "Status", "Durum"), 10), new(Lang.PickLatin("Ödəniş", "Method", "Ödeme"), 18),
+                new(Lang.PickLatin("Müştəri", "Customer", "Müşteri"), 28), new("Film", 26),
+                new(Lang.PickLatin("Seans", "Screening", "Seans"), 14), new(Lang.PickLatin("Yerlər", "Seats", "Koltuklar"), 14),
+                new(Lang.PickLatin("Ödənib", "Paid", "Ödenen"), 9, true), new(Lang.PickLatin("Qaytarılıb", "Refund", "Iade"), 9, true),
+                new(Lang.PickLatin("Xalis", "Net", "Net"), 9, true),
+            ],
+            rows,
+            [Lang.PickLatin("CƏMİ", "TOTAL", "TOPLAM"), "", "", "", "", "", "", "", Money(paid), Money(back), Money(paid - back)],
+            Lang.PickLatin("Səhifə", "Page", "Sayfa"));
     }
 }
 
@@ -258,6 +295,11 @@ public static class CinemaAdminToolEndpoints
                 Results.File(await dispatcher.Ask(new ExportBookingsQuery(from, to), ct), Csv.ContentType,
                     $"watchingyou-bookings-{DateTime.UtcNow:yyyyMMdd}.csv"))
             .WithName("ExportBookings");
+
+        admin.MapGet("/export/bookings.pdf", async (DateTime? from, DateTime? to, IDispatcher dispatcher, CancellationToken ct) =>
+                Results.File(await dispatcher.Ask(new ExportBookingsQuery(from, to, Pdf: true), ct), "application/pdf",
+                    $"watchingyou-bookings-{DateTime.UtcNow:yyyyMMdd}.pdf"))
+            .WithName("ExportBookingsPdf");
 
         // The till prints it too, at the end of the day: admins and cashiers.
         app.MapGet("/api/backoffice/reports/sales-receipt.pdf", async Task<IResult> (string? from, string? to, IDispatcher dispatcher, CancellationToken ct) =>

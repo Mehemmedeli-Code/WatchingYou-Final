@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Routing;
+﻿using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,6 +33,7 @@ public sealed class RentalsModule : IModule
         ReturnAndExtendEndpoints.Map(endpoints);
         RentalHistoryEndpoints.Map(endpoints);
         ExportRentalsEndpoint.Map(endpoints);
+        ExportRentalsEndpoint.MapPdf(endpoints);
         WatchingProEndpoints.Map(endpoints);
     }
 }
