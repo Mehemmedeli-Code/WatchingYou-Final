@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -14,22 +15,57 @@ namespace MovieRental.Modules.Catalog.Features;
 
 // Feature 5 — admin inventory control: add, edit, soft-delete, restore, stock.
 
+/// <summary>What creating and editing a film have in common, checked by one set of rules.</summary>
+public interface IMovieFields
+{
+    string Title { get; }
+    string Description { get; }
+    string Genre { get; }
+    int ReleaseYear { get; }
+    int DurationMinutes { get; }
+    string? Director { get; }
+    string? PosterUrl { get; }
+    string? TrailerUrl { get; }
+    string? VideoUrl { get; }
+    decimal DailyPrice { get; }
+}
+
 public sealed record CreateMovieCommand(
     string Title, string Description, string Genre, int ReleaseYear, int DurationMinutes,
     string? Director, string? PosterUrl, string? TrailerUrl, string? VideoUrl, decimal DailyPrice, int TotalCopies)
-    : ICommand<Result<MovieListItem>>;
+    : ICommand<Result<MovieListItem>>, IMovieFields;
+
+// The edit had no rules at all: an empty body reached Title.Trim() and answered 500, and a
+// 300-character title came back from the database as a "conflict".
+internal sealed class MovieFieldsValidator : AbstractValidator<IMovieFields>
+{
+    public MovieFieldsValidator()
+    {
+        RuleFor(x => x.Title).NotEmpty().MaximumLength(250);
+        RuleFor(x => x.Description).NotNull().MaximumLength(4000);
+        RuleFor(x => x.Genre).NotEmpty().MaximumLength(80);
+        RuleFor(x => x.ReleaseYear).InclusiveBetween(1888, DateTime.UtcNow.Year + 5);
+        RuleFor(x => x.DurationMinutes).InclusiveBetween(1, 600);
+        RuleFor(x => x.Director).MaximumLength(150);
+        RuleFor(x => x.PosterUrl).MaximumLength(500);
+        RuleFor(x => x.TrailerUrl).MaximumLength(500);
+        RuleFor(x => x.VideoUrl).MaximumLength(500);
+        RuleFor(x => x.DailyPrice).GreaterThan(0).LessThan(1000);
+    }
+}
 
 internal sealed class CreateMovieValidator : AbstractValidator<CreateMovieCommand>
 {
     public CreateMovieValidator()
     {
-        RuleFor(x => x.Title).NotEmpty().MaximumLength(250);
-        RuleFor(x => x.Genre).NotEmpty().MaximumLength(80);
-        RuleFor(x => x.ReleaseYear).InclusiveBetween(1888, DateTime.UtcNow.Year + 5);
-        RuleFor(x => x.DurationMinutes).InclusiveBetween(1, 600);
-        RuleFor(x => x.DailyPrice).GreaterThan(0).LessThan(1000);
+        Include(new MovieFieldsValidator());
         RuleFor(x => x.TotalCopies).InclusiveBetween(0, 10_000);
     }
+}
+
+internal sealed class UpdateMovieValidator : AbstractValidator<UpdateMovieCommand>
+{
+    public UpdateMovieValidator() => Include(new MovieFieldsValidator());
 }
 
 internal sealed class CreateMovieHandler(CatalogDbContext db) : ICommandHandler<CreateMovieCommand, Result<MovieListItem>>
@@ -63,9 +99,10 @@ internal sealed class CreateMovieHandler(CatalogDbContext db) : ICommandHandler<
     }
 }
 
+/// <param name="Id">From the address; not read from the body.</param>
 public sealed record UpdateMovieCommand(
-    Guid Id, string Title, string Description, string Genre, int ReleaseYear, int DurationMinutes,
-    string? Director, string? PosterUrl, string? TrailerUrl, string? VideoUrl, decimal DailyPrice) : ICommand<Result>;
+    [property: JsonIgnore] Guid Id, string Title, string Description, string Genre, int ReleaseYear, int DurationMinutes,
+    string? Director, string? PosterUrl, string? TrailerUrl, string? VideoUrl, decimal DailyPrice) : ICommand<Result>, IMovieFields;
 
 internal sealed class UpdateMovieHandler(CatalogDbContext db) : ICommandHandler<UpdateMovieCommand, Result>
 {
@@ -74,8 +111,12 @@ internal sealed class UpdateMovieHandler(CatalogDbContext db) : ICommandHandler<
         var movie = await db.Movies.FirstOrDefaultAsync(m => m.Id == command.Id, ct);
         if (movie is null) return Result.Failure(Error.NotFound("Movie"));
 
+        var slug = SlugFactory.Create(command.Title, command.ReleaseYear);
+        if (await db.Movies.AnyAsync(m => m.Slug == slug && m.Id != movie.Id, ct))
+            return Result.Failure(Error.Conflict("That title and year are already in the catalogue."));
+
         movie.Title = command.Title.Trim();
-        movie.Slug = SlugFactory.Create(command.Title, command.ReleaseYear);
+        movie.Slug = slug;
         movie.Description = command.Description.Trim();
         movie.Genre = command.Genre.Trim();
         movie.ReleaseYear = command.ReleaseYear;
@@ -91,7 +132,8 @@ internal sealed class UpdateMovieHandler(CatalogDbContext db) : ICommandHandler<
     }
 }
 
-public sealed record UpdateStockCommand(Guid Id, int TotalCopies) : ICommand<Result>;
+/// <param name="Id">From the address; not read from the body.</param>
+public sealed record UpdateStockCommand([property: JsonIgnore] Guid Id, int TotalCopies) : ICommand<Result>;
 
 internal sealed class UpdateStockValidator : AbstractValidator<UpdateStockCommand>
 {
@@ -162,35 +204,47 @@ public static class ManageMoviesEndpoints
         {
             var result = await dispatcher.Send(command, ct);
             return result.IsSuccess ? TypedResults.Ok(result.Value) : TypedResults.Conflict(result.Error);
-        }).WithName("CreateMovie");
+        }).WithName("CreateMovie")
+        .WithSummary("Add a film to the catalogue")
+        .WithDescription("`releaseYear` 1888 to five years ahead, `durationMinutes` 1 to 600, `dailyPrice` above 0 and below 1000, " +
+                         "`totalCopies` 0 to 10000. 409: a film with that title and year is already in the catalogue.");
 
-        admin.MapPut("/{id:guid}", async Task<Results<NoContent, NotFound<Error>>> (
+        admin.MapPut("/{id:guid}", async Task<Results<NoContent, NotFound<Error>, Conflict<Error>>> (
             Guid id, UpdateMovieCommand body, IDispatcher dispatcher, CancellationToken ct) =>
         {
             var result = await dispatcher.Send(body with { Id = id }, ct);
-            return result.IsSuccess ? TypedResults.NoContent() : TypedResults.NotFound(result.Error);
-        }).WithName("PutMovieWithId");
+            if (result.IsSuccess) return TypedResults.NoContent();
+            return result.Error.Code == "not_found" ? TypedResults.NotFound(result.Error) : TypedResults.Conflict(result.Error);
+        }).WithName("PutMovieWithId")
+        .WithSummary("Edit a film")
+        .WithDescription("Every field is sent, as in the create call (stock is set separately). 409: another film already has that title and year.");
 
-        admin.MapPatch("/{id:guid}/stock", async Task<Results<NoContent, Conflict<Error>>> (
+        admin.MapPatch("/{id:guid}/stock", async Task<Results<NoContent, NotFound<Error>, Conflict<Error>>> (
             Guid id, UpdateStockCommand body, IDispatcher dispatcher, CancellationToken ct) =>
         {
             var result = await dispatcher.Send(body with { Id = id }, ct);
-            return result.IsSuccess ? TypedResults.NoContent() : TypedResults.Conflict(result.Error);
-        }).WithName("UpdateStockWithId");
+            if (result.IsSuccess) return TypedResults.NoContent();
+            return result.Error.Code == "not_found" ? TypedResults.NotFound(result.Error) : TypedResults.Conflict(result.Error);
+        }).WithName("UpdateStockWithId")
+        .WithSummary("Set how many copies of a film the shop has")
+        .WithDescription("`totalCopies` 0 to 10000. 409: fewer than are out on rental right now.");
 
         admin.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>>> (
             Guid id, IDispatcher dispatcher, CancellationToken ct) =>
         {
             var result = await dispatcher.Send(new SoftDeleteMovieCommand(id), ct);
             return result.IsSuccess ? TypedResults.NoContent() : TypedResults.NotFound(result.Error);
-        }).WithName("SoftDeleteWithId");
+        }).WithName("SoftDeleteWithId")
+        .WithSummary("Withdraw a film (it can be restored)")
+        .WithDescription("Hidden from the catalogue; rentals, reviews and bookings keep it.");
 
         admin.MapPost("/{id:guid}/restore", async Task<Results<NoContent, NotFound<Error>>> (
             Guid id, IDispatcher dispatcher, CancellationToken ct) =>
         {
             var result = await dispatcher.Send(new RestoreMovieCommand(id), ct);
             return result.IsSuccess ? TypedResults.NoContent() : TypedResults.NotFound(result.Error);
-        }).WithName("RestoreWithId");
+        }).WithName("RestoreWithId")
+        .WithSummary("Put a withdrawn film back in the catalogue");
     }
 }
 

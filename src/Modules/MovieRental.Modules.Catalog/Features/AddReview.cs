@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -14,7 +15,8 @@ using MovieRental.SharedKernel.Security;
 namespace MovieRental.Modules.Catalog.Features;
 
 // Feature 7 — star rating plus written review, one per customer per title.
-public sealed record AddReviewCommand(Guid MovieId, int Stars, string Comment) : ICommand<Result<ReviewResponse>>;
+/// <param name="MovieId">From the address; not read from the body.</param>
+public sealed record AddReviewCommand([property: JsonIgnore] Guid MovieId, int Stars, string? Comment = null) : ICommand<Result<ReviewResponse>>;
 
 internal sealed class AddReviewValidator : AbstractValidator<AddReviewCommand>
 {
@@ -35,11 +37,12 @@ internal sealed class AddReviewHandler(CatalogDbContext db, ICurrentUser current
         // A rating from somebody who never watched the film is noise, and it moves the same
         // average as a real one. Past rentals count: returning it is not a reason to lose
         // your say.
+        // The film first: an unknown id is a 404, not "rent it first".
+        var movie = await db.Movies.Include(m => m.Reviews).FirstOrDefaultAsync(m => m.Id == command.MovieId, ct);
+        if (movie is null) return Result.Failure<ReviewResponse>(Error.NotFound("Movie"));
         if (!await rentals.HasRentedAsync(userId, command.MovieId, ct))
             return Result.Failure<ReviewResponse>(
                 Error.Forbidden("Rent this film before reviewing it."));
-        var movie = await db.Movies.Include(m => m.Reviews).FirstOrDefaultAsync(m => m.Id == command.MovieId, ct);
-        if (movie is null) return Result.Failure<ReviewResponse>(Error.NotFound("Movie"));
 
         var existing = movie.Reviews.FirstOrDefault(r => r.UserId == userId);
         var contact = await users.GetContactAsync(userId, ct);
@@ -49,7 +52,7 @@ internal sealed class AddReviewHandler(CatalogDbContext db, ICurrentUser current
         if (existing is not null)
         {
             existing.Stars = command.Stars;
-            existing.Comment = command.Comment.Trim();
+            existing.Comment = (command.Comment ?? "").Trim();
             review = existing;
         }
         else
@@ -60,7 +63,7 @@ internal sealed class AddReviewHandler(CatalogDbContext db, ICurrentUser current
                 UserId = userId,
                 AuthorName = authorName,
                 Stars = command.Stars,
-                Comment = command.Comment.Trim()
+                Comment = (command.Comment ?? "").Trim()
             };
             // Added through the DbSet, not through movie.Reviews. The review's Guid key is set
             // in C#, and EF assumes an entity found on a tracked parent's collection *with* a
@@ -95,5 +98,9 @@ public static class AddReviewEndpoint
                     ? TypedResults.Json(result.Error, statusCode: StatusCodes.Status403Forbidden)
                     : TypedResults.NotFound(result.Error);
             })
-        .WithName("AddReview").WithTags("Catalog").RequireAuthorization();
+        .WithName("AddReview").WithTags("Catalog").RequireAuthorization()
+        .WithSummary("Rate and review a film I have rented")
+        .WithDescription("`stars` 1 to 5, `comment` up to 2000 characters (optional). One review per person per film: " +
+                         "a second one replaces the first. 403: you have never rented this film.")
+        .Produces<Error>(StatusCodes.Status403Forbidden);
 }

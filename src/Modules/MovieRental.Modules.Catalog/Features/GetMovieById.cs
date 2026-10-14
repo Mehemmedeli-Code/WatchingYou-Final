@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Catalog.Persistence;
 using MovieRental.SharedKernel.Cqrs;
+using MovieRental.SharedKernel.Results;
 using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Catalog.Features;
@@ -39,10 +40,12 @@ public static class GetMovieByIdEndpoint
 {
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapGet("/api/movies/{id:guid}",
-            async Task<Results<Ok<MovieDetail>, NotFound>> (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
+            async Task<Results<Ok<MovieDetail>, NotFound<Error>>> (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var movie = await dispatcher.Ask(new GetMovieByIdQuery(id), ct);
-                return movie is null ? TypedResults.NotFound() : TypedResults.Ok(movie);
+                return movie is null ? TypedResults.NotFound(Error.NotFound("Movie")) : TypedResults.Ok(movie);
             })
-        .WithName("GetMovieById").WithTags("Catalog").AllowAnonymous().CacheOutput(AppPolicies.CatalogueCache);
+        .WithName("GetMovieById").WithTags("Catalog").AllowAnonymous().CacheOutput(AppPolicies.CatalogueCache)
+        .WithSummary("One film, with its reviews")
+        .WithDescription("The video address is not here: /api/movies/{id}/watch hands it out to those who may watch.");
 }

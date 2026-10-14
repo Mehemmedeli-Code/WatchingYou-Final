@@ -104,12 +104,18 @@ public static class GetMoviesEndpoints
                 // Withdrawn titles are for the admin's restore screen only. The flag used to be
                 // honoured for anyone who added it to the query string.
                 var safe = filter with { IncludeDeleted = filter.IncludeDeleted == true && user.IsInRole(AppRoles.Admin) };
-                return Results.Ok(await dispatcher.Ask(new GetMoviesQuery(safe), ct));
+                return TypedResults.Ok(await dispatcher.Ask(new GetMoviesQuery(safe), ct));
             })
-            .WithName("GetMovies").WithTags("Catalog").AllowAnonymous().CacheOutput(AppPolicies.CatalogueCache);
+            .WithName("GetMovies").WithTags("Catalog").AllowAnonymous().CacheOutput(AppPolicies.CatalogueCache)
+            .WithSummary("Browse and search the catalogue, a page at a time")
+            .WithDescription("`Search` looks in the title, description and director. `Genre` (\"all\" for any), `YearFrom`/`YearTo`, " +
+                             "`MinRating` (0-5), `OnlyAvailable` (a copy is free), `Originals`. `SortBy`: title, year, price or rating " +
+                             "(left out: newest first); `SortDir`: asc or desc. `Page` from 1, `PageSize` 1 to 60 (default 12). " +
+                             "`IncludeDeleted` works for admins only.");
 
         app.MapGet("/api/movies/genres", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetGenresQuery(), ct)))
-            .WithName("GetGenres").WithTags("Catalog").AllowAnonymous().CacheOutput(AppPolicies.CatalogueCache);
+                TypedResults.Ok(await dispatcher.Ask(new GetGenresQuery(), ct)))
+            .WithName("GetGenres").WithTags("Catalog").AllowAnonymous().CacheOutput(AppPolicies.CatalogueCache)
+            .WithSummary("Every genre in the catalogue, A to Z");
     }
 }
