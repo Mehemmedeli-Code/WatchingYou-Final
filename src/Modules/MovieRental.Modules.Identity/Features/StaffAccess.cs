@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -76,7 +77,7 @@ internal sealed class UnlockStaffHandler(IdentityDbContext db, ICurrentUser curr
 
 /// <summary>The owner sets each staff member's PIN. Null clears it, which closes the staff
 /// screens to that person until a new one is set.</summary>
-public sealed record SetStaffPinCommand(Guid UserId, string? Pin) : ICommand<Result>;
+public sealed record SetStaffPinCommand([property: JsonIgnore] Guid UserId, string? Pin) : ICommand<Result>;
 
 internal sealed class SetStaffPinValidator : AbstractValidator<SetStaffPinCommand>
 {
@@ -166,5 +167,8 @@ public static class StaffPinEndpoints
                         _ => TypedResults.BadRequest(result.Error)
                     };
                 })
-            .WithName("SetStaffPin").WithTags("Users").RequireAuthorization(AppRoles.SuperAdmin);
+            .WithName("SetStaffPin").WithTags("Users").RequireAuthorization(AppRoles.SuperAdmin)
+            .WithSummary("Set or clear a staff member's PIN")
+            .WithDescription("`pin`: 4 to 12 digits, or null to clear it (that person cannot open staff screens until a new one is set). " +
+                             "409: not a member of staff, or the owner, whose PIN is set on the server.");
 }

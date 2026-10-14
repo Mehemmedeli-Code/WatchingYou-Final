@@ -130,6 +130,10 @@ public static class VerificationEndpoints
                     : TypedResults.BadRequest(result.Error);
             })
         .WithName("SendVerification").WithTags("Auth").AllowAnonymous()
+        .WithSummary("Send a six-digit confirmation code by e-mail or SMS")
+        .WithDescription("`channel`: Email or Sms (SMS needs a phone number on the profile). Not signed in, the answer is " +
+                         "always 204, whether or not the address has an account. Signed in, the real reason is given: " +
+                         "409 when already confirmed or asked again within a minute, 400 when there is no phone number.")
         .RequireRateLimiting(AppPolicies.CodeRateLimit);
 
         app.MapPost("/api/auth/verification/confirm",
@@ -140,6 +144,8 @@ public static class VerificationEndpoints
                 return result.IsSuccess ? TypedResults.NoContent() : TypedResults.BadRequest(result.Error);
             })
         .WithName("ConfirmVerificationCode").WithTags("Auth").AllowAnonymous()
+        .WithSummary("Confirm the e-mail address or phone number with the code")
+        .WithDescription("400: the code is wrong (`message` says how many tries are left), expired or used up.")
         .RequireRateLimiting(AppPolicies.CodeRateLimit);
     }
 }

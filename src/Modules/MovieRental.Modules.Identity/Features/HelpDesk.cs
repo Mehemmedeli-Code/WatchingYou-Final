@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -158,7 +159,14 @@ internal sealed class GetChatHandler(IdentityDbContext db) : IQueryHandler<GetCh
     }
 }
 
-public sealed record DeskReplyCommand(Guid ConversationId, string Body) : ICommand<Result<ChatThread>>;
+/// <param name="ConversationId">From the address; not read from the body.</param>
+public sealed record DeskReplyCommand([property: JsonIgnore] Guid ConversationId, string Body) : ICommand<Result<ChatThread>>;
+
+// Too long used to reach the database and come back as a 409 "conflict".
+internal sealed class DeskReplyValidator : AbstractValidator<DeskReplyCommand>
+{
+    public DeskReplyValidator() => RuleFor(x => x.Body).NotEmpty().MaximumLength(4000);
+}
 
 internal sealed class DeskReplyHandler(IdentityDbContext db, ICurrentUser currentUser, IRealtimeNotifier realtime)
     : ICommandHandler<DeskReplyCommand, Result<ChatThread>>
@@ -247,8 +255,10 @@ public static class HelpDeskEndpoints
         // Null when they have never written: the page opens with a greeting rather than an
         // error, and the thread is created by the first message.
         mine.MapGet("/chat", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetMyChatQuery(), ct)))
-            .WithName("GetMyChat");
+                TypedResults.Ok(await dispatcher.Ask(new GetMyChatQuery(), ct)))
+            .WithName("GetMyChat")
+            .WithSummary("My conversation with the help desk")
+            .WithDescription("The whole thread, oldest message first; `null` when you have never written.");
 
         mine.MapPost("/chat", async Task<Results<Ok<ChatThread>, BadRequest<Error>, NotFound<Error>>> (
             SendChatMessageCommand body, IDispatcher dispatcher, CancellationToken ct) =>
@@ -258,21 +268,29 @@ public static class HelpDeskEndpoints
             return result.Error.Code == "not_found"
                 ? TypedResults.NotFound(result.Error)
                 : TypedResults.BadRequest(result.Error);
-        }).WithName("SendChatMessage").RequireRateLimiting(AppPolicies.WriteRateLimit);
+        }).WithName("SendChatMessage").RequireRateLimiting(AppPolicies.WriteRateLimit)
+        .WithSummary("Write to the help desk")
+        .WithDescription("`body`: 1 to 4000 characters. Starts the conversation, or reopens a closed one. Answers with the thread.");
 
         var desk = app.MapGroup("/api/help/inbox").WithTags("Help")
             .RequireAuthorization(AppPolicies.Moderation);
 
         desk.MapGet("", async (bool? includeClosed, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetInboxQuery(includeClosed ?? false), ct)))
-            .WithName("GetHelpInbox");
+                TypedResults.Ok(await dispatcher.Ask(new GetInboxQuery(includeClosed ?? false), ct)))
+            .WithName("GetHelpInbox")
+            .WithSummary("The help desk's inbox, latest first")
+            .WithDescription("Open and answered conversations (with `includeClosed=true`, closed ones too), each with its unread count and last line.");
 
         desk.MapGet("/{id:guid}", async (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var thread = await dispatcher.Ask(new GetChatQuery(id), ct);
-                return thread is null ? Results.NotFound() : Results.Ok(thread);
+                return thread is null
+                    ? (Results<Ok<ChatThread>, NotFound<Error>>)TypedResults.NotFound(Error.NotFound("Conversation"))
+                    : TypedResults.Ok(thread);
             })
-            .WithName("GetHelpChatWithId");
+            .WithName("GetHelpChatWithId")
+            .WithSummary("One conversation, for the desk")
+            .WithDescription("Opening it marks the customer's messages as read.");
 
         desk.MapPost("/{id:guid}", async Task<Results<Ok<ChatThread>, BadRequest<Error>, NotFound<Error>>> (
             Guid id, DeskReplyCommand body, IDispatcher dispatcher, CancellationToken ct) =>
@@ -282,13 +300,17 @@ public static class HelpDeskEndpoints
             return result.Error.Code == "not_found"
                 ? TypedResults.NotFound(result.Error)
                 : TypedResults.BadRequest(result.Error);
-        }).WithName("DeskReplyWithId");
+        }).WithName("DeskReplyWithId")
+        .WithSummary("Answer a conversation as the help desk")
+        .WithDescription("`body`: 1 to 4000 characters, signed with your name. Marks the conversation answered.");
 
         desk.MapPost("/{id:guid}/close", async Task<Results<NoContent, NotFound<Error>>> (
             Guid id, IDispatcher dispatcher, CancellationToken ct) =>
         {
             var result = await dispatcher.Send(new CloseChatCommand(id), ct);
             return result.IsSuccess ? TypedResults.NoContent() : TypedResults.NotFound(result.Error);
-        }).WithName("CloseHelpChatWithId");
+        }).WithName("CloseHelpChatWithId")
+        .WithSummary("Close a conversation")
+        .WithDescription("It reopens by itself when the customer writes again.");
     }
 }

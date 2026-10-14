@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using System.Text.Json.Serialization;
+using FluentValidation;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
@@ -52,7 +54,18 @@ internal sealed class GetUsersHandler(IdentityDbContext db)
     }
 }
 
-public sealed record SetUserRolesCommand(Guid UserId, string[] Roles) : ICommand<Result>;
+/// <param name="UserId">From the address; not read from the body.</param>
+public sealed record SetUserRolesCommand([property: JsonIgnore] Guid UserId, string[] Roles) : ICommand<Result>;
+
+// "roles" left out used to reach Roles.Where and answer 500.
+internal sealed class SetUserRolesValidator : AbstractValidator<SetUserRolesCommand>
+{
+    public SetUserRolesValidator()
+    {
+        RuleFor(x => x.Roles).NotNull().WithMessage("List the roles to give, for example Security. Customer is always kept.");
+        RuleForEach(x => x.Roles).NotEmpty().WithMessage("A role name is empty.");
+    }
+}
 
 internal sealed class SetUserRolesHandler(IdentityDbContext db, ICurrentUser currentUser, IAuditLog audit)
     : ICommandHandler<SetUserRolesCommand, Result>
@@ -110,7 +123,13 @@ internal sealed class SetUserRolesHandler(IdentityDbContext db, ICurrentUser cur
     }
 }
 
-public sealed record SetUserSuspensionCommand(Guid UserId, bool Suspended, string? Reason) : ICommand<Result>;
+/// <param name="UserId">From the address; not read from the body.</param>
+public sealed record SetUserSuspensionCommand([property: JsonIgnore] Guid UserId, bool Suspended, string? Reason = null) : ICommand<Result>;
+
+internal sealed class SetUserSuspensionValidator : AbstractValidator<SetUserSuspensionCommand>
+{
+    public SetUserSuspensionValidator() => RuleFor(x => x.Reason).MaximumLength(500);
+}
 
 internal sealed class SetUserSuspensionHandler(IdentityDbContext db, ICurrentUser currentUser, IAuditLog audit)
     : ICommandHandler<SetUserSuspensionCommand, Result>
@@ -174,8 +193,10 @@ public static class ManageUsersEndpoints
         var admin = app.MapGroup("/api/admin/users").WithTags("Users").RequireAuthorization(AppRoles.Admin);
 
         admin.MapGet("", async (string? search, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetUsersQuery(search), ct)))
-            .WithName("GetUsers");
+                TypedResults.Ok(await dispatcher.Ask(new GetUsersQuery(search), ct)))
+            .WithName("GetUsers")
+            .WithSummary("List accounts: the staff, or everyone matching a search")
+            .WithDescription("`search` matches the e-mail or the name (up to 200 rows). Left empty, the list is the staff.");
 
         admin.MapPut("/{id:guid}/roles",
             async Task<Results<NoContent, BadRequest<Error>, Conflict<Error>, NotFound<Error>>> (
@@ -189,7 +210,10 @@ public static class ManageUsersEndpoints
                     "conflict" => TypedResults.Conflict(result.Error),
                     _ => TypedResults.BadRequest(result.Error)
                 };
-            }).WithName("SetUserRolesWithId");
+            }).WithName("SetUserRolesWithId")
+            .WithSummary("Set an account's roles")
+            .WithDescription("Roles: Admin, Security, Cashier, Moderator, Customer (Customer is always kept). Only the owner gives " +
+                             "or takes Admin. 409: the owner's roles, your own Admin role, or the last admin.");
 
         admin.MapPut("/{id:guid}/suspension",
             async Task<Results<NoContent, Conflict<Error>, NotFound<Error>>> (
@@ -200,7 +224,10 @@ public static class ManageUsersEndpoints
                 return result.Error.Code == "not_found"
                     ? TypedResults.NotFound(result.Error)
                     : TypedResults.Conflict(result.Error);
-            }).WithName("SetUserSuspensionWithId");
+            }).WithName("SetUserSuspensionWithId")
+            .WithSummary("Suspend an account, or lift the suspension")
+            .WithDescription("Suspending ends every session of the account; `reason` is shown to them at sign-in. " +
+                             "409: yourself, the owner, an admin (unless you are the owner), or the last active admin.");
     }
 }
 
@@ -210,6 +237,8 @@ public static class AuditEndpoints
 {
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapGet("/api/admin/audit", async (int? take, IAuditLog audit, CancellationToken ct) =>
-                Results.Ok(await audit.RecentAsync(take ?? 100, ct)))
-            .WithName("GetAuditLog").WithTags("Users").RequireAuthorization(AppRoles.Admin);
+                TypedResults.Ok(await audit.RecentAsync(take ?? 100, ct)))
+            .WithName("GetAuditLog").WithTags("Users").RequireAuthorization(AppRoles.Admin)
+            .WithSummary("The audit log: who did what, newest first")
+            .WithDescription("`take`: how many entries, 1 to 500 (default 100). Read-only: no call edits or deletes an entry.");
 }

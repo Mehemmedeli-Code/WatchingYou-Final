@@ -102,13 +102,15 @@ public static class ForgotPasswordEndpoints
     public static void Map(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/auth/password/forgot",
-            async Task<Results<NoContent, Conflict<Error>>> (
+            async Task<NoContent> (
                 RequestPasswordResetCommand command, IDispatcher dispatcher, CancellationToken ct) =>
             {
-                var result = await dispatcher.Send(command, ct);
-                return result.IsSuccess ? TypedResults.NoContent() : TypedResults.Conflict(result.Error);
+                await dispatcher.Send(command, ct);
+                return TypedResults.NoContent();
             })
         .WithName("RequestPasswordReset").WithTags("Auth").AllowAnonymous()
+        .WithSummary("E-mail a password-reset code")
+        .WithDescription("Always 204, whether or not the address has an account, so the form cannot tell who is registered.")
         .RequireRateLimiting(AppPolicies.CodeRateLimit);
 
         app.MapPost("/api/auth/password/reset",
@@ -119,6 +121,8 @@ public static class ForgotPasswordEndpoints
                 return result.IsSuccess ? TypedResults.NoContent() : TypedResults.BadRequest(result.Error);
             })
         .WithName("ResetPassword").WithTags("Auth").AllowAnonymous()
+        .WithSummary("Set a new password with the reset code")
+        .WithDescription("Ends every session of the account. 400: the code is wrong, expired or used up, or the password is too weak.")
         .RequireRateLimiting(AppPolicies.CodeRateLimit);
     }
 }

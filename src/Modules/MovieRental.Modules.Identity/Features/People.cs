@@ -55,7 +55,7 @@ public static class PeopleEndpoints
                 const int size = 20;
 
                 // An empty box shows nobody: there is no "browse all users" on a site this size.
-                if (term.Length < 2) return Results.Ok(new PeoplePage([], pageNo, size, false));
+                if (term.Length < 2) return TypedResults.Ok(new PeoplePage([], pageNo, size, false));
 
                 // Handle matches first (that is what people type), then names; one row more than
                 // a page to know whether a next page exists.
@@ -71,9 +71,11 @@ public static class PeopleEndpoints
                     .ToListAsync(ct);
 
                 var items = await CardsAsync(ids.Take(size).ToList(), db, currentUser.RequireId(), presence, ct);
-                return Results.Ok(new PeoplePage(items, pageNo, size, ids.Count > size));
+                return TypedResults.Ok(new PeoplePage(items, pageNo, size, ids.Count > size));
             })
-            .WithName("SearchPeople");
+            .WithName("SearchPeople")
+            .WithSummary("Find people by @username or name, 20 a page")
+            .WithDescription("`q`: at least 2 characters (fewer gives an empty page). Usernames that start with it come first.");
 
         // A profile by its @handle, the way /u/{username} links to it.
         people.MapGet("/u/{username}", async (string username, IdentityDbContext db, ICurrentUser currentUser,
@@ -81,7 +83,7 @@ public static class PeopleEndpoints
             {
                 var me = currentUser.RequireId();
                 var handle = Usernames.Normalize(username);
-                if (!Usernames.IsValid(handle)) return Results.NotFound();
+                if (!Usernames.IsValid(handle)) return Results.NotFound(MovieRental.SharedKernel.Results.Error.NotFound("User"));
 
                 var p = await db.Users.AsNoTracking()
                     .Where(u => u.Username == handle && !u.IsSuspended)
@@ -94,42 +96,57 @@ public static class PeopleEndpoints
                         FollowsMe = db.Follows.Any(f => f.FollowerId == u.Id && f.FolloweeId == me && f.IsAccepted)
                     })
                     .FirstOrDefaultAsync(ct);
-                if (p is null) return Results.NotFound();
+                if (p is null) return Results.NotFound(MovieRental.SharedKernel.Results.Error.NotFound("User"));
 
                 var isMe = p.Id == me;
                 return Results.Ok(new ProfileView(p.Id, p.Username, p.FullName, p.AvatarUrl, p.Bio,
                     p.Followers, p.Following, p.IsPrivate, isMe, p.Mine == true, p.Mine == false, p.FollowsMe,
                     presence.IsOnline(p.Id), isMe || !p.IsPrivate || p.Mine == true, !isMe && p.ShareOnGlobe));
             })
-            .WithName("GetProfile");
+            .WithName("GetProfile")
+            .WithSummary("Someone's profile by @username")
+            .WithDescription("`canView` is false for a private account that has not accepted you: then only the header is shown.")
+            .Produces<ProfileView>()
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status404NotFound);
 
         // Who follows someone, and whom they follow: the lists behind the two counts, newest
         // first, a page at a time. A private account's lists are for its accepted followers.
         people.MapGet("/{id:guid}/followers", async (Guid id, int? page, IdentityDbContext db, ICurrentUser currentUser,
                 Presence presence, CancellationToken ct) =>
-            await MayViewAsync(id, db, currentUser.RequireId(), ct)
-                ? await ListAsync(db.Follows.Where(f => f.FolloweeId == id && f.IsAccepted).OrderByDescending(f => f.CreatedAtUtc).Select(f => f.FollowerId),
-                    page, db, currentUser, presence, ct)
-                : Results.StatusCode(StatusCodes.Status403Forbidden))
-            .WithName("Followers");
+            await ViewRefusalAsync(id, db, currentUser.RequireId(), ct) is { } refused
+                ? refused
+                : await ListAsync(db.Follows.Where(f => f.FolloweeId == id && f.IsAccepted).OrderByDescending(f => f.CreatedAtUtc).Select(f => f.FollowerId),
+                    page, db, currentUser, presence, ct))
+            .WithName("Followers")
+            .WithSummary("Who follows someone, newest first, 30 a page")
+            .WithDescription("403: a private account whose followers you are not one of.")
+            .Produces<PeoplePage>()
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status403Forbidden)
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status404NotFound);
 
         people.MapGet("/{id:guid}/following", async (Guid id, int? page, IdentityDbContext db, ICurrentUser currentUser,
                 Presence presence, CancellationToken ct) =>
-            await MayViewAsync(id, db, currentUser.RequireId(), ct)
-                ? await ListAsync(db.Follows.Where(f => f.FollowerId == id && f.IsAccepted).OrderByDescending(f => f.CreatedAtUtc).Select(f => f.FolloweeId),
-                    page, db, currentUser, presence, ct)
-                : Results.StatusCode(StatusCodes.Status403Forbidden))
-            .WithName("Following");
+            await ViewRefusalAsync(id, db, currentUser.RequireId(), ct) is { } refused
+                ? refused
+                : await ListAsync(db.Follows.Where(f => f.FollowerId == id && f.IsAccepted).OrderByDescending(f => f.CreatedAtUtc).Select(f => f.FolloweeId),
+                    page, db, currentUser, presence, ct))
+            .WithName("Following")
+            .WithSummary("Whom someone follows, newest first, 30 a page")
+            .WithDescription("403: a private account whose followers you are not one of.")
+            .Produces<PeoplePage>()
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status403Forbidden)
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status404NotFound);
 
         people.MapGet("/me", async (IdentityDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
             {
                 var me = currentUser.RequireId();
-                return Results.Ok(new FollowCounts(
+                return TypedResults.Ok(new FollowCounts(
                     await db.Follows.CountAsync(f => f.FolloweeId == me && f.IsAccepted, ct),
                     await db.Follows.CountAsync(f => f.FollowerId == me && f.IsAccepted, ct),
                     await db.Follows.CountAsync(f => f.FolloweeId == me && !f.IsAccepted, ct)));
             })
-            .WithName("MyFollowCounts");
+            .WithName("MyFollowCounts")
+            .WithSummary("My follower, following and waiting-request counts");
 
         people.MapPost("/{id:guid}/follow", async (Guid id, IdentityDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
             {
@@ -137,7 +154,7 @@ public static class PeopleEndpoints
                 if (id == me) return Results.BadRequest(MovieRental.SharedKernel.Results.Error.Validation("You cannot follow yourself."));
                 var target = await db.Users.AsNoTracking().Where(u => u.Id == id && !u.IsSuspended)
                     .Select(u => new { u.IsPrivate }).FirstOrDefaultAsync(ct);
-                if (target is null) return Results.NotFound();
+                if (target is null) return Results.NotFound(MovieRental.SharedKernel.Results.Error.NotFound("User"));
 
                 // The pair is the key: following (or asking) twice is simply already done.
                 var existing = await db.Follows.AsNoTracking().FirstOrDefaultAsync(f => f.FollowerId == me && f.FolloweeId == id, ct);
@@ -148,7 +165,12 @@ public static class PeopleEndpoints
                 catch (DbUpdateException) { /* a double click raced itself; the row exists */ }
                 return Results.Ok(new FollowResult(target.IsPrivate ? "requested" : "following"));
             })
-            .WithName("Follow").RequireRateLimiting(AppPolicies.WriteRateLimit);
+            .WithName("Follow").RequireRateLimiting(AppPolicies.WriteRateLimit)
+            .WithSummary("Follow someone (a private account gets a request)")
+            .WithDescription("`status`: following, or requested for a private account. Following twice changes nothing.")
+            .Produces<FollowResult>()
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status400BadRequest)
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status404NotFound);
 
         // Unfollow, or take back a request that has not been answered.
         people.MapDelete("/{id:guid}/follow", async (Guid id, IdentityDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
@@ -157,7 +179,10 @@ public static class PeopleEndpoints
                 await db.Follows.Where(f => f.FollowerId == me && f.FolloweeId == id).ExecuteDeleteAsync(ct);
                 return Results.NoContent();
             })
-            .WithName("Unfollow");
+            .WithName("Unfollow")
+            .WithSummary("Unfollow someone, or take back a request")
+            .WithDescription("Always 204, also when you were not following them.")
+            .Produces(StatusCodes.Status204NoContent);
 
         // Requests waiting for me, newest first.
         people.MapGet("/requests", async (int? page, IdentityDbContext db, ICurrentUser currentUser,
@@ -167,7 +192,9 @@ public static class PeopleEndpoints
                 return await ListAsync(db.Follows.Where(f => f.FolloweeId == me && !f.IsAccepted)
                     .OrderByDescending(f => f.CreatedAtUtc).Select(f => f.FollowerId), page, db, currentUser, presence, ct);
             })
-            .WithName("FollowRequests");
+            .WithName("FollowRequests")
+            .WithSummary("Follow requests waiting for me, newest first")
+            .Produces<PeoplePage>();
 
         // Accept: they now follow me. The answer is their card, so the page can offer "Follow back".
         people.MapPost("/requests/{followerId:guid}/accept", async (Guid followerId, IdentityDbContext db,
@@ -176,10 +203,14 @@ public static class PeopleEndpoints
                 var me = currentUser.RequireId();
                 var accepted = await db.Follows.Where(f => f.FollowerId == followerId && f.FolloweeId == me && !f.IsAccepted)
                     .ExecuteUpdateAsync(s => s.SetProperty(f => f.IsAccepted, true), ct);
-                if (accepted == 0) return Results.NotFound();
+                if (accepted == 0) return Results.NotFound(MovieRental.SharedKernel.Results.Error.NotFound("Follow request"));
                 return Results.Ok((await CardsAsync([followerId], db, me, presence, ct)).FirstOrDefault());
             })
-            .WithName("AcceptFollowRequest");
+            .WithName("AcceptFollowRequest")
+            .WithSummary("Accept someone's follow request")
+            .WithDescription("Answers with their card, so the page can offer Follow back. 404: no request from them.")
+            .Produces<PersonCard>()
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status404NotFound);
 
         people.MapDelete("/requests/{followerId:guid}", async (Guid followerId, IdentityDbContext db,
                 ICurrentUser currentUser, CancellationToken ct) =>
@@ -188,7 +219,10 @@ public static class PeopleEndpoints
                 await db.Follows.Where(f => f.FollowerId == followerId && f.FolloweeId == me && !f.IsAccepted).ExecuteDeleteAsync(ct);
                 return Results.NoContent();
             })
-            .WithName("DeclineFollowRequest");
+            .WithName("DeclineFollowRequest")
+            .WithSummary("Decline someone's follow request")
+            .WithDescription("Always 204, also when there was no request.")
+            .Produces(StatusCodes.Status204NoContent);
     }
 
     /// <summary>Your own lists, a public account's, or a private one you were accepted by.</summary>
@@ -196,6 +230,18 @@ public static class PeopleEndpoints
         id == me
         || !await db.Users.AnyAsync(u => u.Id == id && u.IsPrivate, ct)
         || await db.Follows.AnyAsync(f => f.FollowerId == me && f.FolloweeId == id && f.IsAccepted, ct);
+
+    /// <summary>The same rule for the follower lists: null when they may be seen.
+    /// Otherwise the refusal to send: 404 for nobody by that id, 403 for a private account.</summary>
+    private static async Task<IResult?> ViewRefusalAsync(Guid id, IdentityDbContext db, Guid me, CancellationToken ct)
+    {
+        if (id == me) return null;
+        var isPrivate = await db.Users.Where(u => u.Id == id && !u.IsSuspended).Select(u => (bool?)u.IsPrivate).FirstOrDefaultAsync(ct);
+        if (isPrivate is null) return Results.NotFound(MovieRental.SharedKernel.Results.Error.NotFound("User"));
+        if (isPrivate == false || await db.Follows.AnyAsync(f => f.FollowerId == me && f.FolloweeId == id && f.IsAccepted, ct)) return null;
+        return Results.Json(MovieRental.SharedKernel.Results.Error.Forbidden("This account is private. Follow it and wait to be accepted to see its lists."),
+            statusCode: StatusCodes.Status403Forbidden);
+    }
 
     private static async Task<IResult> ListAsync(IQueryable<Guid> ids, int? page, IdentityDbContext db,
         ICurrentUser currentUser, Presence presence, CancellationToken ct)

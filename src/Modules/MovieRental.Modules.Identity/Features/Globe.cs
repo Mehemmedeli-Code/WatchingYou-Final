@@ -111,9 +111,14 @@ internal sealed class GetGlobeMembersHandler(IdentityDbContext db)
     }
 }
 
+/// <param name="AvatarUrl">Ignored: the picture is set through /api/auth/avatar.</param>
 public sealed record UpdateGlobePresenceCommand(
-    bool ShareOnGlobe, string? City, string? CountryCode,
-    double? Latitude, double? Longitude, string? AvatarUrl) : ICommand<Result>;
+    bool ShareOnGlobe, string? City = null, string? CountryCode = null,
+    double? Latitude = null, double? Longitude = null, string? AvatarUrl = null) : ICommand<Result>;
+
+public sealed record GlobeOnlineCount(string Country, int Online);
+public sealed record GlobeOnlineMember(Guid UserId, string DisplayName, string? Username, string? AvatarUrl, string? City);
+public sealed record GlobeOnlinePage(string Country, int Total, int Page, int PageSize, IReadOnlyList<GlobeOnlineMember> Items);
 
 internal sealed class UpdateGlobePresenceValidator : AbstractValidator<UpdateGlobePresenceCommand>
 {
@@ -172,13 +177,18 @@ public static class GlobeEndpoints
     {
         // Signed in only. An anonymous visitor has no business browsing who uses the site.
         app.MapGet("/api/globe/cities", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetGlobeCitiesQuery(), ct)))
-            .WithName("GetGlobeCities").WithTags("Globe").RequireAuthorization();
+                TypedResults.Ok(await dispatcher.Ask(new GetGlobeCitiesQuery(), ct)))
+            .WithName("GetGlobeCities").WithTags("Globe").RequireAuthorization()
+            .WithSummary("Cities on the globe, with how many members are in each")
+            .WithDescription("Only members who chose to appear. Each city has its member count and up to three faces.");
 
         app.MapGet("/api/globe/members", async (
                 string city, int? page, int? pageSize, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetGlobeMembersQuery(city, page ?? 1, pageSize ?? 24), ct)))
-            .WithName("GetGlobeMembers").WithTags("Globe").RequireAuthorization();
+                TypedResults.Ok(await dispatcher.Ask(new GetGlobeMembersQuery(city, page ?? 1, pageSize ?? 24), ct)))
+            .WithName("GetGlobeMembers").WithTags("Globe").RequireAuthorization()
+            .WithSummary("The members in one city, a page at a time")
+            .WithDescription("`city` as the cities list spells it (\"Baku\"). `pageSize` 1 to 50, default 24. " +
+                             "An unknown city is an empty page, not an error.");
 
         app.MapPut("/api/globe/presence",
             async Task<Results<NoContent, BadRequest<Error>>> (
@@ -187,7 +197,10 @@ public static class GlobeEndpoints
                 var result = await dispatcher.Send(body, ct);
                 return result.IsSuccess ? TypedResults.NoContent() : TypedResults.BadRequest(result.Error);
             })
-            .WithName("UpdateGlobePresence").WithTags("Globe").RequireAuthorization();
+            .WithName("UpdateGlobePresence").WithTags("Globe").RequireAuthorization()
+            .WithSummary("Appear on the globe in a city, or leave it")
+            .WithDescription("`shareOnGlobe: true` needs a `city`; coordinates are rounded to about 10 km. " +
+                             "`false` removes you and clears the stored place.");
 
         // Who is online in one country. Only people who chose to be on the globe count, and
         // only the number travels until somebody asks for the list.
@@ -199,9 +212,11 @@ public static class GlobeEndpoints
                 var online = presence.OnlineIds();
                 var count = await db.Users.AsNoTracking()
                     .CountAsync(u => u.ShareOnGlobe && !u.IsSuspended && u.CountryCode == code && online.Contains(u.Id), ct);
-                return Results.Ok(new { country = code, online = count });
+                return TypedResults.Ok(new GlobeOnlineCount(code, count));
             })
-            .WithName("GetGlobeOnline").WithTags("Globe").RequireAuthorization();
+            .WithName("GetGlobeOnline").WithTags("Globe").RequireAuthorization()
+            .WithSummary("How many members are online now in a country")
+            .WithDescription("`country`: two-letter code (AZ, TR, ...). Counts only members who appear on the globe.");
 
         app.MapGet("/api/globe/online/members", async (string country, int? page, IdentityDbContext db, Presence presence, CancellationToken ct) =>
             {
@@ -214,10 +229,12 @@ public static class GlobeEndpoints
                 var total = await people.CountAsync(ct);
                 var items = await people.OrderBy(u => u.Username).ThenBy(u => u.FullName)
                     .Skip((pageNo - 1) * size).Take(size)
-                    .Select(u => new { userId = u.Id, displayName = u.FullName, u.Username, u.AvatarUrl, u.City })
+                    .Select(u => new GlobeOnlineMember(u.Id, u.FullName, u.Username, u.AvatarUrl, u.City))
                     .ToListAsync(ct);
-                return Results.Ok(new { country = code, total, page = pageNo, pageSize = size, items });
+                return TypedResults.Ok(new GlobeOnlinePage(code, total, pageNo, size, items));
             })
-            .WithName("GetGlobeOnlineMembers").WithTags("Globe").RequireAuthorization();
+            .WithName("GetGlobeOnlineMembers").WithTags("Globe").RequireAuthorization()
+            .WithSummary("Who is online now in a country, 30 a page")
+            .WithDescription("`country`: two-letter code. Only members who appear on the globe.");
     }
 }
