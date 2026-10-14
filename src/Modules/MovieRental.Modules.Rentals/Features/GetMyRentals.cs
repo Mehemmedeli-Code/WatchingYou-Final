@@ -99,15 +99,20 @@ public static class RentalHistoryEndpoints
     {
         app.MapGet("/api/rentals/mine", async (
                 [AsParameters] RentalHistoryRequest filter, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetMyRentalsQuery(filter), ct)))
-            .WithName("GetMyRentals").WithTags("Rentals").RequireAuthorization();
+                TypedResults.Ok(await dispatcher.Ask(new GetMyRentalsQuery(filter), ct)))
+            .WithName("GetMyRentals").WithTags("Rentals").RequireAuthorization()
+            .WithSummary("My rentals, newest first")
+            .WithDescription("`Status`: active (not returned, days left), overdue (not returned, days over), returned; left out, all. " +
+                             "`Page` from 1, `PageSize` 1 to 50 (default 10).");
 
         app.MapGet("/api/admin/rentals/overdue", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetOverdueRentalsQuery(), ct)))
-            .WithName("GetOverdueRentals").WithTags("Rentals").RequireAuthorization(AppRoles.Admin);
+                TypedResults.Ok(await dispatcher.Ask(new GetOverdueRentalsQuery(), ct)))
+            .WithName("GetOverdueRentals").WithTags("Rentals").RequireAuthorization(AppRoles.Admin)
+            .WithSummary("Every rental past its days and not returned, with its late fee");
 
         app.MapGet("/api/admin/rentals/stats", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetRentalStatsQuery(), ct)))
-            .WithName("GetRentalStats").WithTags("Rentals").RequireAuthorization(AppRoles.Admin);
+                TypedResults.Ok(await dispatcher.Ask(new GetRentalStatsQuery(), ct)))
+            .WithName("GetRentalStats").WithTags("Rentals").RequireAuthorization(AppRoles.Admin)
+            .WithSummary("Rental figures: how many out, overdue, returned, and the takings");
     }
 }
