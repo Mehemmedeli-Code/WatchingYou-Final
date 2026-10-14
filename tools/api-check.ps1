@@ -1,4 +1,5 @@
-# Runs tools/api-check.mjs against a throwaway copy of the site, never the real one.
+# Runs tools/api-check.mjs (the flows) and tools/api-contract.mjs (every operation against its
+# documented answers) on a throwaway copy of the site, never the real one.
 #
 # The check rents films, books and refunds seats, sends messages and opens help chats, so it
 # must not touch MovieRentalDB: its rows would show up to real people (they did, once). This
@@ -35,6 +36,8 @@ try {
     }
     node (Join-Path $PSScriptRoot 'api-check.mjs') https://localhost:7140 $log
     $result = $LASTEXITCODE
+    node (Join-Path $PSScriptRoot 'api-contract.mjs') https://localhost:7140 $log
+    if ($LASTEXITCODE -ne 0) { $result = $LASTEXITCODE }
 }
 finally {
     Stop-Process -Id $site.Id -Force -ErrorAction SilentlyContinue
