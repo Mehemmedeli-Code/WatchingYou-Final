@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Media.Domain;
 using MovieRental.Modules.Media.Persistence;
 using MovieRental.SharedKernel.Contracts;
+using MovieRental.SharedKernel.Results;
 using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Media.Features;
@@ -27,7 +28,8 @@ public static class ProfileFilmsEndpoint
                 MediaDbContext db, ICurrentUser currentUser, IUserDirectory users, CancellationToken ct) =>
             {
                 if (!await users.MayViewProfileAsync(currentUser.RequireId(), userId, ct))
-                    return Results.StatusCode(StatusCodes.Status403Forbidden);
+                    return Results.Json(Error.Forbidden("This account is private. Follow it and wait to be accepted to see its films."),
+                        statusCode: StatusCodes.Status403Forbidden);
 
                 var films = db.ShortFilms.AsNoTracking().Where(f => f.UserId == userId && f.Status == SubmissionStatus.Approved);
                 films = origin?.ToLowerInvariant() switch
@@ -45,5 +47,9 @@ public static class ProfileFilmsEndpoint
                 var count = await db.ShortFilms.CountAsync(f => f.UserId == userId && f.Status == SubmissionStatus.Approved, ct);
                 return Results.Ok(new ProfileFilms(items, count));
             })
-            .WithName("GetProfileFilms").WithTags("Shorts").RequireAuthorization();
+            .WithName("GetProfileFilms").WithTags("Shorts").RequireAuthorization()
+            .WithSummary("Someone's approved films, for their profile")
+            .WithDescription("`origin`: ai or human; left out, both. 403: a private account that has not accepted you.")
+            .Produces<ProfileFilms>()
+            .Produces<Error>(StatusCodes.Status403Forbidden);
 }

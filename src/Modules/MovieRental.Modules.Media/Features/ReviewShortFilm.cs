@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using System.Text.Json.Serialization;
+using FluentValidation;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
@@ -36,8 +38,14 @@ internal sealed class GetAdminQueueHandler(MediaDbContext db)
     }
 }
 
+/// <param name="Id">From the address; not read from the body.</param>
 public sealed record DecideShortFilmCommand(
-    Guid Id, bool Approve, string? Note, ShortFilmOrigin? CorrectOriginTo) : ICommand<Result>;
+    [property: JsonIgnore] Guid Id, bool Approve, string? Note = null, ShortFilmOrigin? CorrectOriginTo = null) : ICommand<Result>;
+
+internal sealed class DecideShortFilmValidator : AbstractValidator<DecideShortFilmCommand>
+{
+    public DecideShortFilmValidator() => RuleFor(x => x.Note).MaximumLength(1000);
+}
 
 internal sealed class DecideShortFilmHandler(
     MediaDbContext db, ICurrentUser currentUser, IUserDirectory users, IEmailSender email, IAuditLog audit)
@@ -132,8 +140,9 @@ public static class ReviewShortFilmEndpoints
         var admin = app.MapGroup("/api/admin/shorts").WithTags("Shorts").RequireAuthorization(AppRoles.Admin);
 
         admin.MapGet("/queue", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetAdminQueueQuery(), ct)))
-            .WithName("GetAdminShortsQueue");
+                TypedResults.Ok(await dispatcher.Ask(new GetAdminQueueQuery(), ct)))
+            .WithName("GetAdminShortsQueue")
+            .WithSummary("Films waiting for an admin's decision, with Security's report");
 
         admin.MapPut("/{id:guid}/decision",
             async Task<Results<NoContent, BadRequest<Error>, Conflict<Error>, NotFound<Error>>> (
@@ -147,17 +156,21 @@ public static class ReviewShortFilmEndpoints
                     "conflict" => TypedResults.Conflict(result.Error),
                     _ => TypedResults.BadRequest(result.Error)
                 };
-            }).WithName("DecideShortFilmWithId");
+            }).WithName("DecideShortFilmWithId")
+            .WithSummary("Approve or reject a film")
+            .WithDescription("`approve`, a `note` for the maker (needed to approve a film Security flagged), and `correctOriginTo` " +
+                             "when it was filed under the wrong gallery. 409: already decided, or Security has not reported yet.");
 
-        admin.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound>> (
+        admin.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>>> (
             Guid id, MediaDbContext db, CancellationToken ct) =>
         {
             var film = await db.ShortFilms.FirstOrDefaultAsync(f => f.Id == id, ct);
-            if (film is null) return TypedResults.NotFound();
+            if (film is null) return TypedResults.NotFound(Error.NotFound("Submission"));
 
             db.ShortFilms.Remove(film);   // soft delete — the file stays for any appeal
             await db.SaveChangesAsync(ct);
             return TypedResults.NoContent();
-        }).WithName("SoftDeleteShortFilmWithId");
+        }).WithName("SoftDeleteShortFilmWithId")
+        .WithSummary("Take a film down (the file is kept for an appeal)");
     }
 }
