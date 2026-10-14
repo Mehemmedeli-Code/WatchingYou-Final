@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -117,8 +118,10 @@ internal sealed class GetCheckoutQuoteHandler(
 
 // ------------------------------------------------------------------ Stripe Checkout
 
+/// <param name="ScreeningId">From the address; not read from the body.</param>
+/// <param name="ReturnBaseUrl">Set by the server (App:PublicUrl); not read from the body.</param>
 public sealed record StripeCheckoutCommand(
-    Guid ScreeningId, IReadOnlyList<SeatSelection> Seats, string? PromoCode, bool UsePoints, string ReturnBaseUrl = "")
+    [property: JsonIgnore] Guid ScreeningId, IReadOnlyList<SeatSelection> Seats, string? PromoCode = null, bool UsePoints = false, [property: JsonIgnore] string ReturnBaseUrl = "")
     : ICommand<Result<StripeCheckoutStarted>>;
 
 public sealed record StripeCheckoutStarted(Guid PaymentId, string Reference, decimal Amount, string Url, DateTime ExpiresAtUtc);
@@ -129,6 +132,9 @@ internal sealed class StripeCheckoutValidator : AbstractValidator<StripeCheckout
     {
         RuleFor(x => x.Seats).NotEmpty().WithMessage("Pick at least one seat.");
         RuleFor(x => x.Seats.Count).LessThanOrEqualTo(8).WithMessage("Eight seats is the limit per booking.").When(x => x.Seats is not null);
+        RuleForEach(x => x.Seats).NotNull().WithMessage("A seat is missing its row and number.");
+        RuleFor(x => x.Seats).Must(s => s.Where(x => x is not null).DistinctBy(x => (x.Row, x.Number)).Count() == s.Count(x => x is not null))
+            .WithMessage("The same seat is picked twice.").When(x => x.Seats is not null);
     }
 }
 
@@ -243,7 +249,7 @@ internal sealed class StripeCheckoutHandler(
     }
 }
 
-public sealed record StripeConfirmCommand(Guid PaymentId, string? SessionId) : ICommand<Result<TicketResponse>>;
+public sealed record StripeConfirmCommand([property: JsonIgnore] Guid PaymentId, string? SessionId = null) : ICommand<Result<TicketResponse>>;
 
 internal sealed class StripeConfirmHandler(
     CinemaDbContext db, ICurrentUser currentUser, IStripeGateway stripe, BookingFinalizer finalizer)
@@ -428,7 +434,7 @@ internal sealed class CreatePromoCodeHandler(CinemaDbContext db, IAuditLog audit
     }
 }
 
-public sealed record SetPromoActiveCommand(Guid Id, bool Active) : ICommand<Result>;
+public sealed record SetPromoActiveCommand([property: JsonIgnore] Guid Id, bool Active) : ICommand<Result>;
 
 internal sealed class SetPromoActiveHandler(CinemaDbContext db, IAuditLog audit) : ICommandHandler<SetPromoActiveCommand, Result>
 {
@@ -453,16 +459,22 @@ public static class PaymentEndpoints
     public static void Map(IEndpointRouteBuilder app)
     {
         app.MapGet("/api/payments/options", (IStripeGateway stripe, IConfiguration configuration) =>
-                Results.Ok(new PaymentOptions(configuration.GetValue<bool>("Payments:AllowTestCard"), stripe.Enabled, Pricing.ManatPerPoint, Pricing.MaxPointsShare)))
-            .WithName("GetPaymentOptions").WithTags("Payments").AllowAnonymous();
+                TypedResults.Ok(new PaymentOptions(configuration.GetValue<bool>("Payments:AllowTestCard"), stripe.Enabled, Pricing.ManatPerPoint, Pricing.MaxPointsShare)))
+            .WithName("GetPaymentOptions").WithTags("Payments").AllowAnonymous()
+            .WithSummary("Which ways to pay are open, and what a loyalty point is worth");
 
         app.MapPost("/api/screenings/{id:guid}/quote", async (
                 Guid id, QuoteRequest body, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var quote = await dispatcher.Ask(new GetCheckoutQuoteQuery(id, body), ct);
-                return quote is null ? Results.NotFound() : Results.Ok(quote);
+                return quote is null
+                    ? (Results<Ok<CheckoutQuote>, NotFound<Error>>)TypedResults.NotFound(Error.NotFound("Screening"))
+                    : TypedResults.Ok(quote);
             })
-            .WithName("GetCheckoutQuote").WithTags("Payments").RequireAuthorization();
+            .WithName("GetCheckoutQuote").WithTags("Payments").RequireAuthorization()
+            .WithSummary("What a booking would cost, before paying")
+            .WithDescription("`seats` 0 to 8, an optional `promoCode` (`promoMessage` says why one does not apply) and `usePoints`. " +
+                             "Nothing is held or charged.");
 
         app.MapPost("/api/screenings/{id:guid}/checkout/stripe",
             async Task<Results<Ok<StripeCheckoutStarted>, BadRequest<Error>, Conflict<Error>, NotFound<Error>>> (
@@ -481,10 +493,13 @@ public static class PaymentEndpoints
                     _ => TypedResults.BadRequest(result.Error)
                 };
             })
-            .WithName("StartStripeCheckout").WithTags("Payments").RequireAuthorization();
+            .WithName("StartStripeCheckout").WithTags("Payments").RequireAuthorization()
+            .WithSummary("Book seats and pay on Stripe's page")
+            .WithDescription("Holds the seats and answers with Stripe's `url` to send the customer to. Back on the site, " +
+                             "/api/bookings/{paymentId}/stripe/confirm finishes the booking. 400 when Stripe is not set up.");
 
         app.MapPost("/api/bookings/{paymentId:guid}/stripe/confirm",
-            async Task<Results<Ok<TicketResponse>, BadRequest<Error>, Conflict<Error>, NotFound<Error>, ForbidHttpResult>> (
+            async Task<Results<Ok<TicketResponse>, BadRequest<Error>, Conflict<Error>, NotFound<Error>, JsonHttpResult<Error>>> (
                 Guid paymentId, StripeConfirmCommand body, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var result = await dispatcher.Send(body with { PaymentId = paymentId }, ct);
@@ -492,30 +507,40 @@ public static class PaymentEndpoints
                 return result.Error.Code switch
                 {
                     "not_found" => TypedResults.NotFound(result.Error),
-                    "forbidden" => TypedResults.Forbid(),
+                    "forbidden" => TypedResults.Json(result.Error, statusCode: StatusCodes.Status403Forbidden),
                     "conflict" => TypedResults.Conflict(result.Error),
                     _ => TypedResults.BadRequest(result.Error)
                 };
             })
-            .WithName("ConfirmStripeBooking").WithTags("Payments").RequireAuthorization();
+            .WithName("ConfirmStripeBooking").WithTags("Payments").RequireAuthorization()
+            .WithSummary("Finish a Stripe booking once Stripe has the payment")
+            .WithDescription("Asks Stripe whether it was paid and answers with the ticket. 400: not paid yet. 403: someone else's. " +
+                             "409: it expired, or the payment does not match the booking.")
+            .Produces<Error>(StatusCodes.Status403Forbidden);
 
         app.MapGet("/api/bookings/{paymentId:guid}/ticket.pdf", async (
                 Guid paymentId, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var file = await dispatcher.Ask(new GetTicketPdfQuery(paymentId), ct);
-                return file is { } f ? Results.File(f.Pdf, "application/pdf", f.FileName) : Results.NotFound();
+                return file is { } f ? Results.File(f.Pdf, "application/pdf", f.FileName) : Results.NotFound(Error.NotFound("Ticket"));
             })
-            .WithName("DownloadTicketPdf").WithTags("Cinema").RequireAuthorization();
+            .WithName("DownloadTicketPdf").WithTags("Cinema").RequireAuthorization()
+            .WithSummary("My ticket as a PDF, with a QR code per seat")
+            .WithDescription("Only for your own confirmed booking; anyone else's is a 404.")
+            .Produces(StatusCodes.Status200OK, typeof(Stream), "application/pdf")
+            .Produces<Error>(StatusCodes.Status404NotFound);
 
         app.MapGet("/api/loyalty", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetLoyaltyQuery(), ct)))
-            .WithName("GetLoyalty").WithTags("Payments").RequireAuthorization();
+                TypedResults.Ok(await dispatcher.Ask(new GetLoyaltyQuery(), ct)))
+            .WithName("GetLoyalty").WithTags("Payments").RequireAuthorization()
+            .WithSummary("My loyalty points: the balance and how they were earned and spent");
 
         var admin = app.MapGroup("/api/admin/promos").WithTags("Payments").RequireAuthorization(AppRoles.Admin);
 
         admin.MapGet("", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetPromoCodesQuery(), ct)))
-            .WithName("GetPromoCodes");
+                TypedResults.Ok(await dispatcher.Ask(new GetPromoCodesQuery(), ct)))
+            .WithName("GetPromoCodes")
+            .WithSummary("Every promo code, with how often it was used");
 
         admin.MapPost("", async Task<Results<Ok<PromoCodeRow>, Conflict<Error>>> (
                 CreatePromoCodeCommand body, IDispatcher dispatcher, CancellationToken ct) =>
@@ -523,7 +548,10 @@ public static class PaymentEndpoints
                 var result = await dispatcher.Send(body, ct);
                 return result.IsSuccess ? TypedResults.Ok(result.Value) : TypedResults.Conflict(result.Error);
             })
-            .WithName("CreatePromoCode");
+            .WithName("CreatePromoCode")
+            .WithSummary("Create a promo code")
+            .WithDescription("`code`: letters, digits, - and _ (up to 32). Exactly one of `percentOff` (1-100) or `amountOff`. " +
+                             "Optional `minSubtotal`, `maxRedemptions` and a validity period. 409: that code exists.");
 
         admin.MapPut("/{id:guid}/active", async Task<Results<NoContent, NotFound<Error>>> (
                 Guid id, SetPromoActiveCommand body, IDispatcher dispatcher, CancellationToken ct) =>
@@ -531,6 +559,7 @@ public static class PaymentEndpoints
                 var result = await dispatcher.Send(body with { Id = id }, ct);
                 return result.IsSuccess ? TypedResults.NoContent() : TypedResults.NotFound(result.Error);
             })
-            .WithName("SetPromoActive");
+            .WithName("SetPromoActive")
+            .WithSummary("Switch a promo code on or off");
     }
 }

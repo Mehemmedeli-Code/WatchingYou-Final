@@ -47,9 +47,10 @@ internal sealed class BulkScheduleValidator : AbstractValidator<BulkScheduleComm
         RuleFor(x => x.Times.Count).LessThanOrEqualTo(8).When(x => x.Times is not null);
         RuleForEach(x => x.Times).Must(t => TimeOnly.TryParseExact(t, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
             .WithMessage("Times are written HH:mm, e.g. 19:30.");
-        RuleFor(x => x.SeatPrice).GreaterThan(0);
-        RuleFor(x => x.AudioLanguage).Must(l => Languages.Contains(l));
-        RuleFor(x => x.SubtitleLanguage).Must(l => l is null || Languages.Contains(l));
+        RuleFor(x => x.SeatPrice).GreaterThan(0).LessThan(1000);
+        RuleFor(x => x.AudioLanguage).Must(l => Languages.Contains(l)).WithMessage("Audio language must be one of az, en, ru, tr.");
+        RuleFor(x => x.SubtitleLanguage).Must(l => l is null || Languages.Contains(l)).WithMessage("Subtitle language must be one of az, en, ru, tr.");
+        RuleForEach(x => x.Weekdays).InclusiveBetween(0, 6).WithMessage("Weekdays run from 0 (Sunday) to 6 (Saturday).");
     }
 }
 
@@ -278,7 +279,7 @@ public static class CinemaAdminToolEndpoints
 {
     public static void Map(IEndpointRouteBuilder app)
     {
-        var admin = app.MapGroup("/api/admin").WithTags("Cinema").RequireAuthorization(AppRoles.Admin);
+        var admin = app.MapGroup("/api/admin").WithTags("Cinema admin").RequireAuthorization(AppRoles.Admin);
 
         admin.MapPost("/screenings/bulk", async Task<Results<Ok<BulkScheduleResult>, NotFound<Error>, BadRequest<Error>>> (
                 BulkScheduleCommand body, IDispatcher dispatcher, CancellationToken ct) =>
@@ -289,17 +290,30 @@ public static class CinemaAdminToolEndpoints
                     ? TypedResults.NotFound(result.Error)
                     : TypedResults.BadRequest(result.Error);
             })
-            .WithName("BulkScheduleScreenings");
+            .WithName("BulkScheduleScreenings")
+            .WithSummary("Schedule a film for many days at once")
+            .WithDescription("From `firstDate` (yyyy-MM-dd) for `days` (1-28), at each of `times` (HH:mm, up to 8), optionally only on " +
+                             "`weekdays` (0 Sunday … 6 Saturday). Shows that would clash with another in the hall are skipped and listed.");
 
         admin.MapGet("/export/bookings.csv", async (DateTime? from, DateTime? to, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.File(await dispatcher.Ask(new ExportBookingsQuery(from, to), ct), Csv.ContentType,
+                from > to ? Results.BadRequest(BackwardsPeriod)
+                : Results.File(await dispatcher.Ask(new ExportBookingsQuery(from, to), ct), Csv.ContentType,
                     $"watchingyou-bookings-{DateTime.UtcNow:yyyyMMdd}.csv"))
-            .WithName("ExportBookings");
+            .WithName("ExportBookings")
+            .WithSummary("Download bookings as a spreadsheet (CSV)")
+            .WithDescription(PeriodHelp)
+            .Produces(StatusCodes.Status200OK, typeof(Stream), Csv.ContentType)
+            .Produces<Error>(StatusCodes.Status400BadRequest);
 
         admin.MapGet("/export/bookings.pdf", async (DateTime? from, DateTime? to, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.File(await dispatcher.Ask(new ExportBookingsQuery(from, to, Pdf: true), ct), "application/pdf",
+                from > to ? Results.BadRequest(BackwardsPeriod)
+                : Results.File(await dispatcher.Ask(new ExportBookingsQuery(from, to, Pdf: true), ct), "application/pdf",
                     $"watchingyou-bookings-{DateTime.UtcNow:yyyyMMdd}.pdf"))
-            .WithName("ExportBookingsPdf");
+            .WithName("ExportBookingsPdf")
+            .WithSummary("Download bookings as a PDF report")
+            .WithDescription(PeriodHelp)
+            .Produces(StatusCodes.Status200OK, typeof(Stream), "application/pdf")
+            .Produces<Error>(StatusCodes.Status400BadRequest);
 
         // The till prints it too, at the end of the day: admins and cashiers.
         app.MapGet("/api/backoffice/reports/sales-receipt.pdf", async Task<IResult> (string? from, string? to, IDispatcher dispatcher, CancellationToken ct) =>
@@ -309,6 +323,13 @@ public static class CinemaAdminToolEndpoints
                     ? Results.File(result.Value, "application/pdf", $"watchingyou-sales-{from ?? DateTime.UtcNow.AddHours(4).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}.pdf")
                     : Results.BadRequest(result.Error);
             })
-            .WithTags("Back office").WithName("SalesReceipt").RequireAuthorization(AppPolicies.BackOffice);
+            .WithTags("Back office").WithName("SalesReceipt").RequireAuthorization(AppPolicies.BackOffice)
+            .WithSummary("The sales receipt for a period, as a PDF")
+            .WithDescription("`from` and `to` as yyyy-MM-dd, up to three months; left out, today. 400: not dates, or too long a period.")
+            .Produces(StatusCodes.Status200OK, typeof(Stream), "application/pdf")
+            .Produces<Error>(StatusCodes.Status400BadRequest);
     }
+
+    private static readonly Error BackwardsPeriod = Error.Validation("`from` is after `to`.");
+    private const string PeriodHelp = "Bookings made between `from` and `to` (dates, e.g. 2026-10-01). Left out: the last 90 days up to tomorrow.";
 }
