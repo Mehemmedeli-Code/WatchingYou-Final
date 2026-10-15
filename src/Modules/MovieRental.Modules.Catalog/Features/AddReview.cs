@@ -32,6 +32,17 @@ internal sealed class AddReviewHandler(CatalogDbContext db, ICurrentUser current
 {
     public async Task<Result<ReviewResponse>> Handle(AddReviewCommand command, CancellationToken ct)
     {
+        // Two reviews of one film saved at the same moment both move its average, and the second
+        // write finds the film changed under it. Doing it again on fresh data is all it takes.
+        for (var attempt = 1; ; attempt++)
+        {
+            try { return await SaveAsync(command, ct); }
+            catch (DbUpdateException) when (attempt < 3) { db.ChangeTracker.Clear(); }
+        }
+    }
+
+    private async Task<Result<ReviewResponse>> SaveAsync(AddReviewCommand command, CancellationToken ct)
+    {
         var userId = currentUser.RequireId();
 
         // A rating from somebody who never watched the film is noise, and it moves the same
