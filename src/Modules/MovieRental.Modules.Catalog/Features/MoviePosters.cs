@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using MovieRental.Modules.Catalog.Persistence;
+using MovieRental.SharedKernel.Results;
 
 namespace MovieRental.Modules.Catalog.Features;
 
@@ -26,15 +27,17 @@ public static partial class MoviePosters
         SlugPattern().IsMatch(slug) ? Path.Combine(environment.ContentRootPath, Folder, slug + ".jpg") : null;
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapGet("/api/posters/{slug}", Results<PhysicalFileHttpResult, NotFound> (string slug, IHostEnvironment environment, HttpContext http) =>
+        app.MapGet("/api/posters/{slug}", Results<PhysicalFileHttpResult, NotFound<Error>> (string slug, IHostEnvironment environment, HttpContext http) =>
             {
                 var path = PathFor(environment, slug);
-                if (path is null || !File.Exists(path)) return TypedResults.NotFound();
+                if (path is null || !File.Exists(path)) return TypedResults.NotFound(Error.NotFound("Poster"));
                 // A poster never changes under the same name: browsers may keep it for a week.
                 http.Response.Headers.CacheControl = "public, max-age=604800";
                 return TypedResults.PhysicalFile(path, "image/jpeg", enableRangeProcessing: false);
             })
-        .WithName("GetMoviePoster").WithTags("Catalog").AllowAnonymous();
+        .WithName("GetMoviePoster").WithTags("Catalog").AllowAnonymous()
+        .WithSummary("A film's poster (JPEG), by the film's slug")
+        .Produces(StatusCodes.Status200OK, typeof(Stream), "image/jpeg");
 
     /// <summary>Points every film that has no poster yet at its stored one, if there is one.</summary>
     public static async Task<int> FillMissingAsync(CatalogDbContext db, IHostEnvironment environment, CancellationToken ct)

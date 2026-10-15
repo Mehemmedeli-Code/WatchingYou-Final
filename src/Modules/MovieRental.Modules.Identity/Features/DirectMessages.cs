@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -308,7 +309,7 @@ internal static class DirectLines
     }
 }
 
-public sealed record SendDirectMessageCommand(Guid OtherUserId, string Body, Guid? ReplyToId = null, bool Forwarded = false)
+public sealed record SendDirectMessageCommand([property: JsonIgnore] Guid OtherUserId, string Body, Guid? ReplyToId = null, bool Forwarded = false)
     : ICommand<Result<DirectConversation>>;
 
 internal sealed class SendDirectMessageValidator : AbstractValidator<SendDirectMessageCommand>
@@ -391,7 +392,7 @@ internal sealed class SendDirectMessageHandler(
 
 // ---- A private account's answer to a message request ----
 
-public sealed record AnswerMessageRequestCommand(Guid OtherUserId, bool Accept) : ICommand<Result<DirectConversation>>;
+public sealed record AnswerMessageRequestCommand([property: JsonIgnore] Guid OtherUserId, bool Accept) : ICommand<Result<DirectConversation>>;
 
 internal sealed class AnswerMessageRequestHandler(
     IdentityDbContext db, ICurrentUser currentUser, IDispatcher dispatcher, IRealtimeNotifier realtime)
@@ -420,11 +421,12 @@ internal sealed class AnswerMessageRequestHandler(
 
 public enum DeleteScope { Me = 1, Everyone = 2 }
 
-public sealed record EditDirectMessageCommand(Guid MessageId, string Body) : ICommand<Result>;
+// The message id comes from the address in each of these; it is not read from the body.
+public sealed record EditDirectMessageCommand([property: JsonIgnore] Guid MessageId, string Body) : ICommand<Result>;
 public sealed record DeleteDirectMessageCommand(Guid MessageId, DeleteScope Scope) : ICommand<Result>;
-public sealed record ReactToDirectMessageCommand(Guid MessageId, string? Emoji) : ICommand<Result>;
-public sealed record StarDirectMessageCommand(Guid MessageId, bool Starred) : ICommand<Result>;
-public sealed record PinDirectMessageCommand(Guid MessageId, bool Pinned) : ICommand<Result>;
+public sealed record ReactToDirectMessageCommand([property: JsonIgnore] Guid MessageId, string? Emoji) : ICommand<Result>;
+public sealed record StarDirectMessageCommand([property: JsonIgnore] Guid MessageId, bool Starred) : ICommand<Result>;
+public sealed record PinDirectMessageCommand([property: JsonIgnore] Guid MessageId, bool Pinned) : ICommand<Result>;
 
 internal sealed class EditDirectMessageValidator : AbstractValidator<EditDirectMessageCommand>
 {
@@ -559,7 +561,7 @@ internal sealed class DirectMessageActions(IdentityDbContext db, ICurrentUser cu
     }
 }
 
-public sealed record BlockUserCommand(Guid OtherUserId, bool Blocked) : ICommand<Result>;
+public sealed record BlockUserCommand([property: JsonIgnore] Guid OtherUserId, bool Blocked) : ICommand<Result>;
 
 internal sealed class BlockUserHandler(IdentityDbContext db, ICurrentUser currentUser)
     : ICommandHandler<BlockUserCommand, Result>
@@ -587,7 +589,13 @@ internal sealed class BlockUserHandler(IdentityDbContext db, ICurrentUser curren
     }
 }
 
-public sealed record ReportMessageCommand(Guid AboutUserId, string Quote, string? Reason) : ICommand<Result>;
+/// <param name="Quote">Ignored: the report quotes their last message from the conversation itself.</param>
+public sealed record ReportMessageCommand([property: JsonIgnore] Guid AboutUserId, string? Quote = null, string? Reason = null) : ICommand<Result>;
+
+internal sealed class ReportMessageValidator : AbstractValidator<ReportMessageCommand>
+{
+    public ReportMessageValidator() => RuleFor(x => x.Reason).MaximumLength(300);
+}
 
 internal sealed class ReportMessageHandler(IdentityDbContext db, ICurrentUser currentUser, IAuditLog audit)
     : ICommandHandler<ReportMessageCommand, Result>
@@ -675,19 +683,26 @@ public static class DirectMessageEndpoints
         var mine = app.MapGroup("/api/messages").WithTags("Messages").RequireAuthorization();
 
         mine.MapGet("", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetMyThreadsQuery(), ct)))
-            .WithName("GetMyDirectThreads");
+                TypedResults.Ok(await dispatcher.Ask(new GetMyThreadsQuery(), ct)))
+            .WithName("GetMyDirectThreads")
+            .WithSummary("My conversations, latest first")
+            .WithDescription("Each with the other person, the last message and how many are unread.");
 
         mine.MapGet("/overview", async (IDispatcher dispatcher, CancellationToken ct) =>
                 TypedResults.Ok(await dispatcher.Ask(new GetMessageOverviewQuery(), ct)))
-            .WithName("GetMessageOverview");
+            .WithName("GetMessageOverview")
+            .WithSummary("Messages at a glance: unread count, requests and people to write to");
 
         mine.MapGet("/{userId:guid}", async (Guid userId, DateTime? before, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var conversation = await dispatcher.Ask(new GetConversationQuery(userId, before?.ToUniversalTime()), ct);
-                return conversation is null ? Results.NotFound() : Results.Ok(conversation);
+                return conversation is null
+                    ? (Results<Ok<DirectConversation>, NotFound<Error>>)TypedResults.NotFound(Error.NotFound("User"))
+                    : TypedResults.Ok(conversation);
             })
-            .WithName("GetDirectConversationWithId");
+            .WithName("GetDirectConversationWithId")
+            .WithSummary("My conversation with one person")
+            .WithDescription("The latest messages; `before` (a time) pages back through older ones. Reading marks them as read.");
 
         mine.MapPost("/{userId:guid}",
             async Task<Results<Ok<DirectConversation>, BadRequest<Error>, Conflict<Error>, NotFound<Error>>> (
@@ -701,7 +716,10 @@ public static class DirectMessageEndpoints
                     "conflict" => TypedResults.Conflict(result.Error),
                     _ => TypedResults.BadRequest(result.Error)
                 };
-            }).WithName("SendDirectMessageWithId").RequireRateLimiting(AppPolicies.WriteRateLimit);
+            }).WithName("SendDirectMessageWithId").RequireRateLimiting(AppPolicies.WriteRateLimit)
+            .WithSummary("Send a message to someone")
+            .WithDescription("`body`: 1 to 2000 characters; `replyToId` quotes a message of this conversation. A first message to " +
+                             "someone who does not follow you arrives as a request. 409: they blocked you or do not take messages.");
 
         mine.MapPut("/{userId:guid}/request",
             async Task<Results<Ok<DirectConversation>, NotFound<Error>>> (
@@ -709,27 +727,45 @@ public static class DirectMessageEndpoints
             {
                 var result = await dispatcher.Send(body with { OtherUserId = userId }, ct);
                 return result.IsSuccess ? TypedResults.Ok(result.Value) : TypedResults.NotFound(result.Error);
-            }).WithName("AnswerMessageRequest").RequireRateLimiting(AppPolicies.WriteRateLimit);
+            }).WithName("AnswerMessageRequest").RequireRateLimiting(AppPolicies.WriteRateLimit)
+            .WithSummary("Accept or decline someone's message request")
+            .WithDescription("404: there is no request from them.");
 
         var item = mine.MapGroup("/item/{messageId:guid}").RequireRateLimiting(AppPolicies.WriteRateLimit);
         item.MapPut("", (Guid messageId, EditDirectMessageCommand body, IDispatcher d, CancellationToken ct) =>
-            Answer(d.Send(body with { MessageId = messageId }, ct))).WithName("EditDirectMessage");
+            Answer(d.Send(body with { MessageId = messageId }, ct))).WithName("EditDirectMessage")
+            .WithSummary("Edit my message")
+            .WithDescription("Within 15 minutes of sending. 403: not your message. 409: deleted, too late, or the conversation is closed.")
+            .Produces<Error>(StatusCodes.Status403Forbidden);
         item.MapDelete("", (Guid messageId, DeleteScope? scope, IDispatcher d, CancellationToken ct) =>
-            Answer(d.Send(new DeleteDirectMessageCommand(messageId, scope ?? DeleteScope.Me), ct))).WithName("DeleteDirectMessage");
+            Answer(d.Send(new DeleteDirectMessageCommand(messageId, scope ?? DeleteScope.Me), ct))).WithName("DeleteDirectMessage")
+            .WithSummary("Delete a message, for me or for everyone")
+            .WithDescription("`scope`: Me (default) hides it from your side; Everyone removes it for both, and only for your own messages (403 otherwise).")
+            .Produces<Error>(StatusCodes.Status403Forbidden);
         item.MapPut("/reaction", (Guid messageId, ReactToDirectMessageCommand body, IDispatcher d, CancellationToken ct) =>
-            Answer(d.Send(body with { MessageId = messageId }, ct))).WithName("ReactToDirectMessage");
+            Answer(d.Send(body with { MessageId = messageId }, ct))).WithName("ReactToDirectMessage")
+            .WithSummary("React to a message with one emoji, or take the reaction back")
+            .WithDescription("`emoji`: one emoji, or null to remove yours.");
         item.MapPut("/star", (Guid messageId, StarDirectMessageCommand body, IDispatcher d, CancellationToken ct) =>
-            Answer(d.Send(body with { MessageId = messageId }, ct))).WithName("StarDirectMessage");
+            Answer(d.Send(body with { MessageId = messageId }, ct))).WithName("StarDirectMessage")
+            .WithSummary("Star or unstar a message (only you see your stars)");
         item.MapPut("/pin", (Guid messageId, PinDirectMessageCommand body, IDispatcher d, CancellationToken ct) =>
-            Answer(d.Send(body with { MessageId = messageId }, ct))).WithName("PinDirectMessage");
+            Answer(d.Send(body with { MessageId = messageId }, ct))).WithName("PinDirectMessage")
+            .WithSummary("Pin a message at the top of the conversation, or unpin it")
+            .WithDescription("One pinned message per conversation; both people see it.");
 
         mine.MapPut("/{userId:guid}/block",
-            async Task<Results<NoContent, BadRequest<Error>>> (
+            async Task<Results<NoContent, BadRequest<Error>, NotFound<Error>>> (
                 Guid userId, BlockUserCommand body, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var result = await dispatcher.Send(body with { OtherUserId = userId }, ct);
-                return result.IsSuccess ? TypedResults.NoContent() : TypedResults.BadRequest(result.Error);
-            }).WithName("BlockUserWithId").RequireRateLimiting(AppPolicies.WriteRateLimit);
+                if (result.IsSuccess) return TypedResults.NoContent();
+                return result.Error.Code == "not_found"
+                    ? TypedResults.NotFound(result.Error)
+                    : TypedResults.BadRequest(result.Error);
+            }).WithName("BlockUserWithId").RequireRateLimiting(AppPolicies.WriteRateLimit)
+            .WithSummary("Block or unblock someone")
+            .WithDescription("A blocked person cannot message you, and you cannot message them.");
 
         mine.MapPost("/{userId:guid}/report",
             async Task<Results<NoContent, BadRequest<Error>, NotFound<Error>>> (
@@ -740,14 +776,18 @@ public static class DirectMessageEndpoints
                 return result.Error.Code == "not_found"
                     ? TypedResults.NotFound(result.Error)
                     : TypedResults.BadRequest(result.Error);
-            }).WithName("ReportMessageWithId").RequireRateLimiting(AppPolicies.WriteRateLimit);
+            }).WithName("ReportMessageWithId").RequireRateLimiting(AppPolicies.WriteRateLimit)
+            .WithSummary("Report someone's messages to the moderators")
+            .WithDescription("Quotes their last message in your conversation and blocks them. `reason`: up to 300 characters.");
 
         var desk = app.MapGroup("/api/reports").WithTags("Messages")
             .RequireAuthorization(AppPolicies.Moderation);
 
         desk.MapGet("", async (bool? includeHandled, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetReportsQuery(includeHandled ?? false), ct)))
-            .WithName("GetMessageReports");
+                TypedResults.Ok(await dispatcher.Ask(new GetReportsQuery(includeHandled ?? false), ct)))
+            .WithName("GetMessageReports")
+            .WithSummary("Reported messages waiting for a moderator")
+            .WithDescription("With `includeHandled=true`, the handled ones too.");
 
         desk.MapPost("/{id:guid}/resolve",
             async Task<Results<NoContent, NotFound<Error>>> (
@@ -755,19 +795,20 @@ public static class DirectMessageEndpoints
             {
                 var result = await dispatcher.Send(new ResolveReportCommand(id), ct);
                 return result.IsSuccess ? TypedResults.NoContent() : TypedResults.NotFound(result.Error);
-            }).WithName("ResolveReportWithId");
+            }).WithName("ResolveReportWithId")
+            .WithSummary("Mark a report as handled");
     }
 
-    private static async Task<IResult> Answer(Task<Result> pending)
+    private static async Task<Results<NoContent, NotFound<Error>, JsonHttpResult<Error>, Conflict<Error>, BadRequest<Error>>> Answer(Task<Result> pending)
     {
         var result = await pending;
-        if (result.IsSuccess) return Results.NoContent();
+        if (result.IsSuccess) return TypedResults.NoContent();
         return result.Error.Code switch
         {
-            "not_found" => Results.NotFound(result.Error),
-            "forbidden" => Results.Json(result.Error, statusCode: StatusCodes.Status403Forbidden),
-            "conflict" => Results.Conflict(result.Error),
-            _ => Results.BadRequest(result.Error)
+            "not_found" => TypedResults.NotFound(result.Error),
+            "forbidden" => TypedResults.Json(result.Error, statusCode: StatusCodes.Status403Forbidden),
+            "conflict" => TypedResults.Conflict(result.Error),
+            _ => TypedResults.BadRequest(result.Error)
         };
     }
 }

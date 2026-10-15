@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -23,13 +24,19 @@ public sealed record ScreeningAdminItem(
     bool IsCancelled, string? CancellationReason,
     int? RefundWindowHours, decimal? RefundFeePercent, string? RefundNote);
 
+/// <param name="Id">From the address when editing; not read from the body.</param>
 public sealed record SaveScreeningCommand(
-    Guid? Id, Guid MovieId, Guid HallId, DateTime StartsAtUtc,
+    [property: JsonIgnore] Guid? Id, Guid MovieId, Guid HallId, DateTime StartsAtUtc,
     decimal SeatPrice, string AudioLanguage, string? SubtitleLanguage,
     int? RefundWindowHours, decimal? RefundFeePercent, string? RefundNote)
     : ICommand<Result<ScreeningAdminItem>>;
 
-public sealed record CancelScreeningCommand(Guid Id, string Reason) : ICommand<Result>;
+public sealed record CancelScreeningCommand([property: JsonIgnore] Guid Id, string Reason) : ICommand<Result>;
+
+internal sealed class CancelScreeningValidator : AbstractValidator<CancelScreeningCommand>
+{
+    public CancelScreeningValidator() => RuleFor(x => x.Reason).MaximumLength(300);
+}
 
 internal sealed class CancelScreeningHandler(CinemaDbContext db, IAuditLog audit)
     : ICommandHandler<CancelScreeningCommand, Result>
@@ -64,7 +71,11 @@ internal sealed class SaveScreeningValidator : AbstractValidator<SaveScreeningCo
     {
         RuleFor(x => x.MovieId).NotEmpty();
         RuleFor(x => x.HallId).NotEmpty();
-        RuleFor(x => x.SeatPrice).GreaterThan(0);
+        // A price or note too big for its column used to come back from the database as a 409.
+        RuleFor(x => x.SeatPrice).GreaterThan(0).LessThan(1000);
+        RuleFor(x => x.RefundWindowHours).InclusiveBetween(0, 24 * 30).When(x => x.RefundWindowHours is not null);
+        RuleFor(x => x.RefundFeePercent).InclusiveBetween(0, 100).When(x => x.RefundFeePercent is not null);
+        RuleFor(x => x.RefundNote).MaximumLength(500);
         RuleFor(x => x.AudioLanguage).Must(l => Languages.Contains(l))
             .WithMessage("Audio language must be one of az, en, ru, tr.");
         RuleFor(x => x.SubtitleLanguage).Must(l => l is null || Languages.Contains(l))
@@ -162,8 +173,9 @@ public static class ManageScreeningsEndpoints
             .RequireAuthorization(AppRoles.Admin);
 
         admin.MapGet("", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetScreeningsForAdminQuery(), ct)))
-            .WithName("GetScreeningsForAdmin");
+                TypedResults.Ok(await dispatcher.Ask(new GetScreeningsForAdminQuery(), ct)))
+            .WithName("GetScreeningsForAdmin")
+            .WithSummary("Every screening, with seats sold and its refund rules");
 
         admin.MapPost("", async Task<Results<Ok<ScreeningAdminItem>, BadRequest<Error>, NotFound<Error>>> (
             SaveScreeningCommand body, IDispatcher dispatcher, CancellationToken ct) =>
@@ -173,7 +185,10 @@ public static class ManageScreeningsEndpoints
             return result.Error.Code == "not_found"
                 ? TypedResults.NotFound(result.Error)
                 : TypedResults.BadRequest(result.Error);
-        }).WithName("CreateScreening");
+        }).WithName("CreateScreening")
+        .WithSummary("Schedule one screening")
+        .WithDescription("`movieId`, `hallId`, `startsAtUtc`, `seatPrice` (above 0, below 1000), `audioLanguage` and optional " +
+                         "`subtitleLanguage` (az, en, ru, tr). Optional refund rules: `refundWindowHours`, `refundFeePercent`, `refundNote`.");
 
         admin.MapPut("/{id:guid}", async Task<Results<Ok<ScreeningAdminItem>, BadRequest<Error>, NotFound<Error>>> (
             Guid id, SaveScreeningCommand body, IDispatcher dispatcher, CancellationToken ct) =>
@@ -183,7 +198,9 @@ public static class ManageScreeningsEndpoints
             return result.Error.Code == "not_found"
                 ? TypedResults.NotFound(result.Error)
                 : TypedResults.BadRequest(result.Error);
-        }).WithName("UpdateScreeningWithId");
+        }).WithName("UpdateScreeningWithId")
+        .WithSummary("Edit a screening")
+        .WithDescription("The same fields as scheduling one. Once seats are sold the hall cannot change (400).");
 
         admin.MapPost("/{id:guid}/cancel",
             async Task<Results<NoContent, BadRequest<Error>, Conflict<Error>, NotFound<Error>>> (
@@ -197,13 +214,15 @@ public static class ManageScreeningsEndpoints
                     "conflict" => TypedResults.Conflict(result.Error),
                     _ => TypedResults.BadRequest(result.Error)
                 };
-            }).WithName("CancelScreeningWithId");
+            }).WithName("CancelScreeningWithId")
+            .WithSummary("Cancel a screening (every booking becomes fully refundable)")
+            .WithDescription("`reason` is shown to the customers (1-300 characters). 409: already cancelled.");
 
-        admin.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound, Conflict<Error>>> (
+        admin.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>, Conflict<Error>>> (
             Guid id, CinemaDbContext db, CancellationToken ct) =>
         {
             var screening = await db.Screenings.FirstOrDefaultAsync(s => s.Id == id, ct);
-            if (screening is null) return TypedResults.NotFound();
+            if (screening is null) return TypedResults.NotFound(Error.NotFound("Screening"));
 
             // Payments are filtered out with their screening, so deleting one with seats held or
             // sold made those tickets vanish with no way to refund them. Cancel refunds them.
@@ -213,6 +232,8 @@ public static class ManageScreeningsEndpoints
             db.Screenings.Remove(screening);   // soft delete, so sold seats keep their context
             await db.SaveChangesAsync(ct);
             return TypedResults.NoContent();
-        }).WithName("SoftDeleteScreeningWithId");
+        }).WithName("SoftDeleteScreeningWithId")
+        .WithSummary("Delete a screening nobody has booked")
+        .WithDescription("409 once seats are held or sold: cancel it instead, which makes them refundable.");
     }
 }

@@ -87,6 +87,8 @@ public static class MoviesOnDisplayEndpoint
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapGet("/api/on-display",
             async ([AsParameters] OnDisplayFilter filter, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetOnDisplayQuery(filter), ct)))
-        .WithName("GetMoviesOnDisplay").WithTags("Cinema").AllowAnonymous().CacheOutput(AppPolicies.CinemaCache);
+                TypedResults.Ok(await dispatcher.Ask(new GetOnDisplayQuery(filter), ct)))
+        .WithName("GetMoviesOnDisplay").WithTags("Cinema").AllowAnonymous().CacheOutput(AppPolicies.CinemaCache)
+        .WithSummary("Films showing in the cinemas, each with its showtimes")
+        .WithDescription("Filters, all optional: `Language` (az, en, ru, tr), `From`/`To` (dates), `Search` (title), `VenueId`, `City`.");
 }

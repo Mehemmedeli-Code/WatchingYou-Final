@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using MovieRental.Modules.Media.Persistence;
 using MovieRental.SharedKernel.Contracts;
+using MovieRental.SharedKernel.Results;
 using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Media.Features;
@@ -22,13 +23,14 @@ public static class StreamShortFilmEndpoint
             IHostEnvironment environment, HttpContext context, CancellationToken ct) =>
         {
             var film = await db.ShortFilms.FirstOrDefaultAsync(f => f.Id == id, ct);
-            if (film is null) return Results.NotFound();
+            if (film is null) return Results.NotFound(Error.NotFound("Film"));
 
             if (!await ViewerRules.MayWatchAsync(film, currentUser, users, ct))
-                return Results.StatusCode(StatusCodes.Status403Forbidden);
+                return Results.Json(Error.Forbidden("This film is not out yet, or its maker shares it with followers only."),
+                    statusCode: StatusCodes.Status403Forbidden);
 
             var path = ShortFilmStorage.PathFor(environment, film.StoredFileName);
-            if (!File.Exists(path)) return Results.NotFound();
+            if (!File.Exists(path)) return Results.NotFound(Error.NotFound("Film file"));
 
             // Counted once per opening request, not once per range request, or every seek
             // would inflate the number.
@@ -46,7 +48,14 @@ public static class StreamShortFilmEndpoint
             var stream = File.OpenRead(path);
             return Results.File(stream, ShortFilmStorage.ContentTypeFor(film.StoredFileName), enableRangeProcessing: true);
         })
-        .WithName("StreamShortFilm").WithTags("Shorts").AllowAnonymous();
+        .WithName("StreamShortFilm").WithTags("Shorts").AllowAnonymous()
+        .WithSummary("Play a short film (the video file, seekable)")
+        .WithDescription("Anyone for an approved film in a gallery; followers for one kept for followers; always the maker, " +
+                         "Security and admins. 403 otherwise.")
+        .Produces(StatusCodes.Status200OK, typeof(Stream), "video/mp4", "video/webm")
+        .Produces(StatusCodes.Status206PartialContent, typeof(Stream), "video/mp4", "video/webm")
+        .Produces<Error>(StatusCodes.Status403Forbidden)
+        .Produces<Error>(StatusCodes.Status404NotFound);
 }
 
 /// <summary>Who has been counted for which film lately.</summary>

@@ -7,6 +7,7 @@ using MovieRental.Modules.Media.Domain;
 using MovieRental.Modules.Media.Persistence;
 using MovieRental.SharedKernel.Contracts;
 using MovieRental.SharedKernel.Cqrs;
+using MovieRental.SharedKernel.Results;
 using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Media.Features;
@@ -83,21 +84,29 @@ public static class GalleryEndpoints
     public static void Map(IEndpointRouteBuilder app)
     {
         app.MapGet("/api/gallery/ai", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetGalleryQuery(ShortFilmOrigin.AiGenerated), ct)))
-            .WithName("GetAiCatalog").WithTags("Galleries").AllowAnonymous();
+                TypedResults.Ok(await dispatcher.Ask(new GetGalleryQuery(ShortFilmOrigin.AiGenerated), ct)))
+            .WithName("GetAiCatalog").WithTags("Galleries").AllowAnonymous()
+            .WithSummary("The AI Catalog: approved AI-generated films, newest first")
+            .WithDescription("Each with its maker's @username and picture, and its likes (`likedByMe` when signed in).");
 
         app.MapGet("/api/gallery/human", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetGalleryQuery(ShortFilmOrigin.HandCrafted), ct)))
-            .WithName("GetHumanCraft").WithTags("Galleries").AllowAnonymous();
+                TypedResults.Ok(await dispatcher.Ask(new GetGalleryQuery(ShortFilmOrigin.HandCrafted), ct)))
+            .WithName("GetHumanCraft").WithTags("Galleries").AllowAnonymous()
+            .WithSummary("Human Craft: approved hand-made films, newest first")
+            .WithDescription("Each with its maker's @username and picture, and its likes (`likedByMe` when signed in).");
 
         var like = app.MapGroup("/api/shorts/{id:guid}/like").WithTags("Galleries")
             .RequireAuthorization().RequireRateLimiting(AppPolicies.WriteRateLimit);
-        like.MapPut("", async Task<Results<Ok<LikeCount>, NotFound>> (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
-                await dispatcher.Send(new LikeShortFilmCommand(id, true), ct) is { } n ? TypedResults.Ok(new LikeCount(n)) : TypedResults.NotFound())
-            .WithName("LikeShortFilm");
-        like.MapDelete("", async Task<Results<Ok<LikeCount>, NotFound>> (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
-                await dispatcher.Send(new LikeShortFilmCommand(id, false), ct) is { } n ? TypedResults.Ok(new LikeCount(n)) : TypedResults.NotFound())
-            .WithName("UnlikeShortFilm");
+        like.MapPut("", async Task<Results<Ok<LikeCount>, NotFound<Error>>> (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
+                await dispatcher.Send(new LikeShortFilmCommand(id, true), ct) is { } n ? TypedResults.Ok(new LikeCount(n)) : TypedResults.NotFound(Error.NotFound("Film")))
+            .WithName("LikeShortFilm")
+            .WithSummary("Like a film in a gallery")
+            .WithDescription("No body. Liking twice is still one like. Answers with the new count.");
+        like.MapDelete("", async Task<Results<Ok<LikeCount>, NotFound<Error>>> (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
+                await dispatcher.Send(new LikeShortFilmCommand(id, false), ct) is { } n ? TypedResults.Ok(new LikeCount(n)) : TypedResults.NotFound(Error.NotFound("Film")))
+            .WithName("UnlikeShortFilm")
+            .WithSummary("Take my like back")
+            .WithDescription("Answers with the new count.");
     }
 }
 

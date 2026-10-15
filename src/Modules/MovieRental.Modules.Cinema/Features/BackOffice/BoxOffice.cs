@@ -55,8 +55,9 @@ internal sealed class GetBoxOfficeScreeningsHandler(CinemaDbContext db)
 
 public sealed record BoxOfficeSeat(int Row, int Number, Guid TicketTypeId);
 
+/// <param name="CashReceived">For cash: what the customer handed over, to work out the change.</param>
 public sealed record BoxOfficeSaleCommand(
-    Guid ScreeningId, IReadOnlyList<BoxOfficeSeat> Seats, TenderType Tender, decimal? CashReceived)
+    Guid ScreeningId, IReadOnlyList<BoxOfficeSeat> Seats, TenderType Tender, decimal? CashReceived = null)
     : ICommand<Result<BoxOfficeSaleResult>>;
 
 public sealed record BoxOfficeSaleResult(
@@ -69,7 +70,10 @@ internal sealed class BoxOfficeSaleValidator : AbstractValidator<BoxOfficeSaleCo
         RuleFor(x => x.Seats).NotEmpty().WithMessage("Pick at least one seat.");
         RuleFor(x => x.Seats.Count).LessThanOrEqualTo(20).WithMessage("Twenty seats is the most in one sale.").When(x => x.Seats is not null);
         RuleFor(x => x.Tender).IsInEnum();
-        RuleFor(x => x.CashReceived).GreaterThanOrEqualTo(0).When(x => x.CashReceived is not null);
+        RuleFor(x => x.CashReceived).InclusiveBetween(0, 100_000).When(x => x.CashReceived is not null);
+        RuleForEach(x => x.Seats).NotNull().WithMessage("A seat is missing its row and number.");
+        RuleFor(x => x.Seats).Must(s => s.Where(x => x is not null).DistinctBy(x => (x.Row, x.Number)).Count() == s.Count(x => x is not null))
+            .WithMessage("The same seat is picked twice.").When(x => x.Seats is not null);
     }
 }
 
@@ -207,9 +211,11 @@ public static class BoxOfficeEndpoints
             .RequireAuthorization(AppPolicies.BackOffice);
 
         till.MapGet("/screenings", async (string? date, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(
+                TypedResults.Ok(await dispatcher.Ask(
                     new GetBoxOfficeScreeningsQuery(BackOfficeClock.Parse(date, BackOfficeClock.Today)), ct)))
-            .WithName("GetBoxOfficeScreenings");
+            .WithName("GetBoxOfficeScreenings")
+            .WithSummary("The day's screenings at the till, with seats left")
+            .WithDescription("`date` as yyyy-MM-dd; left out (or not a date), today.");
 
         till.MapPost("/sell", async Task<Results<Ok<BoxOfficeSaleResult>, NotFound<Error>, Conflict<Error>, BadRequest<Error>>> (
                 BoxOfficeSaleCommand body, IDispatcher dispatcher, CancellationToken ct) =>
@@ -223,16 +229,21 @@ public static class BoxOfficeEndpoints
                     _ => TypedResults.BadRequest(result.Error)
                 };
             })
-            .WithName("SellAtBoxOffice");
+            .WithName("SellAtBoxOffice")
+            .WithSummary("Sell tickets at the till")
+            .WithDescription("Seats with a `ticketTypeId` each (up to 20), `tender` Cash or Card, and for cash `cashReceived`. Needs your " +
+                             "open shift. Answers with the ticket and the change. 409: a seat is taken, no shift is open, or the show started.");
 
-        till.MapGet("/{paymentId:guid}/ticket.pdf", async Task<Results<FileContentHttpResult, NotFound>> (
+        till.MapGet("/{paymentId:guid}/ticket.pdf", async Task<Results<FileContentHttpResult, NotFound<Error>>> (
                 Guid paymentId, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var found = await dispatcher.Ask(new BoxOfficeTicketPdfQuery(paymentId), ct);
                 return found is { } file
                     ? TypedResults.File(file.Pdf, "application/pdf", $"WatchingYou-{file.Reference}.pdf")
-                    : TypedResults.NotFound();
+                    : TypedResults.NotFound(Error.NotFound("Sale"));
             })
-            .WithName("GetBoxOfficeTicketPdf");
+            .WithName("GetBoxOfficeTicketPdf")
+            .WithSummary("The PDF ticket of a till sale, to print")
+            .Produces(StatusCodes.Status200OK, typeof(Stream), "application/pdf");
     }
 }

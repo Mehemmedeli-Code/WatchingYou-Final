@@ -286,16 +286,21 @@ public static class BackOfficeReportEndpoints
         var reports = app.MapGroup("/api/backoffice").WithTags("Back office").RequireAuthorization(AppRoles.Admin);
 
         reports.MapGet("/dashboard", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetBackOfficeDashboardQuery(), ct)))
-            .WithName("GetBackOfficeDashboard");
+                TypedResults.Ok(await dispatcher.Ask(new GetBackOfficeDashboardQuery(), ct)))
+            .WithName("GetBackOfficeDashboard")
+            .WithSummary("Today at the cinema: takings, open shifts, shows, stock running low");
 
         reports.MapGet("/reports/sales", async (string? from, string? to, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetSalesReportQuery(from, to), ct)))
-            .WithName("GetSalesReport");
+                TypedResults.Ok(await dispatcher.Ask(new GetSalesReportQuery(from, to), ct)))
+            .WithName("GetSalesReport")
+            .WithSummary("Sales for a period: by day, film, hall, ticket type and bar item")
+            .WithDescription(Period);
 
         reports.MapGet("/reports/settlement", async (string? from, string? to, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetSettlementQuery(from, to), ct)))
-            .WithName("GetSettlementReport");
+                TypedResults.Ok(await dispatcher.Ask(new GetSettlementQuery(from, to), ct)))
+            .WithName("GetSettlementReport")
+            .WithSummary("What each film's distributor is owed for a period")
+            .WithDescription(Period);
 
         reports.MapGet("/reports/settlement.csv", async (string? from, string? to, IDispatcher dispatcher, CancellationToken ct) =>
             {
@@ -309,6 +314,12 @@ public static class BackOfficeReportEndpoints
                     }));
                 return Results.File(csv, Csv.ContentType, $"settlement-{report.From}-{report.To}.csv");
             })
-            .WithName("ExportSettlement");
+            .WithName("ExportSettlement")
+            .WithSummary("The distributor settlement as a spreadsheet (CSV)")
+            .WithDescription(Period)
+            .Produces(StatusCodes.Status200OK, typeof(Stream), Csv.ContentType);
     }
+
+    private const string Period = "`from` and `to` as yyyy-MM-dd; left out or not dates, the last 7 days up to today. " +
+                                  "At most 93 days; dates the wrong way round are swapped.";
 }

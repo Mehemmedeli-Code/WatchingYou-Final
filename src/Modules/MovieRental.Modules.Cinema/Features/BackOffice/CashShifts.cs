@@ -180,7 +180,9 @@ public static class CashShiftEndpoints
         // 204 when no shift is open: "nothing" is a normal answer here, not an error.
         till.MapGet("", async Task<Results<Ok<ShiftSummary>, NoContent>> (IDispatcher dispatcher, CancellationToken ct) =>
                 await dispatcher.Ask(new GetMyShiftQuery(), ct) is { } shift ? TypedResults.Ok(shift) : TypedResults.NoContent())
-            .WithName("GetMyShift");
+            .WithName("GetMyShift")
+            .WithSummary("My open shift at the till")
+            .WithDescription("204 when no shift is open.");
 
         till.MapPost("/open", async Task<Results<Ok<ShiftSummary>, Conflict<Error>, BadRequest<Error>>> (
                 OpenShiftCommand body, IDispatcher dispatcher, CancellationToken ct) =>
@@ -189,7 +191,9 @@ public static class CashShiftEndpoints
                 if (result.IsSuccess) return TypedResults.Ok(result.Value);
                 return result.Error.Code == "conflict" ? TypedResults.Conflict(result.Error) : TypedResults.BadRequest(result.Error);
             })
-            .WithName("OpenShift");
+            .WithName("OpenShift")
+            .WithSummary("Open a shift at the till")
+            .WithDescription("`openingFloat`: the cash in the drawer, 0 to 10 000. 409: you already have one open.");
 
         till.MapPost("/close", async Task<Results<Ok<ShiftSummary>, NotFound<Error>, BadRequest<Error>>> (
                 CloseShiftCommand body, IDispatcher dispatcher, CancellationToken ct) =>
@@ -198,10 +202,14 @@ public static class CashShiftEndpoints
                 if (result.IsSuccess) return TypedResults.Ok(result.Value);
                 return result.Error.Code == "not_found" ? TypedResults.NotFound(result.Error) : TypedResults.BadRequest(result.Error);
             })
-            .WithName("CloseShift");
+            .WithName("CloseShift")
+            .WithSummary("Close my shift and count the drawer")
+            .WithDescription("`countedCash` and an optional `note`; answers with the expected cash and the difference. 404: no shift is open.");
 
         app.MapGet("/api/backoffice/shifts", async (int? take, IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetShiftHistoryQuery(take ?? 50), ct)))
-            .WithTags("Back office").RequireAuthorization(AppRoles.Admin).WithName("GetShiftHistory");
+                TypedResults.Ok(await dispatcher.Ask(new GetShiftHistoryQuery(take ?? 50), ct)))
+            .WithTags("Back office").RequireAuthorization(AppRoles.Admin).WithName("GetShiftHistory")
+            .WithSummary("Past shifts, newest first, with their counts")
+            .WithDescription("`take`: how many, default 50.");
     }
 }

@@ -84,7 +84,7 @@ public static class DeleteAccountEndpoint
 {
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPost("/api/auth/account/delete",
-                async Task<Results<NoContent, BadRequest<Error>, ForbidHttpResult, NotFound<Error>>> (
+                async Task<Results<NoContent, BadRequest<Error>, JsonHttpResult<Error>, NotFound<Error>>> (
                     DeleteAccountCommand body, IDispatcher dispatcher, CancellationToken ct) =>
                 {
                     var result = await dispatcher.Send(body, ct);
@@ -92,12 +92,16 @@ public static class DeleteAccountEndpoint
                     return result.Error.Code switch
                     {
                         "not_found" => TypedResults.NotFound(result.Error),
-                        "forbidden" => TypedResults.Forbid(),
+                        "forbidden" => TypedResults.Json(result.Error, statusCode: StatusCodes.Status403Forbidden),
                         _ => TypedResults.BadRequest(result.Error)
                     };
                 })
             .WithName("DeleteOwnAccount")
             .WithTags("Auth")
+            .WithSummary("Close my account (asks for the password again)")
+            .WithDescription("The name, e-mail, phone and picture are wiped and every session ends; bookings and payments stay, " +
+                             "anonymous. 400: wrong password. 403: an admin account is closed by another admin, not here.")
+            .Produces<Error>(StatusCodes.Status403Forbidden)
             .RequireAuthorization()
             .RequireRateLimiting(AppPolicies.AuthRateLimit);
 }

@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Catalog.Persistence;
 using MovieRental.SharedKernel.Contracts;
 using MovieRental.SharedKernel.Cqrs;
+using MovieRental.SharedKernel.Results;
 using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Catalog.Features;
@@ -90,7 +92,12 @@ public static class CompareTasteEndpoint
                 Guid userId, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var comparison = await dispatcher.Ask(new CompareTasteQuery(userId), ct);
-                return comparison is null ? Results.NotFound() : Results.Ok(comparison);
+                return comparison is null
+                    ? (Results<Ok<TasteComparison>, NotFound<Error>>)TypedResults.NotFound(Error.NotFound("Member on the globe"))
+                    : TypedResults.Ok(comparison);
             })
-            .WithName("CompareTasteWithId").WithTags("Globe").RequireAuthorization();
+            .WithName("CompareTasteWithId").WithTags("Globe").RequireAuthorization()
+            .WithSummary("How alike are my film taste and someone's on the globe")
+            .WithDescription("A match percent over genres, the films you both rented, and genre counts. " +
+                             "404 for anyone who does not appear on the globe.");
 }

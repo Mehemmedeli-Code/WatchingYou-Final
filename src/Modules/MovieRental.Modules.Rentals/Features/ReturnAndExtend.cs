@@ -14,7 +14,7 @@ namespace MovieRental.Modules.Rentals.Features;
 
 // Feature 3 (continued) — when the paid three days are over: three more for $0.50, or return.
 // ExtraDays is kept in the request for older clients and ignored; a period is always three days.
-public sealed record ExtendRentalCommand(Guid RentalId, int ExtraDays = RentalPricing.PeriodDays, ProCard? Card = null) : ICommand<Result<RentalResponse>>;
+public sealed record ExtendRentalCommand([property: System.Text.Json.Serialization.JsonIgnore] Guid RentalId, int ExtraDays = RentalPricing.PeriodDays, ProCard? Card = null) : ICommand<Result<RentalResponse>>;
 
 internal sealed class ExtendRentalHandler(RentalsDbContext db, ICurrentUser currentUser, LateFeePolicy policy,
     Microsoft.Extensions.Configuration.IConfiguration configuration)
@@ -113,7 +113,10 @@ public static class ReturnAndExtendEndpoints
                     _ => TypedResults.Conflict(result.Error)
                 };
             })
-        .WithName("PutRentalExtensionWithId").WithTags("Rentals").RequireAuthorization();
+        .WithName("PutRentalExtensionWithId").WithTags("Rentals").RequireAuthorization()
+        .WithSummary("Pay for three more days of a rental")
+        .WithDescription("Offered once the paid days are over: three days for $0.50, counted from now (`extraDays` is ignored). " +
+                         "400: the card is not valid. 409: returned already, or the current days are not over yet.");
 
         app.MapPut("/api/rentals/{id:guid}/return",
             async Task<Results<Ok<RentalResponse>, Conflict<Error>, NotFound<Error>>> (
@@ -125,6 +128,8 @@ public static class ReturnAndExtendEndpoints
                     ? TypedResults.NotFound(result.Error)
                     : TypedResults.Conflict(result.Error);
             })
-        .WithName("ReturnRentalWithId").WithTags("Rentals").RequireAuthorization();
+        .WithName("ReturnRentalWithId").WithTags("Rentals").RequireAuthorization()
+        .WithSummary("Return a rented film")
+        .WithDescription("Answers with the closed rental, late fee included. 409: already returned.");
     }
 }

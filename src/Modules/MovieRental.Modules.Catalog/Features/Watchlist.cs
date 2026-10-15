@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Catalog.Domain;
@@ -112,28 +113,35 @@ public static class WatchlistEndpoints
         var group = app.MapGroup("/api/watchlist").WithTags("Watchlist").RequireAuthorization();
 
         group.MapGet("", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetWatchlistQuery(), ct)))
-            .WithName("GetWatchlist");
+                TypedResults.Ok(await dispatcher.Ask(new GetWatchlistQuery(), ct)))
+            .WithName("GetWatchlist")
+            .WithSummary("My watchlist, latest added first");
 
         group.MapGet("/ids", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetWatchlistIdsQuery(), ct)))
-            .WithName("GetWatchlistIds");
+                TypedResults.Ok(await dispatcher.Ask(new GetWatchlistIdsQuery(), ct)))
+            .WithName("GetWatchlistIds")
+            .WithSummary("Just the film ids on my watchlist");
 
-        group.MapPut("/{movieId:guid}", async (Guid movieId, IDispatcher dispatcher, CancellationToken ct) =>
+        group.MapPut("/{movieId:guid}", async Task<Results<NoContent, NotFound<Error>, Conflict<Error>>> (
+                Guid movieId, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var result = await dispatcher.Send(new AddToWatchlistCommand(movieId), ct);
-                if (result.IsSuccess) return Results.NoContent();
+                if (result.IsSuccess) return TypedResults.NoContent();
                 return result.Error.Code == "not_found"
-                    ? Results.NotFound(result.Error)
-                    : Results.Conflict(result.Error);
+                    ? TypedResults.NotFound(result.Error)
+                    : TypedResults.Conflict(result.Error);
             })
-            .WithName("AddToWatchlist");
+            .WithName("AddToWatchlist")
+            .WithSummary("Add a film to my watchlist")
+            .WithDescription("No body. Adding it twice changes nothing. 409: the list is full.");
 
-        group.MapDelete("/{movieId:guid}", async (Guid movieId, IDispatcher dispatcher, CancellationToken ct) =>
+        group.MapDelete("/{movieId:guid}", async Task<NoContent> (Guid movieId, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 await dispatcher.Send(new RemoveFromWatchlistCommand(movieId), ct);
-                return Results.NoContent();
+                return TypedResults.NoContent();
             })
-            .WithName("RemoveFromWatchlist");
+            .WithName("RemoveFromWatchlist")
+            .WithSummary("Take a film off my watchlist")
+            .WithDescription("Always 204, also when it was not on the list.");
     }
 }

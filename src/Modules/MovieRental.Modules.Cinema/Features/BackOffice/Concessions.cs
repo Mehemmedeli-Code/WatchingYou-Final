@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -29,8 +30,9 @@ internal static class ConcessionMapping
 
 // ------------------------------------------------------------------ menu (manager)
 
+/// <param name="Id">From the address when editing; not read from the body.</param>
 public sealed record SaveConcessionItemCommand(
-    Guid? Id, string Name, ConcessionCategory Category, decimal Price, decimal CostPrice,
+    [property: JsonIgnore] Guid? Id, string Name, ConcessionCategory Category, decimal Price, decimal CostPrice,
     int Stock, int LowStockThreshold, bool IsActive) : ICommand<Result<ConcessionItemDto>>;
 
 internal sealed class SaveConcessionItemValidator : AbstractValidator<SaveConcessionItemCommand>
@@ -39,10 +41,11 @@ internal sealed class SaveConcessionItemValidator : AbstractValidator<SaveConces
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(80);
         RuleFor(x => x.Category).IsInEnum();
-        RuleFor(x => x.Price).GreaterThan(0);
-        RuleFor(x => x.CostPrice).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.Stock).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.LowStockThreshold).GreaterThanOrEqualTo(0);
+        // A price too big for its column used to come back from the database as a 409.
+        RuleFor(x => x.Price).GreaterThan(0).LessThan(100_000);
+        RuleFor(x => x.CostPrice).GreaterThanOrEqualTo(0).LessThan(100_000);
+        RuleFor(x => x.Stock).InclusiveBetween(0, 1_000_000);
+        RuleFor(x => x.LowStockThreshold).InclusiveBetween(0, 1_000_000);
     }
 }
 
@@ -72,7 +75,7 @@ internal sealed class SaveConcessionItemHandler(CinemaDbContext db)
     }
 }
 
-public sealed record RestockCommand(Guid Id, int Quantity) : ICommand<Result<ConcessionItemDto>>;
+public sealed record RestockCommand([property: JsonIgnore] Guid Id, int Quantity) : ICommand<Result<ConcessionItemDto>>;
 
 internal sealed class RestockHandler(CinemaDbContext db, IAuditLog audit) : ICommandHandler<RestockCommand, Result<ConcessionItemDto>>
 {
@@ -97,7 +100,7 @@ internal sealed class RestockHandler(CinemaDbContext db, IAuditLog audit) : ICom
 
 public sealed record BarLine(Guid ItemId, int Quantity);
 
-public sealed record BarSaleCommand(IReadOnlyList<BarLine> Lines, TenderType Tender, decimal? CashReceived)
+public sealed record BarSaleCommand(IReadOnlyList<BarLine> Lines, TenderType Tender, decimal? CashReceived = null)
     : ICommand<Result<BarSaleResult>>;
 
 public sealed record BarReceiptLine(string Name, int Quantity, decimal UnitPrice, decimal LineTotal);
@@ -111,7 +114,9 @@ internal sealed class BarSaleValidator : AbstractValidator<BarSaleCommand>
     public BarSaleValidator()
     {
         RuleFor(x => x.Lines).NotEmpty().WithMessage("The basket is empty.");
-        RuleForEach(x => x.Lines).Must(l => l.Quantity is > 0 and <= 50).WithMessage("Quantities run from 1 to 50.");
+        // [null] used to reach l.Quantity in this very rule and answer 500.
+        RuleForEach(x => x.Lines).NotNull().WithMessage("A line is missing its item and quantity.")
+            .Must(l => l is null || l.Quantity is > 0 and <= 50).WithMessage("Quantities run from 1 to 50.");
         RuleFor(x => x.Tender).IsInEnum();
     }
 }
@@ -201,9 +206,10 @@ public static class ConcessionEndpoints
 
         // The till needs the menu; only the manager changes it.
         bar.MapGet("/items", async (CinemaDbContext db, CancellationToken ct) =>
-                Results.Ok((await db.ConcessionItems.AsNoTracking()
-                    .OrderBy(i => i.Category).ThenBy(i => i.Name).ToListAsync(ct)).Select(i => i.ToDto())))
-            .RequireAuthorization(AppPolicies.BackOffice).WithName("GetBarItems");
+                TypedResults.Ok((await db.ConcessionItems.AsNoTracking()
+                    .OrderBy(i => i.Category).ThenBy(i => i.Name).ToListAsync(ct)).Select(i => i.ToDto()).ToList()))
+            .RequireAuthorization(AppPolicies.BackOffice).WithName("GetBarItems")
+            .WithSummary("The bar menu, with stock and the items running low");
 
         bar.MapPost("/sell", async Task<Results<Ok<BarSaleResult>, Conflict<Error>, BadRequest<Error>>> (
                 BarSaleCommand body, IDispatcher dispatcher, CancellationToken ct) =>
@@ -212,7 +218,10 @@ public static class ConcessionEndpoints
                 if (result.IsSuccess) return TypedResults.Ok(result.Value);
                 return result.Error.Code == "conflict" ? TypedResults.Conflict(result.Error) : TypedResults.BadRequest(result.Error);
             })
-            .RequireAuthorization(AppPolicies.BackOffice).WithName("SellAtBar");
+            .RequireAuthorization(AppPolicies.BackOffice).WithName("SellAtBar")
+            .WithSummary("Sell at the bar")
+            .WithDescription("`lines` of `itemId` and `quantity` (1-50), `tender` Cash or Card, for cash `cashReceived`. " +
+                             "409: not enough in stock, or no shift is open.");
 
         var menu = bar.MapGroup("/items").RequireAuthorization(AppRoles.Admin);
 
@@ -223,7 +232,8 @@ public static class ConcessionEndpoints
                 if (result.IsSuccess) return TypedResults.Ok(result.Value);
                 return result.Error.Code == "not_found" ? TypedResults.NotFound(result.Error) : TypedResults.BadRequest(result.Error);
             })
-            .WithName("CreateBarItem");
+            .WithName("CreateBarItem")
+            .WithSummary("Add an item to the bar menu");
 
         menu.MapPut("/{id:guid}", async Task<Results<Ok<ConcessionItemDto>, BadRequest<Error>, NotFound<Error>>> (
                 Guid id, SaveConcessionItemCommand body, IDispatcher dispatcher, CancellationToken ct) =>
@@ -232,7 +242,8 @@ public static class ConcessionEndpoints
                 if (result.IsSuccess) return TypedResults.Ok(result.Value);
                 return result.Error.Code == "not_found" ? TypedResults.NotFound(result.Error) : TypedResults.BadRequest(result.Error);
             })
-            .WithName("UpdateBarItem");
+            .WithName("UpdateBarItem")
+            .WithSummary("Change a bar menu item");
 
         menu.MapPost("/{id:guid}/restock", async Task<Results<Ok<ConcessionItemDto>, BadRequest<Error>, NotFound<Error>>> (
                 Guid id, RestockCommand body, IDispatcher dispatcher, CancellationToken ct) =>
@@ -241,16 +252,19 @@ public static class ConcessionEndpoints
                 if (result.IsSuccess) return TypedResults.Ok(result.Value);
                 return result.Error.Code == "not_found" ? TypedResults.NotFound(result.Error) : TypedResults.BadRequest(result.Error);
             })
-            .WithName("RestockBarItem");
+            .WithName("RestockBarItem")
+            .WithSummary("Add delivered stock to a bar item")
+            .WithDescription("`quantity` 1 to 100 000, added to what is there.");
 
-        menu.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound>> (Guid id, CinemaDbContext db, CancellationToken ct) =>
+        menu.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>>> (Guid id, CinemaDbContext db, CancellationToken ct) =>
             {
                 var item = await db.ConcessionItems.FirstOrDefaultAsync(i => i.Id == id, ct);
-                if (item is null) return TypedResults.NotFound();
+                if (item is null) return TypedResults.NotFound(Error.NotFound("Item"));
                 db.ConcessionItems.Remove(item);   // soft delete; old receipts keep their snapshot
                 await db.SaveChangesAsync(ct);
                 return TypedResults.NoContent();
             })
-            .WithName("DeleteBarItem");
+            .WithName("DeleteBarItem")
+            .WithSummary("Take an item off the bar menu (old receipts keep it)");
     }
 }

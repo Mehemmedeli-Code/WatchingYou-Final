@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -38,7 +39,7 @@ internal sealed class GetMySubmissionsHandler(MediaDbContext db, ICurrentUser cu
     }
 }
 
-public sealed record SetVisibilityCommand(Guid Id, ShortFilmVisibility Visibility) : ICommand<Result>;
+public sealed record SetVisibilityCommand([property: JsonIgnore] Guid Id, ShortFilmVisibility Visibility) : ICommand<Result>;
 
 internal sealed class SetVisibilityHandler(MediaDbContext db, ICurrentUser currentUser)
     : ICommandHandler<SetVisibilityCommand, Result>
@@ -59,7 +60,7 @@ internal sealed class SetVisibilityHandler(MediaDbContext db, ICurrentUser curre
     }
 }
 
-public sealed record AddSubmissionCommentCommand(Guid Id, string Body) : ICommand<Result<SubmissionCommentDto>>;
+public sealed record AddSubmissionCommentCommand([property: JsonIgnore] Guid Id, string Body) : ICommand<Result<SubmissionCommentDto>>;
 
 internal sealed class AddSubmissionCommentHandler(
     MediaDbContext db, ICurrentUser currentUser, IUserDirectory users)
@@ -102,11 +103,12 @@ public static class StudioEndpoints
         var mine = app.MapGroup("/api/shorts").WithTags("Shorts").RequireAuthorization();
 
         mine.MapGet("/mine", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetMySubmissionsQuery(), ct)))
-            .WithName("GetMyShortFilms");
+                TypedResults.Ok(await dispatcher.Ask(new GetMySubmissionsQuery(), ct)))
+            .WithName("GetMyShortFilms")
+            .WithSummary("My uploaded films, with their review status and comments");
 
         mine.MapPut("/{id:guid}/visibility",
-            async Task<Results<NoContent, NotFound<Error>, BadRequest<Error>, ForbidHttpResult>> (
+            async Task<Results<NoContent, NotFound<Error>, BadRequest<Error>, JsonHttpResult<Error>>> (
                 Guid id, SetVisibilityCommand body, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var result = await dispatcher.Send(body with { Id = id }, ct);
@@ -115,18 +117,21 @@ public static class StudioEndpoints
                 {
                     "not_found" => TypedResults.NotFound(result.Error),
                     "validation" => TypedResults.BadRequest(result.Error),
-                    _ => TypedResults.Forbid()
+                    _ => TypedResults.Json(result.Error, statusCode: StatusCodes.Status403Forbidden)
                 };
-            }).WithName("SetShortFilmVisibilityWithId");
+            }).WithName("SetShortFilmVisibilityWithId")
+            .WithSummary("Make my film public or private")
+            .WithDescription("`visibility`: Public or Private. 403: not your film.")
+            .Produces<Error>(StatusCodes.Status403Forbidden);
 
         // The uploader takes back a film that has not been approved yet — the wrong file, a
         // change of mind. The record is soft-deleted like an admin removal, but the file goes:
         // nobody should keep a video its owner withdrew by mistake.
-        mine.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound, BadRequest<Error>>> (
+        mine.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>, BadRequest<Error>>> (
             Guid id, MediaDbContext db, ICurrentUser currentUser, IHostEnvironment environment, CancellationToken ct) =>
         {
             var film = await db.ShortFilms.FirstOrDefaultAsync(f => f.Id == id && f.UserId == currentUser.RequireId(), ct);
-            if (film is null) return TypedResults.NotFound();
+            if (film is null) return TypedResults.NotFound(Error.NotFound("Submission"));
             if (film.Status == SubmissionStatus.Approved)
                 return TypedResults.BadRequest(Error.Validation("An approved film cannot be withdrawn here."));
 
@@ -135,17 +140,25 @@ public static class StudioEndpoints
             var path = ShortFilmStorage.PathFor(environment, film.StoredFileName);
             if (File.Exists(path)) File.Delete(path);
             return TypedResults.NoContent();
-        }).WithName("WithdrawShortFilm");
+        }).WithName("WithdrawShortFilm")
+        .WithSummary("Withdraw my film before it is approved")
+        .WithDescription("Deletes it and its file. 400: an approved film stays. 404: not yours, or no such film.");
 
         mine.MapPost("/{id:guid}/comments",
-            async Task<Results<Ok<SubmissionCommentDto>, BadRequest<Error>, NotFound<Error>>> (
+            async Task<Results<Ok<SubmissionCommentDto>, BadRequest<Error>, NotFound<Error>, JsonHttpResult<Error>>> (
                 Guid id, AddSubmissionCommentCommand body, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var result = await dispatcher.Send(body with { Id = id }, ct);
                 if (result.IsSuccess) return TypedResults.Ok(result.Value);
-                return result.Error.Code == "not_found"
-                    ? TypedResults.NotFound(result.Error)
-                    : TypedResults.BadRequest(result.Error);
-            }).WithName("AddSubmissionCommentWithId").RequireRateLimiting(AppPolicies.WriteRateLimit);
+                return result.Error.Code switch
+                {
+                    "not_found" => TypedResults.NotFound(result.Error),
+                    "forbidden" => TypedResults.Json(result.Error, statusCode: StatusCodes.Status403Forbidden),
+                    _ => TypedResults.BadRequest(result.Error)
+                };
+            }).WithName("AddSubmissionCommentWithId").RequireRateLimiting(AppPolicies.WriteRateLimit)
+            .WithSummary("Comment on a film's review (maker, Security and admins)")
+            .WithDescription("`body`: 1 to 2000 characters. 403: not your film and not staff.")
+            .Produces<Error>(StatusCodes.Status403Forbidden);
     }
 }

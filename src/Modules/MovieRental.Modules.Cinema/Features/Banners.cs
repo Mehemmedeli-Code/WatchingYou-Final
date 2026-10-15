@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -52,7 +53,7 @@ internal sealed class GetBannersHandler(CinemaDbContext db) : IQueryHandler<GetB
 }
 
 public sealed record UpdateBannerCommand(
-    Guid Id, bool IsActive, int SortOrder, string? Headline, string? Subline, string? PromoCode,
+    [property: JsonIgnore] Guid Id, bool IsActive, int SortOrder, string? Headline, string? Subline, string? PromoCode,
     DateOnly? StartsOn, DateOnly? EndsOn) : ICommand<Result>;
 
 internal sealed class UpdateBannerValidator : AbstractValidator<UpdateBannerCommand>
@@ -101,13 +102,15 @@ public static class BannerEndpoints
     public static void Map(IEndpointRouteBuilder app)
     {
         app.MapGet("/api/banners", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetBannersQuery(false), ct)))
-            .WithName("GetBanners").WithTags("Cinema").AllowAnonymous();
+                TypedResults.Ok(await dispatcher.Ask(new GetBannersQuery(false), ct)))
+            .WithName("GetBanners").WithTags("Cinema").AllowAnonymous()
+            .WithSummary("The advertising boards showing today");
 
-        var admin = app.MapGroup("/api/admin/banners").WithTags("Cinema").RequireAuthorization(AppRoles.Admin);
+        var admin = app.MapGroup("/api/admin/banners").WithTags("Cinema admin").RequireAuthorization(AppRoles.Admin);
         admin.MapGet("", async (IDispatcher dispatcher, CancellationToken ct) =>
-                Results.Ok(await dispatcher.Ask(new GetBannersQuery(true), ct)))
-            .WithName("GetAdminBanners");
+                TypedResults.Ok(await dispatcher.Ask(new GetBannersQuery(true), ct)))
+            .WithName("GetAdminBanners")
+            .WithSummary("Every advertising board, on or off");
         admin.MapPut("/{id:guid}", async Task<Results<NoContent, NotFound<Error>, BadRequest<Error>>> (
                 Guid id, UpdateBannerCommand body, IDispatcher dispatcher, CancellationToken ct) =>
             {
@@ -115,6 +118,9 @@ public static class BannerEndpoints
                 if (result.IsSuccess) return TypedResults.NoContent();
                 return result.Error.Code == "not_found" ? TypedResults.NotFound(result.Error) : TypedResults.BadRequest(result.Error);
             })
-            .WithName("UpdateBanner");
+            .WithName("UpdateBanner")
+            .WithSummary("Change an advertising board")
+            .WithDescription("`headline` up to 80, `subline` up to 140 characters, `sortOrder` 0-99, an optional `promoCode` that exists, " +
+                             "and the days it shows (`startsOn`, `endsOn`).");
     }
 }

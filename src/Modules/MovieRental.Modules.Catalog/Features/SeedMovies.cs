@@ -125,6 +125,12 @@ public static class SeedMoviesEndpoint
 
                 return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
             })
-        .WithName("SeedMoviesFromJson").WithTags("Catalog admin").RequireAuthorization(AppRoles.Admin);
+        .WithName("SeedMoviesFromJson").WithTags("Catalog admin").RequireAuthorization(AppRoles.Admin)
+        .WithSummary("Add or update many films at once from JSON")
+        .WithDescription("A JSON array of films, or { \"movies\": [...] }. A film with the same title and year is updated, a new one added. " +
+                         "Answers with how many were added, updated and skipped.")
+        .Accepts<List<MovieSeedItem>>("application/json")
+        .Produces<SeedSummary>()
+        .Produces<Error>(StatusCodes.Status400BadRequest);
     }
 }

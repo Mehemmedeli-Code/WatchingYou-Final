@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Catalog.Persistence;
 using MovieRental.SharedKernel.Contracts;
 using MovieRental.SharedKernel.Cqrs;
+using MovieRental.SharedKernel.Results;
 using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Catalog.Features;
@@ -50,10 +51,13 @@ public static class WatchMovieEndpoint
 {
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapGet("/api/movies/{id:guid}/watch",
-            async Task<Results<Ok<WatchResponse>, NotFound>> (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
+            async Task<Results<Ok<WatchResponse>, NotFound<Error>>> (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var answer = await dispatcher.Ask(new WatchMovieQuery(id), ct);
-                return answer is null ? TypedResults.NotFound() : TypedResults.Ok(answer);
+                return answer is null ? TypedResults.NotFound(Error.NotFound("Movie")) : TypedResults.Ok(answer);
             })
-        .WithName("WatchMovie").WithTags("Catalog").RequireAuthorization();
+        .WithName("WatchMovie").WithTags("Catalog").RequireAuthorization()
+        .WithSummary("May I watch this film? If so, its video address")
+        .WithDescription("`allowed` true with `videoUrl` for staff, Watching PRO, or an active rental (`access`: admin, pro, rental). " +
+                         "Otherwise `allowed` false and `access` none (rent it first) or awaitingDecision. Not being allowed is a 200, not an error.");
 }
