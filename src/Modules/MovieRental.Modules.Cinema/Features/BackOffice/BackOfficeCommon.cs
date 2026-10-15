@@ -20,10 +20,15 @@ internal static class BackOfficeClock
 
     public static DateOnly LocalDay(DateTime utc) => DateOnly.FromDateTime(utc + Baku);
 
-    /// <summary>Parses yyyy-MM-dd, falling back when absent or malformed.</summary>
+    /// <summary>Parses yyyy-MM-dd, falling back when absent, malformed or outside 2000-2100.</summary>
     public static DateOnly Parse(string? text, DateOnly fallback) =>
-        DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var day)
-            ? day : fallback;
+        TryParse(text, out var day) ? day : fallback;
+
+    /// <summary>yyyy-MM-dd from 2000 to 2100. Year 1 or 9999 used to pass, and moving it to UTC or
+    /// to the next day ran off the calendar: a 500 instead of a report.</summary>
+    public static bool TryParse(string? text, out DateOnly day) =>
+        DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out day)
+        && day.Year is >= 2000 and <= 2100;
 
     /// <summary>A range of local days as a half-open UTC interval, clamped to a sane length.</summary>
     public static (DateOnly From, DateOnly To, DateTime FromUtc, DateTime ToUtc) Range(string? from, string? to, int defaultDays = 7)

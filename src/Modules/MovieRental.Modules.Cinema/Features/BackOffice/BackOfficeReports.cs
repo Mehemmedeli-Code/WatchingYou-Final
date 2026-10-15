@@ -320,6 +320,6 @@ public static class BackOfficeReportEndpoints
             .Produces(StatusCodes.Status200OK, typeof(Stream), Csv.ContentType);
     }
 
-    private const string Period = "`from` and `to` as yyyy-MM-dd; left out or not dates, the last 7 days up to today. " +
+    private const string Period = "`from` and `to` as yyyy-MM-dd (2000 to 2100); left out or not dates, the last 7 days up to today. " +
                                   "At most 93 days; dates the wrong way round are swapped.";
 }

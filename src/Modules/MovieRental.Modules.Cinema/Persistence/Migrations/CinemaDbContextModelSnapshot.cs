@@ -38,6 +38,7 @@ namespace MovieRental.Modules.Cinema.Persistence.Migrations
                         .HasColumnType("nvarchar(120)");
 
                     b.Property<DateTime?>("ClosedAtUtc")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<decimal?>("CountedCash")

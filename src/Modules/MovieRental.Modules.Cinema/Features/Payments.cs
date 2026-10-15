@@ -92,6 +92,18 @@ public sealed record CheckoutQuote(
 
 public sealed record GetCheckoutQuoteQuery(Guid ScreeningId, QuoteRequest Request) : IQuery<CheckoutQuote?>;
 
+internal sealed class GetCheckoutQuoteValidator : AbstractValidator<GetCheckoutQuoteQuery>
+{
+    // 1000 seats used to be priced as 8 without a word; the price of what was asked, or a 400.
+    public GetCheckoutQuoteValidator()
+    {
+        RuleFor(x => x.Request).NotNull().WithMessage("The body is missing. Send the fields as JSON.");
+        RuleFor(x => x.Request.Seats).InclusiveBetween(0, 8).WithMessage("Eight seats is the limit per booking.")
+            .OverridePropertyName("Seats").When(x => x.Request is not null);
+        RuleFor(x => x.Request.PromoCode).MaximumLength(32).OverridePropertyName("PromoCode").When(x => x.Request is not null);
+    }
+}
+
 internal sealed class GetCheckoutQuoteHandler(
     CinemaDbContext db, ICurrentUser currentUser, CheckoutPricing pricing, IStripeGateway stripe, IConfiguration configuration)
     : IQueryHandler<GetCheckoutQuoteQuery, CheckoutQuote?>
@@ -102,9 +114,8 @@ internal sealed class GetCheckoutQuoteHandler(
         var screening = await db.Screenings.AsNoTracking().FirstOrDefaultAsync(s => s.Id == query.ScreeningId, ct);
         if (screening is null) return null;
 
-        var seats = Math.Clamp(query.Request.Seats, 0, 8);
         var (price, error) = await pricing.PriceAsync(
-            screening, seats, query.Request.PromoCode, query.Request.UsePoints, userId, ct);
+            screening, query.Request.Seats, query.Request.PromoCode, query.Request.UsePoints, userId, ct);
         var balance = await LoyaltyLedger.SpendableAsync(db, userId, ct);
 
         return new CheckoutQuote(
@@ -394,11 +405,13 @@ internal sealed class CreatePromoCodeValidator : AbstractValidator<CreatePromoCo
         RuleFor(x => x).Must(x => (x.PercentOff is null) != (x.AmountOff is null))
             .WithMessage("Set either a percentage or an amount, not both.");
         RuleFor(x => x.PercentOff).InclusiveBetween(1m, 100m).When(x => x.PercentOff is not null);
-        RuleFor(x => x.AmountOff).GreaterThan(0m).When(x => x.AmountOff is not null);
-        RuleFor(x => x.MinSubtotal).GreaterThanOrEqualTo(0m);
+        RuleFor(x => x.AmountOff).GreaterThan(0m).LessThanOrEqualTo(1000m).When(x => x.AmountOff is not null);
+        RuleFor(x => x.MinSubtotal).InclusiveBetween(0m, 10_000m);
         RuleFor(x => x.MaxRedemptions).GreaterThan(0).When(x => x.MaxRedemptions is not null);
         RuleFor(x => x).Must(x => x.ValidFromUtc is null || x.ValidUntilUtc is null || x.ValidFromUtc < x.ValidUntilUtc)
             .WithMessage("The end date must be after the start date.");
+        RuleFor(x => x.ValidFromUtc).Must(d => d is null || d.Value.Year is >= 2000 and <= 2100).WithMessage("Dates run from 2000 to 2100.");
+        RuleFor(x => x.ValidUntilUtc).Must(d => d is null || d.Value.Year is >= 2000 and <= 2100).WithMessage("Dates run from 2000 to 2100.");
     }
 }
 
@@ -423,7 +436,13 @@ internal sealed class CreatePromoCodeHandler(CinemaDbContext db, IAuditLog audit
             MaxRedemptions = command.MaxRedemptions
         };
         db.PromoCodes.Add(promo);
-        await db.SaveChangesAsync(ct);
+        try { await db.SaveChangesAsync(ct); }
+        catch (DbUpdateException)
+        {
+            // Two admins (or two clicks) creating the same code at once: the unique index kept one.
+            if (!await db.PromoCodes.AsNoTracking().AnyAsync(p => p.Code == code, ct)) throw;
+            return Result.Failure<PromoCodeRow>(Error.Conflict($"{code} already exists."));
+        }
 
         await audit.RecordAsync(new AuditEntry("promo.created", code,
             promo.PercentOff is { } p ? $"{p:0.##}% off" : $"{promo.AmountOff:0.00} off", promo.Id), ct);
