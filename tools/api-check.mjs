@@ -30,8 +30,8 @@ const STAFF_BASE = "/" + (process.env.STAFF_KEY ?? execFileSync("dotnet",
   { encoding: "utf8" }).match(/Staff:PathKey = (\S+)/)?.[1]);
 const staffCookies = new Map();   // access token -> its wy.staff cookie
 
-async function call(method, path, { token, body, cookie } = {}) {
-  const headers = {};
+async function call(method, path, { token, body, cookie, headers: extra } = {}) {
+  const headers = { ...extra };
   if (token) headers.Authorization = `Bearer ${token}`;
   const jar = [cookie, staffCookies.get(token)].filter(Boolean).join("; ");
   if (jar) headers.Cookie = jar;
@@ -298,6 +298,44 @@ r = await call("POST", "/api/auth/refresh", { body: { refreshToken: customer.ref
 const rotated = r.json?.refreshToken;
 r = await call("POST", "/api/auth/logout", { body: { refreshToken: rotated } }); expect("logout", ok(r), `${r.status}`);
 r = await call("POST", "/api/auth/refresh", { body: { refreshToken: rotated } }); expect("logged-out token is dead", r.status === 401, `${r.status}`);
+
+// Edge cases: answers that were a 500, or wrong, when a value sat at the edge or two requests
+// raced. The made-up client address keeps the per-address sign-up limit out of the way.
+const elsewhere = () => ({ "X-Forwarded-For": `10.77.${(Math.random() * 255) | 0}.${(Math.random() * 255) | 0}` });
+for (const q of ["from=0001-01-01&to=9999-12-31", "from=9999-12-31&to=9999-12-31"]) {
+  r = await call("GET", `/api/backoffice/reports/sales?${q}`, { token: admin.token });
+  expect(`sales report for ${q} falls back, not a 500`, r.status === 200, `${r.status} ${r.text.slice(0, 120)}`);
+}
+r = await call("GET", "/api/backoffice/box-office/screenings?date=0001-01-01", { token: cashier.token });
+expect("box office for year 1 falls back to today", r.status === 200, `${r.status}`);
+r = await call("GET", "/api/on-display?From=9999-12-31");
+expect("on display from year 9999: 400 naming From", r.status === 400 && r.json?.errors?.From, r.text.slice(0, 160));
+r = await call("GET", "/api/movies?Page=abc");
+expect("a page that is not a number: 400 naming Page", r.status === 400 && r.json?.code === "validation" && r.json.errors?.Page, r.text.slice(0, 160));
+r = await call("POST", `/api/screenings/${show.id}/quote`, { token: c, body: { seats: 1000, usePoints: false } });
+expect("a quote for 1000 seats: 400, not the price of 8", r.status === 400 && r.json?.errors?.Seats, r.text.slice(0, 160));
+r = await call("POST", "/api/admin/screenings", { token: admin.token, body: { movieId: movie.id, hallId: ids.hall, startsAtUtc: new Date(Date.now() - 86400000).toISOString(), seatPrice: 9, audioLanguage: "az" } });
+expect("a screening in the past: 400", r.status === 400, `${r.status} ${r.text.slice(0, 160)}`);
+r = await call("POST", "/api/admin/screenings", { token: admin.token, body: { movieId: movie.id, hallId: ids.hall, startsAtUtc: "9999-12-31T20:00:00Z", seatPrice: 9, audioLanguage: "az" } });
+expect("a screening in year 9999: 400", r.status === 400, `${r.status} ${r.text.slice(0, 160)}`);
+const slot = new Date(Date.now() + 11 * 86400000);
+r = await call("POST", "/api/admin/screenings", { token: admin.token, body: { movieId: movie.id, hallId: ids.hall, startsAtUtc: slot.toISOString(), seatPrice: 9, audioLanguage: "az" } });
+expect("a screening in a free slot", ok(r), `${r.status} ${r.text.slice(0, 160)}`);
+if (ok(r)) {
+  const clash = await call("POST", "/api/admin/screenings", { token: admin.token, body: { movieId: movie.id, hallId: ids.hall, startsAtUtc: new Date(+slot + 3600000).toISOString(), seatPrice: 9, audioLanguage: "az" } });
+  expect("a second one an hour later in the same hall: 409", clash.status === 409 && clash.json?.message, `${clash.status} ${clash.text.slice(0, 160)}`);
+  await call("DELETE", `/api/admin/screenings/${r.json.id}`, { token: admin.token });
+}
+await call("POST", "/api/backoffice/shift/close", { token: cashier.token, body: { countedCash: 0, note: "api check reset" } });
+await call("POST", "/api/backoffice/shift/open", { token: cashier.token, body: { openingFloat: 0 } });
+const closes = await Promise.all([1, 2, 3].map(() => call("POST", "/api/backoffice/shift/close", { token: cashier.token, body: { countedCash: 0 } })));
+expect("three closes of one shift at once: one Z report, the others 404",
+  closes.filter(ok).length === 1 && closes.filter((x) => x.status === 404).length === 2, closes.map((x) => x.status).join(","));
+const twice = `api-check-twice-${Date.now().toString(36)}@example.test`;
+const signUps = await Promise.all([1, 2, 3].map(() => call("POST", "/api/auth/register", { headers: elsewhere(), body: { fullName: "Api Check", email: twice, password: "Passw0rdTest" } })));
+expect("one e-mail registered three times at once: one account, the others 409 saying so",
+  signUps.filter(ok).length === 1 && signUps.filter((x) => x.status === 409 && x.json?.message === "That e-mail is already registered.").length === 2,
+  signUps.map((x) => `${x.status} ${x.json?.message ?? ""}`).join(" | "));
 
 console.log(`\n${checks - failures.length}/${checks} checks passed.`);
 if (failures.length) { console.log("\nFailures:\n  " + failures.join("\n  ")); process.exit(1); }

@@ -7,7 +7,8 @@
 // the staff PIN, and the role it is for. Each answer must be
 //   - below 500,
 //   - one of the codes the document lists for that operation,
-//   - for an error, a body that says what went wrong ({ code, message } or a validation problem),
+//   - for an error, a body that says what went wrong: { code, message }, plus `errors` by field
+//     when fields or parameters are invalid,
 //   - for a 200, shaped the way the document says.
 // It writes junk rows (films, screenings, bar items named "fuzz"), so it runs on the throwaway
 // site of tools/api-check.ps1, never on the real one.
@@ -250,7 +251,9 @@ function judge(key, op, variant, r) {
   else if (!documented.includes(String(r.status))) problem(key, `undocumented ${r.status}`, where);
   if (r.status >= 400) {
     const j = r.json;
-    if (!j || !((j.code && j.message) || (j.title && j.status))) problem(key, `error ${r.status} without a body`, where);
+    if (!j || typeof j.code !== "string" || typeof j.message !== "string") problem(key, `error ${r.status} without { code, message }`, where);
+    else if (j.code === "validation" && j.errors !== undefined && (typeof j.errors !== "object" || !Object.values(j.errors).every(Array.isArray)))
+      problem(key, `error ${r.status} with malformed errors`, where);
   }
   if (r.status === 200 && op.responses?.["200"]?.content?.["application/json"]?.schema) {
     const s = deref(op.responses["200"].content["application/json"].schema);
