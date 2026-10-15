@@ -215,7 +215,7 @@ public static class BoxOfficeEndpoints
                     new GetBoxOfficeScreeningsQuery(BackOfficeClock.Parse(date, BackOfficeClock.Today)), ct)))
             .WithName("GetBoxOfficeScreenings")
             .WithSummary("The day's screenings at the till, with seats left")
-            .WithDescription("`date` as yyyy-MM-dd; left out (or not a date), today.");
+            .WithDescription("`date` as yyyy-MM-dd (2000 to 2100); left out (or not a date), today.");
 
         till.MapPost("/sell", async Task<Results<Ok<BoxOfficeSaleResult>, NotFound<Error>, Conflict<Error>, BadRequest<Error>>> (
                 BoxOfficeSaleCommand body, IDispatcher dispatcher, CancellationToken ct) =>

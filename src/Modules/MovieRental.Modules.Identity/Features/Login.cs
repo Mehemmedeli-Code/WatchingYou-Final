@@ -75,17 +75,18 @@ public static class LoginEndpoint
 {
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPost("/api/auth/login",
-            async Task<Results<Ok<AuthResponse>, JsonHttpResult<Error>, BadRequest<Error>>> (
+            async Task<Results<Ok<AuthResponse>, JsonHttpResult<Error>>> (
                 LoginCommand command, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 var result = await dispatcher.Send(command, ct);
                 if (result.IsSuccess) return TypedResults.Ok(result.Value);
 
                 // Distinct codes so the client can route: one to the confirm screen, one to
-                // a plain explanation. Anything else is one 401 for both mistakes, to avoid
-                // telling an attacker which half of the pair was wrong.
+                // a plain explanation. Both are 403: the password was right, the account may not
+                // sign in yet. Anything else is one 401 for both mistakes, to avoid telling an
+                // attacker which half of the pair was wrong.
                 return result.Error.Code is "email_unconfirmed" or "account_suspended"
-                    ? TypedResults.BadRequest(result.Error)
+                    ? TypedResults.Json(result.Error, statusCode: StatusCodes.Status403Forbidden)
                     : TypedResults.Json(new Error("invalid_credentials", "E-mail or password is incorrect."),
                         statusCode: StatusCodes.Status401Unauthorized);
             })
@@ -94,11 +95,12 @@ public static class LoginEndpoint
         .WithSummary("Sign in with e-mail and password")
         .WithDescription(
             "200: an access token (JWT, valid 15 minutes), a refresh token and the user. " +
-            "400: a field is missing or malformed (validation errors under `errors`), or the account " +
-            "cannot sign in yet (`code`: email_unconfirmed, account_suspended). " +
+            "400: a field is missing or malformed (validation errors under `errors`). " +
             "401: wrong e-mail or password (`code`: invalid_credentials); which of the two is not said, on purpose. " +
+            "403: the password is right but the account cannot sign in yet (`code`: email_unconfirmed, account_suspended). " +
             "429: more than 8 attempts a minute from one address.")
         .Produces<Error>(StatusCodes.Status401Unauthorized)
+        .Produces<Error>(StatusCodes.Status403Forbidden)
         .AllowAnonymous()
         .RequireRateLimiting(AppPolicies.AuthRateLimit);
 }

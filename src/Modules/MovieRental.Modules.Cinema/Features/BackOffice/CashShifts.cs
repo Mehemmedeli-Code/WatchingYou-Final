@@ -132,7 +132,12 @@ internal sealed class CloseShiftHandler(CinemaDbContext db, ICurrentUser current
         shift.CountedCash = command.CountedCash;
         shift.Variance = command.CountedCash - running.ExpectedCash;
         shift.Note = string.IsNullOrWhiteSpace(command.Note) ? null : command.Note.Trim();
-        await db.SaveChangesAsync(ct);
+        try { await db.SaveChangesAsync(ct); }
+        catch (DbUpdateConcurrencyException)
+        {
+            // A second click closed it first: that one is the Z report, this one has nothing to close.
+            return Result.Failure<ShiftSummary>(Error.NotFound("Open shift"));
+        }
 
         // A drawer that does not match is exactly the thing somebody will ask about later.
         await audit.RecordAsync(new AuditEntry("shift.closed", shift.CashierName,

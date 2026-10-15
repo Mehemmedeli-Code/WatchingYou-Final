@@ -270,8 +270,7 @@ internal sealed class SalesReceiptHandler(CinemaDbContext db) : IQueryHandler<Sa
     private static bool TryDay(string? value, DateOnly fallback, out DateOnly day)
     {
         day = fallback;
-        return string.IsNullOrWhiteSpace(value)
-            || DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out day);
+        return string.IsNullOrWhiteSpace(value) || BackOfficeClock.TryParse(value, out day);
     }
 }
 
@@ -325,7 +324,8 @@ public static class CinemaAdminToolEndpoints
             })
             .WithTags("Back office").WithName("SalesReceipt").RequireAuthorization(AppPolicies.BackOffice)
             .WithSummary("The sales receipt for a period, as a PDF")
-            .WithDescription("`from` and `to` as yyyy-MM-dd, up to three months; left out, today. 400: not dates, or too long a period.")
+            .WithDescription("`from` and `to` as yyyy-MM-dd (2000 to 2100), up to three months; left out, today. " +
+                             "400: not dates, `to` before `from`, or too long a period.")
             .Produces(StatusCodes.Status200OK, typeof(Stream), "application/pdf")
             .Produces<Error>(StatusCodes.Status400BadRequest);
     }

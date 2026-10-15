@@ -71,6 +71,10 @@ internal sealed class SaveScreeningValidator : AbstractValidator<SaveScreeningCo
     {
         RuleFor(x => x.MovieId).NotEmpty();
         RuleFor(x => x.HallId).NotEmpty();
+        // Year 1 and year 9999 used to be saved, and every later read that moved them by a few
+        // hours fell off the calendar.
+        RuleFor(x => x.StartsAtUtc).Must(t => t.Year >= 2000 && t < DateTime.UtcNow.AddYears(2))
+            .WithMessage("Screenings are scheduled up to two years ahead.");
         // A price or note too big for its column used to come back from the database as a 409.
         RuleFor(x => x.SeatPrice).GreaterThan(0).LessThan(1000);
         RuleFor(x => x.RefundWindowHours).InclusiveBetween(0, 24 * 30).When(x => x.RefundWindowHours is not null);
@@ -105,6 +109,22 @@ internal sealed class SaveScreeningHandler(CinemaDbContext db, ICatalogApi catal
 
         if (command.Id is not null && screening is null)
             return Result.Failure<ScreeningAdminItem>(Error.NotFound("Screening"));
+
+        // The same two rules as scheduling in bulk: no show in the past (nobody could buy a seat)
+        // and no two in one room at once. Only when the time or the room changes, so an old show
+        // can still have its note or price corrected.
+        if (screening is null || screening.StartsAtUtc != command.StartsAtUtc || screening.HallId != hall.Id)
+        {
+            if (command.StartsAtUtc <= DateTime.UtcNow)
+                return Result.Failure<ScreeningAdminItem>(Error.Validation("Pick a start time in the future."));
+            var busy = await db.Screenings.AsNoTracking().AnyAsync(s =>
+                s.HallId == hall.Id && !s.IsCancelled && s.Id != command.Id
+                && s.StartsAtUtc > command.StartsAtUtc - BulkScheduleHandler.MinimumGap
+                && s.StartsAtUtc < command.StartsAtUtc + BulkScheduleHandler.MinimumGap, ct);
+            if (busy)
+                return Result.Failure<ScreeningAdminItem>(Error.Conflict(
+                    $"{hall.Name} is busy then: another screening starts less than 2½ hours before or after."));
+        }
 
         if (screening is null)
         {
@@ -177,30 +197,22 @@ public static class ManageScreeningsEndpoints
             .WithName("GetScreeningsForAdmin")
             .WithSummary("Every screening, with seats sold and its refund rules");
 
-        admin.MapPost("", async Task<Results<Ok<ScreeningAdminItem>, BadRequest<Error>, NotFound<Error>>> (
+        admin.MapPost("", async Task<Results<Ok<ScreeningAdminItem>, BadRequest<Error>, NotFound<Error>, Conflict<Error>>> (
             SaveScreeningCommand body, IDispatcher dispatcher, CancellationToken ct) =>
-        {
-            var result = await dispatcher.Send(body with { Id = null }, ct);
-            if (result.IsSuccess) return TypedResults.Ok(result.Value);
-            return result.Error.Code == "not_found"
-                ? TypedResults.NotFound(result.Error)
-                : TypedResults.BadRequest(result.Error);
-        }).WithName("CreateScreening")
+            Answer(await dispatcher.Send(body with { Id = null }, ct)))
+        .WithName("CreateScreening")
         .WithSummary("Schedule one screening")
-        .WithDescription("`movieId`, `hallId`, `startsAtUtc`, `seatPrice` (above 0, below 1000), `audioLanguage` and optional " +
-                         "`subtitleLanguage` (az, en, ru, tr). Optional refund rules: `refundWindowHours`, `refundFeePercent`, `refundNote`.");
+        .WithDescription("`movieId`, `hallId`, `startsAtUtc` (in the future, up to two years ahead), `seatPrice` (above 0, below 1000), " +
+                         "`audioLanguage` and optional `subtitleLanguage` (az, en, ru, tr). Optional refund rules: `refundWindowHours`, " +
+                         "`refundFeePercent`, `refundNote`. 409: another screening in that hall starts less than 2½ hours before or after.");
 
-        admin.MapPut("/{id:guid}", async Task<Results<Ok<ScreeningAdminItem>, BadRequest<Error>, NotFound<Error>>> (
+        admin.MapPut("/{id:guid}", async Task<Results<Ok<ScreeningAdminItem>, BadRequest<Error>, NotFound<Error>, Conflict<Error>>> (
             Guid id, SaveScreeningCommand body, IDispatcher dispatcher, CancellationToken ct) =>
-        {
-            var result = await dispatcher.Send(body with { Id = id }, ct);
-            if (result.IsSuccess) return TypedResults.Ok(result.Value);
-            return result.Error.Code == "not_found"
-                ? TypedResults.NotFound(result.Error)
-                : TypedResults.BadRequest(result.Error);
-        }).WithName("UpdateScreeningWithId")
+            Answer(await dispatcher.Send(body with { Id = id }, ct)))
+        .WithName("UpdateScreeningWithId")
         .WithSummary("Edit a screening")
-        .WithDescription("The same fields as scheduling one. Once seats are sold the hall cannot change (400).");
+        .WithDescription("The same fields as scheduling one; the time rules apply only when the time or the hall changes. " +
+                         "409: the hall is busy then, or seats are already sold so the hall cannot change.");
 
         admin.MapPost("/{id:guid}/cancel",
             async Task<Results<NoContent, BadRequest<Error>, Conflict<Error>, NotFound<Error>>> (
@@ -236,4 +248,12 @@ public static class ManageScreeningsEndpoints
         .WithSummary("Delete a screening nobody has booked")
         .WithDescription("409 once seats are held or sold: cancel it instead, which makes them refundable.");
     }
+
+    private static Results<Ok<ScreeningAdminItem>, BadRequest<Error>, NotFound<Error>, Conflict<Error>> Answer(Result<ScreeningAdminItem> result) =>
+        result.IsSuccess ? TypedResults.Ok(result.Value) : result.Error.Code switch
+        {
+            "not_found" => TypedResults.NotFound(result.Error),
+            "conflict" => TypedResults.Conflict(result.Error),
+            _ => TypedResults.BadRequest(result.Error)
+        };
 }

@@ -225,6 +225,8 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
             // The "one open shift per cashier" rule, held by the database rather than by a
             // read-then-write that two quick clicks could both pass.
             e.HasIndex(x => x.CashierId).IsUnique().HasFilter("[ClosedAtUtc] IS NULL");
+            // Closing writes "WHERE ClosedAtUtc IS NULL": of two closes sent together, one wins.
+            e.Property(x => x.ClosedAtUtc).IsConcurrencyToken();
         });
 
         b.Entity<FilmDeal>(e =>

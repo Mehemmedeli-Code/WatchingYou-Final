@@ -64,7 +64,13 @@ internal sealed class RegisterHandler(
         };
 
         db.Users.Add(user);
-        await db.SaveChangesAsync(ct);
+        try { await db.SaveChangesAsync(ct); }
+        catch (DbUpdateException)
+        {
+            // Sent twice at once: both passed the check above and the unique index kept one.
+            if (!await db.Users.AsNoTracking().AnyAsync(u => u.Email == normalizedEmail, ct)) throw;
+            return Result.Failure<RegistrationResponse>(Error.Conflict("That e-mail is already registered."));
+        }
 
         // The account is created either way. If the mail transport is down the user can ask
         // for another code from the confirm screen rather than registering all over again.
