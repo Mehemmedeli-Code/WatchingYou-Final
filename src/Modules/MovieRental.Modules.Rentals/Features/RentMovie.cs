@@ -75,9 +75,12 @@ internal sealed class RentMovieHandler(
             db.Rentals.Add(rental);
             await db.SaveChangesAsync(ct);
         }
-        catch
+        catch (Exception ex)
         {
             await catalog.ReleaseCopyAsync(command.MovieId, CancellationToken.None);
+            // Sent twice at once: both passed the check above and the unique index kept one.
+            if (ex is DbUpdateException)
+                return Result.Failure<RentalResponse>(Error.Conflict("You already have this title out on rental."));
             throw;
         }
 
