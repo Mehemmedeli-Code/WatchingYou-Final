@@ -34,7 +34,7 @@ public static class ApiReference
                 Version = "v1",
                 Description = "Sign in with **POST /api/auth/login**, press **Authorize** and paste the `accessToken`. " +
                               "A padlock marks the calls that need it. Every error comes with a body that says what went wrong: " +
-                              "`{ code, message }`, or for invalid fields a validation problem with the messages under `errors`."
+                              "`{ code, message }`, and for invalid fields or parameters also `errors`, the messages by field name."
             };
             document.Components ??= new OpenApiComponents();
             document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
@@ -50,7 +50,7 @@ public static class ApiReference
             return Task.CompletedTask;
         });
 
-        options.AddSchemaTransformer((schema, _, _) =>
+        options.AddSchemaTransformer((schema, context, _) =>
         {
             // Numbers are also read from strings ("3"), which the generator spelled out as
             // "integer | string" with a pattern. The API takes and sends numbers; say only that.
@@ -67,6 +67,17 @@ public static class ApiReference
                     if (property.Type?.HasFlag(JsonSchemaType.Null) == true
                         || property.OneOf?.Any(s => s.Type == JsonSchemaType.Null) == true)
                         required.Remove(name);
+            // The middleware adds the field messages to the same { code, message } body.
+            if (context.JsonTypeInfo.Type == typeof(Error))
+            {
+                schema.Properties ??= new Dictionary<string, IOpenApiSchema>();
+                schema.Properties["errors"] = new OpenApiSchema
+                {
+                    Type = JsonSchemaType.Object,
+                    Description = "Only when fields or parameters are invalid: their messages, by name (`Email`, `Seats[0].Row`, `Page`).",
+                    AdditionalProperties = new OpenApiSchema { Type = JsonSchemaType.Array, Items = new OpenApiSchema { Type = JsonSchemaType.String } }
+                };
+            }
             return Task.CompletedTask;
         });
 
@@ -119,13 +130,17 @@ public static class ApiReference
             {
                 if (item is not OpenApiResponse response) continue;
                 if (string.IsNullOrEmpty(response.Description) || response.Description == ReasonPhrases.GetReasonPhrase(int.Parse(status)))
-                    response.Description = Standard.GetValueOrDefault(status, response.Description);
+                    response.Description = Standard.GetValueOrDefault(status) ?? response.Description;
                 // Errors the generator saw no body for still have one: { code, message }.
                 if (status[0] is '4' && response.Content is not { Count: > 0 })
                     response.Content = new Dictionary<string, OpenApiMediaType>
                     {
                         ["application/json"] = new() { Schema = new OpenApiSchemaReference(nameof(Error), context.Document) }
                     };
+                // Invalid input and clashes found while saving come from the middleware, as a
+                // problem document: the same code and message, with title, status and traceId.
+                if (status is "400" or "409" && response.Content is { } content && !content.ContainsKey("application/problem+json"))
+                    content["application/problem+json"] = new() { Schema = new OpenApiSchemaReference(nameof(Error), context.Document) };
             }
 
             // In the order of the codes, not the order they were added in.
@@ -156,8 +171,8 @@ public static class ApiReference
     {
         ["200"] = "OK.",
         ["204"] = "Done. No body.",
-        ["400"] = "Bad request. Invalid fields come as a validation problem (application/problem+json, the messages " +
-                  "under `errors`); a body or parameter that cannot be read, or a refused action, as { code, message }.",
+        ["400"] = "Bad request: `code` and `message` say what is wrong. Invalid fields or parameters (`code`: validation) " +
+                  "also list their messages under `errors`; a body that is not JSON is `code`: invalid_json.",
         ["401"] = "Not signed in: no access token (Authorization: Bearer …) and no session cookie, or the token is " +
                   "invalid or expired (`code`: unauthorized, invalid_token).",
         ["403"] = "Signed in, but not allowed to do this.",

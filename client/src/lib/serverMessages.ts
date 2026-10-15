@@ -219,6 +219,15 @@ const MESSAGES: Record<string, Row> = {
   "Every check needs an outcome.": ["Hər yoxlamanın nəticəsi olmalıdır.","У каждой проверки должен быть результат.","Her kontrolün bir sonucu olmalı."],
   "A check is missing its name and outcome.": ["Yoxlamalardan birinin adı və nəticəsi yoxdur.","У одной из проверок нет названия и результата.","Kontrollerden birinin adı ve sonucu yok."],
   "A check's note can be 500 characters at most.": ["Yoxlama qeydi ən çox 500 simvol ola bilər.","Заметка к проверке — не более 500 символов.","Kontrol notu en fazla 500 karakter olabilir."],
+  "This value is required.": ["Bu dəyər mütləqdir.","Это значение обязательно.","Bu değer zorunludur."],
+  "This value has the wrong type or format.": ["Bu dəyər düzgün formatda deyil.","Неверный тип или формат значения.","Bu değerin türü veya biçimi yanlış."],
+  "The body is missing. Send the fields as JSON.": ["Sorğunun məzmunu yoxdur.","В запросе нет содержимого.","İstek içeriği yok."],
+  "A value is too large or too long to store.": ["Dəyərlərdən biri çox böyük və ya çox uzundur.","Одно из значений слишком большое или слишком длинное.","Değerlerden biri çok büyük veya çok uzun."],
+  "Screenings are scheduled up to two years ahead.": ["Seanslar ən çox iki il qabağa planlaşdırılır.","Сеансы планируются не более чем на два года вперёд.","Seanslar en fazla iki yıl ileriye planlanır."],
+  "Pick a start time in the future.": ["Gələcəkdə olan başlama vaxtı seçin.","Выберите время начала в будущем.","Gelecekte bir başlangıç saati seçin."],
+  "{0} is busy then: another screening starts less than 2½ hours before or after.": ["{0} həmin vaxt məşğuldur: başqa seans 2,5 saatdan az əvvəl və ya sonra başlayır.","{0} в это время занят: другой сеанс начинается менее чем за 2,5 часа до или после.","{0} o saatte dolu: başka bir seans 2,5 saatten az önce veya sonra başlıyor."],
+  "Dates run from 2000 to 2100.": ["Tarix 2000 ilə 2100 arasında olmalıdır.","Даты — с 2000 по 2100 год.","Tarihler 2000 ile 2100 arasında olmalı."],
+  "`From` is after `To`.": ["Başlanğıc tarixi son tarixdən sonradır.","Начальная дата позже конечной.","Başlangıç tarihi bitiş tarihinden sonra."],
 };
 
 // "X was not found." — from Error.NotFound("X").
