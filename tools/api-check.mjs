@@ -84,7 +84,8 @@ const users = (await call("GET", "/api/admin/users", { token: admin.token })).js
 const userList = users.items ?? users;
 const movie = movies[0];
 const ids = {
-  query: { "/api/globe/members": "?city=Baku", "/api/globe/online": "?country=AZ", "/api/globe/online/members": "?country=AZ" },
+  query: { "/api/globe/members": "?city=Baku", "/api/globe/online": "?country=AZ", "/api/globe/online/members": "?country=AZ",
+           "/api/people/username-available": "?username=sweep_check" },
   movie: movie.id, movieId: movie.id, slug: movie.slug,
   screening: screenings[0].id, hall: venues[0].halls[0].id,
   user: customer.user.id, userId: security.user.id,
@@ -286,6 +287,56 @@ expect("decline removes the request", ok(r), `${r.status}`);
 r = await call("GET", "/api/people/requests", { token: security.token });
 expect("declined request is gone", ok(r) && !r.json.items.some((p) => p.id === customer.user.id), r.text.slice(0, 120));
 await call("PUT", "/api/auth/profile", { token: security.token, body: { fullName: sec.fullName, phoneNumber: null, isPrivate: false } });
+
+// People search from the first letter; a @username belongs to one person, whatever the case
+r = await call("GET", "/api/people?q=a", { token: c });
+expect("people search answers from one letter", ok(r) && Array.isArray(r.json.items), `${r.status}`);
+r = await call("GET", "/api/people?q=%20", { token: c });
+expect("a blank people search lists nobody", ok(r) && r.json.items.length === 0, r.text.slice(0, 80));
+const handle = "check_" + Date.now().toString(36);
+r = await call("GET", `/api/people/username-available?username=${handle}`, { token: c });
+expect("an unused username is free", ok(r) && r.json.available === true, r.text);
+r = await call("PUT", "/api/auth/profile", { token: c, body: { fullName: customer.user.fullName, phoneNumber: null, username: handle } });
+expect("customer takes it", ok(r) && r.json.username === handle, `${r.status} ${r.text.slice(0, 120)}`);
+r = await call("GET", `/api/people/username-available?username=${handle.toUpperCase()}`, { token: security.token });
+expect("then it is taken for everyone else, in any case", ok(r) && r.json.available === false, r.text);
+r = await call("PUT", "/api/auth/profile", { token: security.token, body: { fullName: sec.fullName, phoneNumber: null, username: handle.toUpperCase() } });
+expect("saving someone's username is a 409 that says so", r.status === 409 && r.json?.message === "That username is taken.", `${r.status} ${r.text.slice(0, 120)}`);
+r = await call("GET", "/api/people/username-available?username=a", { token: c });
+expect("a malformed username is a 400", r.status === 400 && !!r.json?.message, `${r.status}`);
+
+// A short film's views: every play counts, fetching the file does not
+const upload = new FormData();
+upload.append("file", new Blob([Uint8Array.from([0, 0, 0, 0x18, ...Buffer.from("ftypisom"), ...new Array(52).fill(0)])], { type: "video/mp4" }), "check.mp4");
+upload.append("title", "API check film"); upload.append("origin", "HandCrafted"); upload.append("visibility", "Public");
+// The customer has written a lot by now: a write that meets the per-minute limit waits as long
+// as Retry-After says, once.
+const patient = async (send) => {
+  let res = await send();
+  if (res.status === 429) { await new Promise((done) => setTimeout(done, (Number(res.headers.get("retry-after")) || 60) * 1000)); res = await send(); }
+  return res;
+};
+const uploaded = await patient(() => fetch(BASE + "/api/shorts", { method: "POST", headers: { Authorization: `Bearer ${c}` }, body: upload }));
+const shortFilm = uploaded.ok ? await uploaded.json() : null;
+expect("upload a short film", !!shortFilm?.id, `${uploaded.status}`);
+if (shortFilm) {
+  const play = (token) => patient(() => call("POST", `/api/shorts/${shortFilm.id}/view`, { token }));
+  r = await play(cashier.token);
+  expect("a film still in review has no views to count (404)", r.status === 404, `${r.status}`);
+  await call("POST", `/api/security/shorts/${shortFilm.id}/claim`, { token: security.token });
+  r = await call("POST", `/api/security/shorts/${shortFilm.id}/report`, { token: security.token, body: { watchedInFull: true, summary: "api check",
+    checks: ["Copyright", "SexualContent", "GraphicViolence", "MinorsWithoutConsent", "HateOrExtremism", "PersonalData", "FileIntegrity", "OriginDeclaration"].map((check) => ({ check, outcome: "Pass", note: null })) } });
+  expect("security files the report", ok(r), `${r.status} ${r.text.slice(0, 160)}`);
+  r = await call("PUT", `/api/admin/shorts/${shortFilm.id}/decision`, { token: admin.token, body: { approve: true, note: "api check" } });
+  expect("admin approves the film", ok(r), `${r.status} ${r.text.slice(0, 160)}`);
+  const views = [];
+  for (const token of [cashier.token, cashier.token, admin.token]) views.push((await play(token)).json?.views);
+  expect("every play is a view, the same person's second one too", views.join() === "1,2,3", views.join());
+  await (await fetch(BASE + `/api/shorts/${shortFilm.id}/stream`, { headers: { Range: "bytes=0-" } })).arrayBuffer();
+  r = await call("GET", "/api/gallery/human");
+  const card = r.json?.find((x) => x.film.id === shortFilm.id);
+  expect("fetching the file is not a view; the gallery shows 3", card?.film.viewCount === 3, `${card?.film.viewCount}`);
+}
 
 // A tab whose refresh token is gone but whose page cookie is good gets a session back
 r = await call("POST", "/api/auth/session", { cookie: customer.cookie });

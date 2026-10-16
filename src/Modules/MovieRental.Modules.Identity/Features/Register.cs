@@ -64,12 +64,19 @@ internal sealed class RegisterHandler(
         };
 
         db.Users.Add(user);
-        try { await db.SaveChangesAsync(ct); }
-        catch (DbUpdateException)
+        for (var attempt = 1; ; attempt++)
         {
-            // Sent twice at once: both passed the check above and the unique index kept one.
-            if (!await db.Users.AsNoTracking().AnyAsync(u => u.Email == normalizedEmail, ct)) throw;
-            return Result.Failure<RegistrationResponse>(Error.Conflict("That e-mail is already registered."));
+            try { await db.SaveChangesAsync(ct); break; }
+            catch (DbUpdateException)
+            {
+                // Sent twice at once: both passed the check above and the unique index kept one.
+                if (await db.Users.AsNoTracking().AnyAsync(u => u.Email == normalizedEmail, ct))
+                    return Result.Failure<RegistrationResponse>(Error.Conflict("That e-mail is already registered."));
+                // Otherwise the handle: ali@gmail.com and ali@mail.ru signing up at the same moment
+                // both get "ali", or the suffix drew one already in use. Draw another.
+                if (attempt == 3 || !await db.Users.AsNoTracking().AnyAsync(u => u.Username == user.Username, ct)) throw;
+                user.Username = $"{Usernames.FromEmail(normalizedEmail)}_{Random.Shared.Next(1000, 9999)}";
+            }
         }
 
         // The account is created either way. If the mail transport is down the user can ask

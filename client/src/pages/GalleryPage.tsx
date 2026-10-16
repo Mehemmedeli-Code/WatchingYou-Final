@@ -3,7 +3,7 @@ import { Eye, Heart } from "lucide-react";
 import { Section, Panel, Empty, Spinner } from "@/components/Shell";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { useAuth } from "@/components/useAuth";
-import { del, get, put } from "@/lib/api";
+import { del, get, post, put } from "@/lib/api";
 import { t, formatWhen } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { ShortFilmSummary, ShortFilmOrigin } from "@/lib/shorts";
@@ -46,6 +46,12 @@ export function Gallery({ origin }: { origin: ShortFilmOrigin }) {
     update(result ? { likedByMe: like, likes: result.likes } : { likedByMe: item.likedByMe, likes: item.likes });
   }
 
+  // Every play is a view; the server's count replaces the one on the card.
+  async function countView(id: string) {
+    const result = await post<{ views: number }>(`/api/shorts/${id}/view`).catch(() => null);
+    if (result) setItems((list) => list?.map((x) => (x.film.id === id ? { ...x, film: { ...x.film, viewCount: result.views } } : x)) ?? null);
+  }
+
   return (
     <Section
       title={isAi ? t("gallery.ai.title") : t("gallery.human.title")}
@@ -73,7 +79,7 @@ export function Gallery({ origin }: { origin: ShortFilmOrigin }) {
                 </span>
               </a>
 
-              <VideoPlayer src={film.streamUrl} title={film.title} />
+              <VideoPlayer src={film.streamUrl} title={film.title} onWatch={() => void countView(film.id)} />
 
               <div className="mt-3 flex items-center gap-4 text-sm">
                 <button type="button" onClick={() => void toggleLike(item)} aria-pressed={item.likedByMe}

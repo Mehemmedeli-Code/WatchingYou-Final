@@ -6,7 +6,8 @@ import { Modal } from "@/components/ui/modal";
 import { useAuth } from "@/components/useAuth";
 import { FollowButton, FollowList, toggleFollow, type PersonCard } from "@/components/FollowList";
 import { DirectChat } from "@/components/DirectChat";
-import { ApiError, get, put, query } from "@/lib/api";
+import { VideoPlayer } from "@/components/VideoPlayer";
+import { ApiError, get, post, put, query } from "@/lib/api";
 import { t, formatWhen } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -94,6 +95,14 @@ export default function ProfilePage() {
     apply(visibility);
     try { await put(`/api/shorts/${film.id}/visibility`, { id: film.id, visibility }); }
     catch { apply(film.visibility); }
+  }
+
+  // Every play is a view; the server's count replaces the one in the grid and the player.
+  async function countView(id: string) {
+    const result = await post<{ views: number }>(`/api/shorts/${id}/view`).catch(() => null);
+    if (!result) return;
+    setFilms((list) => list && list.map((f) => f.id === id ? { ...f, viewCount: result.views } : f));
+    setPlaying((p) => p && p.id === id ? { ...p, viewCount: result.views } : p);
   }
 
   if (!isSignedIn) {
@@ -230,7 +239,8 @@ export default function ProfilePage() {
       {playing ? (
         <Modal onClose={() => setPlaying(null)} label={playing.title} width="max-w-3xl">
           <div className="overflow-hidden rounded-xl border border-line bg-surface-raised">
-            <video src={playing.streamUrl} controls autoPlay playsInline className="aspect-video w-full bg-black" />
+            <VideoPlayer key={playing.id} src={playing.streamUrl} title={playing.title} autoPlay
+              className="aspect-video rounded-none border-0" onWatch={() => void countView(playing.id)} />
             <div className="space-y-2 p-5">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-display text-lg text-ink">{playing.title}</h2>

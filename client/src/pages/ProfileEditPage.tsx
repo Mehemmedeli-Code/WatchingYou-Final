@@ -6,7 +6,7 @@ import { Empty, Notice } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { useAuth } from "@/components/useAuth";
-import { auth, get, post, put, del, postForm, ApiError, type UserProfile } from "@/lib/api";
+import { auth, get, post, put, del, postForm, query, ApiError, type UserProfile } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { FollowList, PersonRow, flip, toggleFollow, type PersonCard, type PeoplePage } from "@/components/FollowList";
@@ -43,6 +43,19 @@ export default function ProfileEditPage() {
     setUsername(user?.username ?? "");
     setBio(user?.bio ?? "");
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Whether the typed handle is free, asked while typing so "taken" shows before Save.
+  // `available: null` means the check itself failed: Save still decides then.
+  const handle = username.trim().replace(/^@/, "").toLowerCase();
+  const [free, setFree] = useState<{ handle: string; available: boolean | null } | null>(null);
+  useEffect(() => {
+    if (!isSignedIn || !/^[a-z0-9._]{3,30}$/.test(handle) || handle === (user?.username ?? "")) return;
+    let live = true;
+    const timer = window.setTimeout(() => void get<{ username: string; available: boolean }>("/api/people/username-available" + query({ username: handle }))
+      .then((r) => { if (live) setFree({ handle, available: r.available }); })
+      .catch(() => { if (live) setFree({ handle, available: null }); }), 250);
+    return () => { live = false; window.clearTimeout(timer); };
+  }, [handle, isSignedIn, user?.username]);
 
   const loadCounts = () => void get<{ followers: number; following: number; requests: number }>("/api/people/me").then(setCounts).catch(() => null);
   useEffect(() => {
@@ -125,8 +138,15 @@ export default function ProfileEditPage() {
     ).then(loadCounts);
   }
 
-  const handle = username.trim().replace(/^@/, "").toLowerCase();
   const handleOk = /^[a-z0-9._]{3,30}$/.test(handle);
+  const changed = handle !== (user.username ?? "");
+  const checked = handleOk && changed && free?.handle === handle ? free.available : undefined;
+  const taken = checked === false;
+  const usernameHint = !handle || (handleOk && !changed) || checked === null ? t("profile.usernameHint", "3-30 characters: a-z, 0-9, dot, underscore.")
+    : !handleOk ? t("profile.usernameBad", "Only a-z, 0-9, dot and underscore, 3-30 characters.")
+    : checked === undefined ? t("profile.usernameChecking", "Checking…")
+    : checked ? t("profile.usernameFree", "This username is free.")
+    : t("profile.usernameTaken", "This username is taken. Try another one.");
   const waiting = requests.filter((r) => !r.accepted).length;
 
   return (
@@ -180,8 +200,8 @@ export default function ProfileEditPage() {
         }}
       >
         <Row icon={<AtSign size={16} />} label={t("profile.username", "Username")}
-          hint={handleOk || !handle ? t("profile.usernameHint", "3-30 characters: a-z, 0-9, dot, underscore.") : t("profile.usernameBad", "Only a-z, 0-9, dot and underscore, 3-30 characters.")}
-          bad={!!handle && !handleOk}>
+          hint={usernameHint} bad={(!!handle && !handleOk) || taken}
+          good={checked === true}>
           <Input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" maxLength={31} />
         </Row>
         <Row icon={<UserRound size={16} />} label={t("profile.fullName", "Name")}>
@@ -195,7 +215,7 @@ export default function ProfileEditPage() {
         {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
         <div className="flex flex-wrap justify-end gap-2 border-t border-line pt-5">
           <a href={`/people?q=${encodeURIComponent(handle)}`}><Button variant="outline"><Users size={15} aria-hidden /> {t("profile.findPeople", "Find people")}</Button></a>
-          <Button type="submit" disabled={busy || !handleOk || !fullName.trim()}><Check size={15} aria-hidden /> {t("profile.save", "Save")}</Button>
+          <Button type="submit" disabled={busy || !handleOk || taken || !fullName.trim()}><Check size={15} aria-hidden /> {t("profile.save", "Save")}</Button>
         </div>
       </form>
 
@@ -282,7 +302,7 @@ export default function ProfileEditPage() {
 }
 
 /** One form row: an icon chip and label on the left, the field on the right (stacked on phones). */
-function Row({ icon, label, hint, bad, children }: { icon: React.ReactNode; label: string; hint?: string; bad?: boolean; children: React.ReactNode }) {
+function Row({ icon, label, hint, bad, good, children }: { icon: React.ReactNode; label: string; hint?: string; bad?: boolean; good?: boolean; children: React.ReactNode }) {
   return (
     <label className="grid gap-2 md:grid-cols-[160px_1fr] md:items-start md:gap-6">
       <span className="flex items-center gap-2 pt-2 text-sm font-medium text-ink">
@@ -291,7 +311,7 @@ function Row({ icon, label, hint, bad, children }: { icon: React.ReactNode; labe
       </span>
       <span className="space-y-1.5">
         {children}
-        {hint ? <span className={cn("block text-xs", bad ? "text-bad" : "text-ink-mute")}>{hint}</span> : null}
+        {hint ? <span aria-live="polite" className={cn("block text-xs", bad ? "text-bad" : good ? "text-good" : "text-ink-mute")}>{hint}</span> : null}
       </span>
     </label>
   );
