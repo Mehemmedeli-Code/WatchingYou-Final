@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Identity.Domain;
@@ -30,6 +31,9 @@ public sealed record PeoplePage(IReadOnlyList<PersonCard> Items, int Page, int P
 
 public sealed record FollowCounts(int Followers, int Following, int Requests);
 
+/// <summary>A handle as it would be stored (lower case, no @), and whether it is free.</summary>
+public sealed record UsernameCheck(string Username, bool Available);
+
 /// <summary>What a follow did: "following" at once, or "requested" for a private account.</summary>
 public sealed record FollowResult(string Status);
 
@@ -51,11 +55,17 @@ public static class PeopleEndpoints
             {
                 var term = Usernames.Normalize(q);
                 if (term.Length > 60) term = term[..60];
+                // Names are matched as typed: lower-casing "İlham" gives "i̇lham" (i plus a dot),
+                // which matches nobody. The comparison ignores case and accents instead, so
+                // "ilham" finds "İlham" and "sevinc" finds "Şevinc".
+                var name = (q ?? "").Trim().TrimStart('@');
+                if (name.Length > 60) name = name[..60];
                 var pageNo = Math.Clamp(page ?? 1, 1, 10_000);
                 const int size = 20;
 
                 // An empty box shows nobody: there is no "browse all users" on a site this size.
-                if (term.Length < 2) return TypedResults.Ok(new PeoplePage([], pageNo, size, false));
+                // From the first letter on, every keystroke narrows the list.
+                if (name.Length == 0) return TypedResults.Ok(new PeoplePage([], pageNo, size, false));
 
                 // Handle matches first (that is what people type), then names; one row more than
                 // a page to know whether a next page exists.
@@ -63,7 +73,8 @@ public static class PeopleEndpoints
                 // when the user table is large enough for it to show.
                 var ids = await db.Users.AsNoTracking()
                     .Where(u => !u.IsSuspended &&
-                                ((u.Username != null && u.Username.StartsWith(term)) || u.FullName.Contains(term)))
+                                ((u.Username != null && u.Username.StartsWith(term)) ||
+                                 EF.Functions.Collate(u.FullName, "Latin1_General_100_CI_AI").Contains(name)))
                     .OrderBy(u => u.Username != null && u.Username.StartsWith(term) ? 0 : 1)
                     .ThenBy(u => u.Username)
                     .Skip((pageNo - 1) * size).Take(size + 1)
@@ -75,7 +86,27 @@ public static class PeopleEndpoints
             })
             .WithName("SearchPeople")
             .WithSummary("Find people by @username or name, 20 a page")
-            .WithDescription("`q`: at least 2 characters (fewer gives an empty page). Usernames that start with it come first.");
+            .WithDescription("`q`: one character or more (empty gives an empty page). Usernames that start with it come first, " +
+                             "then names that contain it, ignoring case and accents.");
+
+        // The edit-profile box asks while the person types, so "taken" shows before Save. Saving
+        // still decides: the unique index on Username is what keeps two people off one handle.
+        people.MapGet("/username-available", async Task<Results<Ok<UsernameCheck>, BadRequest<MovieRental.SharedKernel.Results.Error>>> (
+                string? username, IdentityDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
+            {
+                var handle = Usernames.Normalize(username);
+                if (!Usernames.IsValid(handle))
+                    return TypedResults.BadRequest(MovieRental.SharedKernel.Results.Error.Validation(
+                        "Username: 3-30 characters, lower-case letters, digits, dots and underscores."));
+                var me = currentUser.RequireId();
+                // Suspended accounts keep their handle, so they count as taken too.
+                var taken = Usernames.IsReserved(handle) || await db.Users.AnyAsync(u => u.Username == handle && u.Id != me, ct);
+                return TypedResults.Ok(new UsernameCheck(handle, !taken));
+            })
+            .WithName("UsernameAvailable")
+            .WithSummary("Is this @username free?")
+            .WithDescription("`available` is true when nobody else has it (your own counts as free). Case does not matter: " +
+                             "\"Ali\" and \"ali\" are the same handle. 400: not 3-30 of a-z, 0-9, dot and underscore.");
 
         // A profile by its @handle, the way /u/{username} links to it.
         people.MapGet("/u/{username}", async (string username, IdentityDbContext db, ICurrentUser currentUser,
