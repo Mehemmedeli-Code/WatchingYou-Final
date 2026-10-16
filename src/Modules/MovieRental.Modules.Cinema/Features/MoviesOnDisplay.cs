@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -24,6 +25,20 @@ public readonly record struct OnDisplayFilter(
     string? Language, DateTime? From, DateTime? To, string? Search, Guid? VenueId, string? City);
 
 public sealed record GetOnDisplayQuery(OnDisplayFilter Filter) : IQuery<IReadOnlyList<OnDisplayItem>>;
+
+internal sealed class GetOnDisplayValidator : AbstractValidator<GetOnDisplayQuery>
+{
+    // ?From=9999-12-31 used to be a 500: the default end is fourteen days later.
+    public GetOnDisplayValidator()
+    {
+        RuleFor(x => x.Filter.From).Must(InRange).WithMessage("Dates run from 2000 to 2100.").OverridePropertyName("From");
+        RuleFor(x => x.Filter.To).Must(InRange).WithMessage("Dates run from 2000 to 2100.").OverridePropertyName("To");
+        RuleFor(x => x.Filter).Must(f => f.From is null || f.To is null || f.From <= f.To)
+            .WithMessage("`From` is after `To`.").OverridePropertyName("To");
+    }
+
+    private static bool InRange(DateTime? day) => day is null || day.Value.Year is >= 2000 and <= 2100;
+}
 
 internal sealed class GetOnDisplayHandler(CinemaDbContext db)
     : IQueryHandler<GetOnDisplayQuery, IReadOnlyList<OnDisplayItem>>
@@ -90,5 +105,6 @@ public static class MoviesOnDisplayEndpoint
                 TypedResults.Ok(await dispatcher.Ask(new GetOnDisplayQuery(filter), ct)))
         .WithName("GetMoviesOnDisplay").WithTags("Cinema").AllowAnonymous().CacheOutput(AppPolicies.CinemaCache)
         .WithSummary("Films showing in the cinemas, each with its showtimes")
-        .WithDescription("Filters, all optional: `Language` (az, en, ru, tr), `From`/`To` (dates), `Search` (title), `VenueId`, `City`.");
+        .WithDescription("Filters, all optional: `Language` (az, en, ru, tr), `From`/`To` (dates from 2000 to 2100; by default " +
+                         "now to fourteen days on), `Search` (title), `VenueId`, `City`.");
 }
