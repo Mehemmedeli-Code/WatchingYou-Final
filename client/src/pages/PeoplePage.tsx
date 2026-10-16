@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { Section, Panel, Empty, Spinner, Notice } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
@@ -22,26 +22,31 @@ export default function PeoplePage() {
   // Whose followers are open in the Instagram-style list, if any.
   const [followersOf, setFollowersOf] = useState<string | null>(null);
 
-  // Typed queries wait a moment, so one search goes out per pause rather than per key.
+  // The list follows the box from the first letter. A short pause folds a burst of keys into
+  // one search, and only the newest answer is shown: a slow reply for "a" must not land on
+  // top of the one for "ay".
+  const latest = useRef(0);
   useEffect(() => {
     if (!isSignedIn) return;
     const q = term.trim().replace(/^@/, "");
-    if (q.length < 2) { setResult(null); return; }
-    const timer = window.setTimeout(() => void search(q, 1), 300);
+    if (!q) { latest.current++; setResult(null); setLoading(false); return; }
+    const timer = window.setTimeout(() => void search(q, 1), 120);
     return () => window.clearTimeout(timer);
   }, [term, isSignedIn]);
 
   async function search(q: string, page: number) {
+    const ticket = ++latest.current;
     setLoading(true);
     setError(null);
     try {
       const next = await get<PeopleResult>("/api/people" + query({ q, page }));
+      if (ticket !== latest.current) return;
       setResult((current) => page > 1 && current ? { ...next, items: [...current.items, ...next.items] } : next);
       window.history.replaceState(null, "", `/people?q=${encodeURIComponent(q)}`);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : t("error.generic", "Something went wrong."));
+      if (ticket === latest.current) setError(e instanceof ApiError ? e.message : t("error.generic", "Something went wrong."));
     } finally {
-      setLoading(false);
+      if (ticket === latest.current) setLoading(false);
     }
   }
 
@@ -70,9 +75,9 @@ export default function PeoplePage() {
       </div>
 
       {error ? <div className="mb-4"><Notice tone="error">{error}</Notice></div> : null}
-      {q.length < 2 ? <p className="text-sm text-ink-mute">{t("people.hint", "Type at least two letters.")}</p> : null}
+      {!q ? <p className="text-sm text-ink-mute">{t("people.hint", "Start typing a @username or a name.")}</p> : null}
       {loading && !result ? <Spinner label={t("common.loading")} /> : null}
-      {result && result.items.length === 0 && q.length >= 2 ? (
+      {result && result.items.length === 0 && q && !loading ? (
         <Empty title={t("people.none", "Nobody by that name.")} hint="" />
       ) : null}
 
