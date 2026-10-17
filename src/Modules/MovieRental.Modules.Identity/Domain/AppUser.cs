@@ -16,10 +16,8 @@ public sealed class AppUser : BaseEntity, ISoftDeletable
 
     /// <summary>A few lines under the name on the profile, up to 150 characters.</summary>
     public string? Bio { get; set; }
-    public string? PhoneNumber { get; set; }
     public required string PasswordHash { get; set; }
     public bool IsEmailConfirmed { get; set; }
-    public bool IsPhoneConfirmed { get; set; }
     public DateTime? LastLoginAtUtc { get; set; }
 
     /// <summary>Suspension rather than deletion: the rentals, reviews and bookings behind an
@@ -59,4 +57,30 @@ public sealed class AppUser : BaseEntity, ISoftDeletable
     public List<VerificationCode> VerificationCodes { get; set; } = [];
 
     public string[] RoleList => Roles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    /// <summary>
+    /// What a closed account leaves behind: a row the bookings and payments can still point at,
+    /// saying nothing about who it was, with every session ended. The caller soft-deletes it.
+    /// </summary>
+    /// <param name="unusablePasswordHash">The hash of a random secret nobody holds.</param>
+    public void Anonymise(string unusablePasswordHash, DateTime nowUtc, string reason)
+    {
+        Email = $"deleted-{Id:N}@deleted.invalid";
+        FullName = "Deleted user";
+        Username = null;
+        Bio = null;
+        PasswordHash = unusablePasswordHash;
+        ShareOnGlobe = false;
+        City = null;
+        CountryCode = null;
+        Latitude = null;
+        Longitude = null;
+        AvatarUrl = null;
+
+        foreach (var token in RefreshTokens.Where(t => t.RevokedAtUtc == null))
+        {
+            token.RevokedAtUtc = nowUtc;
+            token.RevokedReason = reason;
+        }
+    }
 }

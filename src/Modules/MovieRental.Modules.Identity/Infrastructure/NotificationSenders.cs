@@ -22,17 +22,6 @@ public sealed class EmailOptions
     public string FromName { get; set; } = "WatchingYou";
 }
 
-public sealed class SmsOptions
-{
-    public const string SectionName = "Notifications:Sms";
-
-    /// <summary>"Twilio" or "Console".</summary>
-    public string Provider { get; set; } = "Console";
-    public string AccountSid { get; set; } = string.Empty;
-    public string AuthToken { get; set; } = string.Empty;
-    public string FromNumber { get; set; } = string.Empty;
-}
-
 /// <summary>Development transport: the code goes to the log, nothing leaves the machine.</summary>
 public sealed class ConsoleEmailSender(ILogger<ConsoleEmailSender> logger) : IEmailSender
 {
@@ -42,15 +31,6 @@ public sealed class ConsoleEmailSender(ILogger<ConsoleEmailSender> logger) : IEm
             request.PlainTextBody ?? request.HtmlBody);
         foreach (var file in request.Attachments ?? [])
             logger.LogWarning("  attachment: {Name} ({Type}, {Size:N0} bytes)", file.FileName, file.ContentType, file.Content.Length);
-        return Task.CompletedTask;
-    }
-}
-
-public sealed class ConsoleSmsSender(ILogger<ConsoleSmsSender> logger) : ISmsSender
-{
-    public Task SendAsync(SmsRequest request, CancellationToken ct = default)
-    {
-        logger.LogWarning("SMS to {Phone} | {Text}", request.PhoneNumber, request.Text);
         return Task.CompletedTask;
     }
 }
@@ -93,40 +73,5 @@ public sealed class SmtpEmailSender(IOptions<EmailOptions> options, ILogger<Smtp
             logger.LogError(ex, "E-mail to {To} failed", request.To);
             throw new InvalidOperationException("The e-mail could not be sent. Check Notifications:Email settings.", ex);
         }
-    }
-}
-
-/// <summary>Real delivery through Twilio's REST API — one form POST, no SDK.</summary>
-public sealed class TwilioSmsSender(
-    IHttpClientFactory factory, IOptions<SmsOptions> options, ILogger<TwilioSmsSender> logger) : ISmsSender
-{
-    private readonly SmsOptions _options = options.Value;
-
-    public async Task SendAsync(SmsRequest request, CancellationToken ct = default)
-    {
-        var client = factory.CreateClient(nameof(TwilioSmsSender));
-        var credentials = Convert.ToBase64String(
-            System.Text.Encoding.UTF8.GetBytes($"{_options.AccountSid}:{_options.AuthToken}"));
-
-        using var content = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["To"] = request.PhoneNumber,
-            ["From"] = _options.FromNumber,
-            ["Body"] = request.Text
-        });
-
-        using var message = new HttpRequestMessage(HttpMethod.Post,
-            $"https://api.twilio.com/2010-04-01/Accounts/{_options.AccountSid}/Messages.json") { Content = content };
-        message.Headers.Add("Authorization", $"Basic {credentials}");
-
-        var response = await client.SendAsync(message, ct);
-        if (!response.IsSuccessStatusCode)
-        {
-            var body = await response.Content.ReadAsStringAsync(ct);
-            logger.LogError("SMS to {Phone} failed: {Status} {Body}", request.PhoneNumber, response.StatusCode, body);
-            throw new InvalidOperationException("The SMS could not be sent. Check Notifications:Sms settings.");
-        }
-
-        logger.LogInformation("SMS delivered to {Phone}", request.PhoneNumber);
     }
 }

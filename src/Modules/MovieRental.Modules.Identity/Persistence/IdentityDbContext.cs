@@ -30,7 +30,6 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             e.HasKey(x => x.Id);
             e.Property(x => x.Email).HasMaxLength(256).IsRequired();
             e.Property(x => x.FullName).HasMaxLength(150).IsRequired();
-            e.Property(x => x.PhoneNumber).HasMaxLength(32);
             e.Property(x => x.PasswordHash).HasMaxLength(300).IsRequired();
             e.Property(x => x.Roles).HasMaxLength(200);
             e.HasIndex(x => x.Email).IsUnique().HasFilter("[IsDeleted] = 0");
@@ -65,9 +64,8 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             e.HasKey(x => x.Id);
             e.Property(x => x.CodeHash).HasMaxLength(128).IsRequired();
             e.Property(x => x.Salt).HasMaxLength(64).IsRequired();
-            e.Property(x => x.Channel).HasConversion<int>();
             e.Property(x => x.Purpose).HasConversion<int>();
-            e.HasIndex(x => new { x.UserId, x.Purpose, x.Channel, x.SentAtUtc });
+            e.HasIndex(x => new { x.UserId, x.Purpose, x.SentAtUtc });
         });
 
         b.Entity<AuditEntryRow>(e =>

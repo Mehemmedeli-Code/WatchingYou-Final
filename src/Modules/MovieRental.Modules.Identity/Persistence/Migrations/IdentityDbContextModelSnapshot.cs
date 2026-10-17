@@ -64,9 +64,6 @@ namespace MovieRental.Modules.Identity.Persistence.Migrations
                     b.Property<bool>("IsEmailConfirmed")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsPhoneConfirmed")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("IsPrivate")
                         .HasColumnType("bit");
 
@@ -86,10 +83,6 @@ namespace MovieRental.Modules.Identity.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
 
                     b.Property<string>("Roles")
                         .IsRequired()
@@ -568,9 +561,6 @@ namespace MovieRental.Modules.Identity.Persistence.Migrations
                     b.Property<int>("Attempts")
                         .HasColumnType("int");
 
-                    b.Property<int>("Channel")
-                        .HasColumnType("int");
-
                     b.Property<string>("CodeHash")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -604,7 +594,7 @@ namespace MovieRental.Modules.Identity.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId", "Purpose", "Channel", "SentAtUtc");
+                    b.HasIndex("UserId", "Purpose", "SentAtUtc");
 
                     b.ToTable("VerificationCodes", "identity");
                 });

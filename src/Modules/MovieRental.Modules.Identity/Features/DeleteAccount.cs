@@ -20,7 +20,7 @@ namespace MovieRental.Modules.Identity.Features;
 // account you cannot close is not really yours.
 //
 // What "deleted" means here: the person is gone, the records are not. Their name, e-mail,
-// phone, city and picture are wiped and every session is ended, so nothing identifies them
+// @username, city and picture are wiped and every session is ended, so nothing identifies them
 // any more. Bookings and payments stay, attached to an anonymous row — the cinema still has
 // to account for money it took — but they no longer lead back to anyone.
 
@@ -46,28 +46,10 @@ internal sealed class DeleteAccountHandler(
             return Result.Failure(Error.Forbidden("An administrator account cannot be deleted from here."));
 
         var email = user.Email;
-        var now = DateTime.UtcNow;
 
         // Anonymise first, then soft-delete: the row survives for the bookings that point at
         // it, but says nothing about who it was.
-        user.Email = $"deleted-{user.Id:N}@deleted.invalid";
-        user.FullName = "Deleted user";
-        user.PhoneNumber = null;
-        user.IsPhoneConfirmed = false;
-        user.PasswordHash = hasher.Hash(Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
-        user.ShareOnGlobe = false;
-        user.City = null;
-        user.CountryCode = null;
-        user.Latitude = null;
-        user.Longitude = null;
-        user.AvatarUrl = null;
-
-        foreach (var token in user.RefreshTokens.Where(t => t.RevokedAtUtc == null))
-        {
-            token.RevokedAtUtc = now;
-            token.RevokedReason = "account deleted";
-        }
-
+        user.Anonymise(hasher.Hash(Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))), DateTime.UtcNow, "account deleted");
         db.Users.Remove(user);   // soft delete: the query filter hides the row from here on
         await db.SaveChangesAsync(ct);
         await AuthCookie.SignOutAsync(http.HttpContext);
@@ -99,7 +81,7 @@ public static class DeleteAccountEndpoint
             .WithName("DeleteOwnAccount")
             .WithTags("Auth")
             .WithSummary("Close my account (asks for the password again)")
-            .WithDescription("The name, e-mail, phone and picture are wiped and every session ends; bookings and payments stay, " +
+            .WithDescription("The name, e-mail, @username and picture are wiped and every session ends; bookings and payments stay, " +
                              "anonymous. 400: wrong password. 403: an admin account is closed by another admin, not here.")
             .Produces<Error>(StatusCodes.Status403Forbidden)
             .RequireAuthorization()

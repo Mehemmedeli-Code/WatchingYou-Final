@@ -17,8 +17,8 @@ namespace MovieRental.Modules.Identity.Features;
 // was impossible without editing code. This is the missing half of the role system.
 
 public sealed record AdminUserItem(
-    Guid Id, string FullName, string Email, string? PhoneNumber,
-    string[] Roles, bool IsEmailConfirmed, bool IsPhoneConfirmed,
+    Guid Id, string FullName, string Email,
+    string[] Roles, bool IsEmailConfirmed,
     bool IsSuspended, string? SuspensionReason, DateTime CreatedAtUtc, DateTime? LastLoginAtUtc,
     bool HasStaffPin);
 
@@ -48,8 +48,8 @@ internal sealed class GetUsersHandler(IdentityDbContext db)
         var rows = await users.OrderBy(u => u.Email).Take(200).ToListAsync(ct);
 
         return [.. rows.Select(u => new AdminUserItem(
-            u.Id, u.FullName, u.Email, u.PhoneNumber, u.RoleList,
-            u.IsEmailConfirmed, u.IsPhoneConfirmed, u.IsSuspended, u.SuspensionReason,
+            u.Id, u.FullName, u.Email, u.RoleList,
+            u.IsEmailConfirmed, u.IsSuspended, u.SuspensionReason,
             u.CreatedAtUtc, u.LastLoginAtUtc, u.StaffPinHash != null))];
     }
 }

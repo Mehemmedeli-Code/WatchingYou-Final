@@ -19,9 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Kept in the repository, left out of the build. Its two classes, ConsoleEmailSender and
-         ConsoleSmsSender, now live in NotificationSenders.cs; compiling both would declare each
-         class twice (CS0101). The repository keeps every file it has ever had, so the old copy
+    <!-- Kept in the repository, left out of the build. ConsoleEmailSender now lives in
+         NotificationSenders.cs (and the SMS sender beside it is gone: the site sends e-mail
+         only); compiling both would declare a class twice (CS0101). The repository keeps every file it has ever had, so the old copy
          stays and is simply not compiled. -->
     <Compile Remove="Infrastructure\ConsoleSenders.cs" />
   </ItemGroup>

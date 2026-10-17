@@ -9,28 +9,24 @@ namespace MovieRental.Modules.Identity.Infrastructure;
 
 public interface IVerificationService
 {
-    Task<Result> IssueAsync(AppUser user, VerificationChannel channel, VerificationPurpose purpose, CancellationToken ct);
+    /// <summary>Sends a fresh six-digit code to the account's e-mail address.</summary>
+    Task<Result> IssueAsync(AppUser user, VerificationPurpose purpose, CancellationToken ct);
 
     /// <summary>Checks the code and consumes it, but applies no side effect of its own —
     /// the caller decides what confirming means.</summary>
-    Task<Result> CheckAsync(AppUser user, VerificationChannel channel, VerificationPurpose purpose,
-        string code, CancellationToken ct);
+    Task<Result> CheckAsync(AppUser user, VerificationPurpose purpose, string code, CancellationToken ct);
 }
 
 internal sealed class VerificationService(
-    IdentityDbContext db, ITokenService tokens, IEmailSender email, ISmsSender sms, IOptions<JwtOptions> options)
+    IdentityDbContext db, ITokenService tokens, IEmailSender email, IOptions<JwtOptions> options)
     : IVerificationService
 {
     private static readonly TimeSpan ResendCooldown = TimeSpan.FromSeconds(60);
 
-    public async Task<Result> IssueAsync(AppUser user, VerificationChannel channel,
-        VerificationPurpose purpose, CancellationToken ct)
+    public async Task<Result> IssueAsync(AppUser user, VerificationPurpose purpose, CancellationToken ct)
     {
-        if (channel == VerificationChannel.Sms && string.IsNullOrWhiteSpace(user.PhoneNumber))
-            return Result.Failure(Error.Validation("Add a phone number to your profile first."));
-
         var last = await db.VerificationCodes
-            .Where(c => c.UserId == user.Id && c.Channel == channel && c.Purpose == purpose)
+            .Where(c => c.UserId == user.Id && c.Purpose == purpose)
             .OrderByDescending(c => c.SentAtUtc)
             .FirstOrDefaultAsync(ct);
 
@@ -40,9 +36,9 @@ internal sealed class VerificationService(
             return Result.Failure(Error.Conflict($"Wait {wait} more seconds before asking for another code."));
         }
 
-        // Any earlier code for this channel stops working the moment a new one is issued.
+        // Any earlier code for this purpose stops working the moment a new one is issued.
         var live = await db.VerificationCodes
-            .Where(c => c.UserId == user.Id && c.Channel == channel && c.Purpose == purpose
+            .Where(c => c.UserId == user.Id && c.Purpose == purpose
                      && c.ConsumedAtUtc == null)
             .ToListAsync(ct);
         foreach (var old in live) old.ConsumedAtUtc = DateTime.UtcNow;
@@ -54,7 +50,6 @@ internal sealed class VerificationService(
         db.VerificationCodes.Add(new VerificationCode
         {
             UserId = user.Id,
-            Channel = channel,
             Purpose = purpose,
             CodeHash = hash,
             Salt = salt,
@@ -66,48 +61,37 @@ internal sealed class VerificationService(
         // Sent after the save: a code the user holds but the database has not seen is worse
         // than a code stored but not delivered, which they can simply request again.
         var resetting = purpose == VerificationPurpose.PasswordReset;
+        var subject = resetting
+            ? Lang.Pick("WatchingYou şifrənizi yeniləyin", "Reset your WatchingYou password", "Сброс пароля WatchingYou", "WatchingYou şifrenizi sıfırlayın")
+            : Lang.Pick("WatchingYou təsdiq kodunuz", "Your WatchingYou verification code", "Ваш код подтверждения WatchingYou", "WatchingYou doğrulama kodunuz");
+        var lead = resetting
+            ? Lang.Pick("Yeni şifrə qoymaq üçün bu kodu istifadə edin:", "Use this code to set a new password:", "Используйте этот код, чтобы задать новый пароль:", "Yeni şifre belirlemek için bu kodu kullanın:")
+            : Lang.Pick("Təsdiq kodunuz:", "Your verification code is:", "Ваш код подтверждения:", "Doğrulama kodunuz:");
+        var warning = "<p>" + (resetting
+            ? Lang.Pick("Şifrəni yeniləməyi siz istəməmisinizsə, bu məktuba əhəmiyyət verməyin — heç nə dəyişməyib, indiki şifrəniz işləyir.",
+                        "If you did not ask to reset your password, ignore this message — nothing has changed, and your current password still works.",
+                        "Если вы не запрашивали сброс пароля, просто проигнорируйте письмо — ничего не изменилось, текущий пароль работает.",
+                        "Şifre sıfırlamayı siz istemediyseniz bu iletiyi dikkate almayın — hiçbir şey değişmedi, mevcut şifreniz çalışıyor.")
+            : Lang.Pick("Bunu siz istəməmisinizsə, məktuba əhəmiyyət verməyin.", "If you did not ask for this, ignore the message.",
+                        "Если вы этого не запрашивали, проигнорируйте письмо.", "Bunu siz istemediyseniz iletiyi dikkate almayın.")) + "</p>";
 
-        if (channel == VerificationChannel.Sms)
-        {
-            await sms.SendAsync(new SmsRequest(user.PhoneNumber!,
-                Lang.Pick($"WatchingYou kodu: {code}. {minutes} dəqiqə etibarlıdır.", $"WatchingYou code: {code}. Valid for {minutes} minutes.",
-                          $"Код WatchingYou: {code}. Действует {minutes} мин.", $"WatchingYou kodu: {code}. {minutes} dakika geçerli.")), ct);
-        }
-        else
-        {
-            var subject = resetting
-                ? Lang.Pick("WatchingYou şifrənizi yeniləyin", "Reset your WatchingYou password", "Сброс пароля WatchingYou", "WatchingYou şifrenizi sıfırlayın")
-                : Lang.Pick("WatchingYou təsdiq kodunuz", "Your WatchingYou verification code", "Ваш код подтверждения WatchingYou", "WatchingYou doğrulama kodunuz");
-            var lead = resetting
-                ? Lang.Pick("Yeni şifrə qoymaq üçün bu kodu istifadə edin:", "Use this code to set a new password:", "Используйте этот код, чтобы задать новый пароль:", "Yeni şifre belirlemek için bu kodu kullanın:")
-                : Lang.Pick("Təsdiq kodunuz:", "Your verification code is:", "Ваш код подтверждения:", "Doğrulama kodunuz:");
-            var warning = "<p>" + (resetting
-                ? Lang.Pick("Şifrəni yeniləməyi siz istəməmisinizsə, bu məktuba əhəmiyyət verməyin — heç nə dəyişməyib, indiki şifrəniz işləyir.",
-                            "If you did not ask to reset your password, ignore this message — nothing has changed, and your current password still works.",
-                            "Если вы не запрашивали сброс пароля, просто проигнорируйте письмо — ничего не изменилось, текущий пароль работает.",
-                            "Şifre sıfırlamayı siz istemediyseniz bu iletiyi dikkate almayın — hiçbir şey değişmedi, mevcut şifreniz çalışıyor.")
-                : Lang.Pick("Bunu siz istəməmisinizsə, məktuba əhəmiyyət verməyin.", "If you did not ask for this, ignore the message.",
-                            "Если вы этого не запрашивали, проигнорируйте письмо.", "Bunu siz istemediyseniz iletiyi dikkate almayın.")) + "</p>";
-
-            await email.SendAsync(new EmailRequest(user.Email, subject,
-                $"""
-                 <p>{Lang.Pick("Salam", "Hi", "Здравствуйте", "Merhaba")} {System.Net.WebUtility.HtmlEncode(user.FullName)},</p>
-                 <p>{lead}</p>
-                 <p style="font-size:20px;letter-spacing:3px"><strong>{code}</strong></p>
-                 <p>{Lang.Pick($"Kod {minutes} dəqiqə etibarlıdır və bir dəfə istifadə olunur.", $"It expires in {minutes} minutes and can be used once.",
-                               $"Код действует {minutes} мин. и используется один раз.", $"Kod {minutes} dakika geçerlidir ve bir kez kullanılabilir.")}</p>
-                 {warning}
-                 """), ct);
-        }
+        await email.SendAsync(new EmailRequest(user.Email, subject,
+            $"""
+             <p>{Lang.Pick("Salam", "Hi", "Здравствуйте", "Merhaba")} {System.Net.WebUtility.HtmlEncode(user.FullName)},</p>
+             <p>{lead}</p>
+             <p style="font-size:20px;letter-spacing:3px"><strong>{code}</strong></p>
+             <p>{Lang.Pick($"Kod {minutes} dəqiqə etibarlıdır və bir dəfə istifadə olunur.", $"It expires in {minutes} minutes and can be used once.",
+                           $"Код действует {minutes} мин. и используется один раз.", $"Kod {minutes} dakika geçerlidir ve bir kez kullanılabilir.")}</p>
+             {warning}
+             """), ct);
 
         return Result.Success();
     }
 
-    public async Task<Result> CheckAsync(AppUser user, VerificationChannel channel,
-        VerificationPurpose purpose, string code, CancellationToken ct)
+    public async Task<Result> CheckAsync(AppUser user, VerificationPurpose purpose, string code, CancellationToken ct)
     {
         var pending = await db.VerificationCodes
-            .Where(c => c.UserId == user.Id && c.Channel == channel && c.Purpose == purpose
+            .Where(c => c.UserId == user.Id && c.Purpose == purpose
                      && c.ConsumedAtUtc == null)
             .OrderByDescending(c => c.SentAtUtc)
             .FirstOrDefaultAsync(ct);

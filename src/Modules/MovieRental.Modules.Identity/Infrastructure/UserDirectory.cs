@@ -10,7 +10,7 @@ internal sealed class UserDirectory(IdentityDbContext db) : IUserDirectory
         await db.Users
             .AsNoTracking()
             .Where(u => u.Id == userId)
-            .Select(u => new UserContact(u.Id, u.FullName, u.Email, u.PhoneNumber, u.ShareOnGlobe, u.Username, u.AvatarUrl))
+            .Select(u => new UserContact(u.Id, u.FullName, u.Email, u.ShareOnGlobe, u.Username, u.AvatarUrl))
             .FirstOrDefaultAsync(ct);
 
     public async Task<IReadOnlyDictionary<Guid, UserContact>> GetContactsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct = default)
@@ -20,7 +20,7 @@ internal sealed class UserDirectory(IdentityDbContext db) : IUserDirectory
         return await db.Users
             .AsNoTracking()
             .Where(u => ids.Contains(u.Id))
-            .Select(u => new UserContact(u.Id, u.FullName, u.Email, u.PhoneNumber, u.ShareOnGlobe, u.Username, u.AvatarUrl))
+            .Select(u => new UserContact(u.Id, u.FullName, u.Email, u.ShareOnGlobe, u.Username, u.AvatarUrl))
             .ToDictionaryAsync(u => u.Id, ct);
     }
 

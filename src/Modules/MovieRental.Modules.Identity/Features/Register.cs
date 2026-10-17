@@ -16,7 +16,7 @@ using MovieRental.SharedKernel.Security;
 namespace MovieRental.Modules.Identity.Features;
 
 // Feature 1 — registration. One file holds the whole slice: contract, rules, handler, route.
-public sealed record RegisterCommand(string FullName, string Email, string Password, string? PhoneNumber = null)
+public sealed record RegisterCommand(string FullName, string Email, string Password)
     : ICommand<Result<RegistrationResponse>>;
 
 internal sealed class RegisterValidator : AbstractValidator<RegisterCommand>
@@ -28,9 +28,6 @@ internal sealed class RegisterValidator : AbstractValidator<RegisterCommand>
         RuleFor(x => x.Password).NotEmpty().MinimumLength(8).MaximumLength(128)
             .Matches("[A-Z]").WithMessage("Password needs at least one capital letter.")
             .Matches("[0-9]").WithMessage("Password needs at least one digit.");
-        RuleFor(x => x.PhoneNumber).Matches(@"^\+?[0-9]{7,15}$")
-            .When(x => !string.IsNullOrWhiteSpace(x.PhoneNumber))
-            .WithMessage("Use digits only, optionally starting with +.");
     }
 }
 
@@ -58,7 +55,6 @@ internal sealed class RegisterHandler(
             Email = normalizedEmail,
             FullName = command.FullName.Trim(),
             Username = handle,
-            PhoneNumber = command.PhoneNumber?.Trim(),
             PasswordHash = hasher.Hash(command.Password),
             Roles = AppRoles.Customer
         };
@@ -84,7 +80,7 @@ internal sealed class RegisterHandler(
         try
         {
             var issued = await verification.IssueAsync(
-                user, VerificationChannel.Email, VerificationPurpose.AccountVerification, ct);
+                user, VerificationPurpose.AccountVerification, ct);
             if (issued.IsFailure) throw new InvalidOperationException(issued.Error.Message);
         }
         catch (Exception ex)
@@ -123,7 +119,7 @@ public static class RegisterEndpoint
 internal static class UserProfileMapper
 {
     public static UserProfileResponse ToProfile(this AppUser user) => new(
-        user.Id, user.FullName, user.Email, user.PhoneNumber,
-        user.IsEmailConfirmed, user.IsPhoneConfirmed, user.RoleList,
+        user.Id, user.FullName, user.Email,
+        user.IsEmailConfirmed, user.RoleList,
         user.ShareOnGlobe, user.City, user.AvatarUrl, user.Username, user.IsPrivate, user.Bio);
 }
