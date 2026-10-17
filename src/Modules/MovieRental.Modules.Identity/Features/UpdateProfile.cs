@@ -82,7 +82,15 @@ internal sealed class UpdateProfileHandler(IdentityDbContext db, ICurrentUser cu
         if (command.Bio is not null) user.Bio = string.IsNullOrWhiteSpace(command.Bio) ? null : command.Bio.Trim();
 
         user.FullName = command.FullName.Trim();
-        await db.SaveChangesAsync(ct);
+        try { await db.SaveChangesAsync(ct); }
+        catch (DbUpdateException)
+        {
+            // Two people saved the same new handle at once: both passed the check above and the
+            // unique index kept the first.
+            var handle = user.Username;
+            if (handle is null || !await db.Users.AsNoTracking().AnyAsync(u => u.Username == handle && u.Id != user.Id, ct)) throw;
+            return Result.Failure<UserProfileResponse>(Error.Conflict("That username is taken."));
+        }
 
         return Result.Success(user.ToProfile());
     }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -17,12 +18,13 @@ namespace MovieRental.Modules.Media.Features;
 /// </summary>
 public static class StreamShortFilmEndpoint
 {
-    public static void Map(IEndpointRouteBuilder app) =>
+    public static void Map(IEndpointRouteBuilder app)
+    {
         app.MapGet("/api/shorts/{id:guid}/stream", async (
             Guid id, MediaDbContext db, ICurrentUser currentUser, IUserDirectory users,
             IHostEnvironment environment, HttpContext context, CancellationToken ct) =>
         {
-            var film = await db.ShortFilms.FirstOrDefaultAsync(f => f.Id == id, ct);
+            var film = await db.ShortFilms.AsNoTracking().FirstOrDefaultAsync(f => f.Id == id, ct);
             if (film is null) return Results.NotFound(Error.NotFound("Film"));
 
             if (!await ViewerRules.MayWatchAsync(film, currentUser, users, ct))
@@ -32,17 +34,6 @@ public static class StreamShortFilmEndpoint
             var path = ShortFilmStorage.PathFor(environment, film.StoredFileName);
             if (!File.Exists(path)) return Results.NotFound(Error.NotFound("Film file"));
 
-            // Counted once per opening request, not once per range request, or every seek
-            // would inflate the number.
-            // And once per viewer every few hours: reloading the page used to add a view each time.
-            var viewer = currentUser.Id?.ToString() ?? context.Connection.RemoteIpAddress?.ToString() ?? "";
-            if (film.Status == Domain.SubmissionStatus.Approved && currentUser.Id != film.UserId &&
-                !context.Request.Headers.ContainsKey("Range") && RecentViews.FirstIn(film.Id, viewer))
-            {
-                film.ViewCount++;
-                await db.SaveChangesAsync(ct);
-            }
-
             context.Response.Headers.XContentTypeOptions = "nosniff";
             context.Response.Headers.ContentSecurityPolicy = "sandbox; default-src 'none'";
             var stream = File.OpenRead(path);
@@ -51,30 +42,34 @@ public static class StreamShortFilmEndpoint
         .WithName("StreamShortFilm").WithTags("Shorts").AllowAnonymous()
         .WithSummary("Play a short film (the video file, seekable)")
         .WithDescription("Anyone for an approved film in a gallery; followers for one kept for followers; always the maker, " +
-                         "Security and admins. 403 otherwise.")
+                         "Security and admins. 403 otherwise. Fetching the file is not a view: see CountShortFilmView.")
         .Produces(StatusCodes.Status200OK, typeof(Stream), "video/mp4", "video/webm")
         .Produces(StatusCodes.Status206PartialContent, typeof(Stream), "video/mp4", "video/webm")
         .Produces<Error>(StatusCodes.Status403Forbidden)
         .Produces<Error>(StatusCodes.Status404NotFound);
-}
 
-/// <summary>Who has been counted for which film lately.</summary>
-// ponytail: in memory on one server; a restart forgets it, and several servers would each count once.
-internal static class RecentViews
-{
-    private static readonly TimeSpan Window = TimeSpan.FromHours(6);
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<(Guid, string), DateTime> Seen = new();
+        // A view is a play. The stream could not tell: browsers ask for it with a Range header
+        // from the first byte (so a "no Range" rule counted nothing), and a page of films fetches
+        // each one's opening without anybody pressing play. The player says when it starts.
+        app.MapPost("/api/shorts/{id:guid}/view", async Task<Results<Ok<FilmViews>, NotFound<Error>>> (
+            Guid id, MediaDbContext db, ICurrentUser currentUser, IUserDirectory users, CancellationToken ct) =>
+        {
+            var film = await db.ShortFilms.AsNoTracking().FirstOrDefaultAsync(f => f.Id == id, ct);
+            if (film is null || film.Status != Domain.SubmissionStatus.Approved || !await ViewerRules.MayWatchAsync(film, currentUser, users, ct))
+                return TypedResults.NotFound(Error.NotFound("Film"));
 
-    public static bool FirstIn(Guid filmId, string viewer)
-    {
-        var now = DateTime.UtcNow;
-        if (Seen.Count > 50_000)
-            foreach (var old in Seen.Where(p => now - p.Value > Window).Select(p => p.Key).ToList()) Seen.TryRemove(old, out _);
-
-        var counted = false;
-        Seen.AddOrUpdate((filmId, viewer),
-            _ => { counted = true; return now; },
-            (_, last) => { if (now - last <= Window) return last; counted = true; return now; });
-        return counted;
+            // One UPDATE in the database, so plays at the same moment all count.
+            await db.ShortFilms.Where(f => f.Id == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(f => f.ViewCount, f => f.ViewCount + 1), ct);
+            return TypedResults.Ok(new FilmViews(await db.ShortFilms.Where(f => f.Id == id).Select(f => f.ViewCount).FirstAsync(ct)));
+        })
+        .WithName("CountShortFilmView").WithTags("Shorts").AllowAnonymous()
+        .RequireRateLimiting(AppPolicies.WriteRateLimit)
+        .WithSummary("Count one play of a published film")
+        .WithDescription("No body. The player sends it when a film starts, and again when it is played once more after it " +
+                         "ended; pausing and seeking stay the same view. Every play counts, the maker's too. Answers with " +
+                         "the new count. 404: no such published film, or one you may not watch.");
     }
 }
+
+public sealed record FilmViews(int Views);
