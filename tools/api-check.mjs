@@ -266,7 +266,7 @@ r = await call("DELETE", `/api/people/${security.user.id}/follow`, { token: c })
 
 // Private account: following asks, the owner accepts or declines
 const sec = security.user;
-r = await call("PUT", "/api/auth/profile", { token: security.token, body: { fullName: sec.fullName, phoneNumber: null, isPrivate: true } });
+r = await call("PUT", "/api/auth/profile", { token: security.token, body: { fullName: sec.fullName, isPrivate: true } });
 expect("account goes private", ok(r) && r.json.isPrivate === true, `${r.status} ${r.text.slice(0, 120)}`);
 r = await call("POST", `/api/people/${sec.id}/follow`, { token: c });
 expect("following a private account sends a request", ok(r) && r.json.status === "requested", `${r.status} ${r.text}`);
@@ -286,7 +286,7 @@ r = await call("DELETE", `/api/people/requests/${customer.user.id}`, { token: se
 expect("decline removes the request", ok(r), `${r.status}`);
 r = await call("GET", "/api/people/requests", { token: security.token });
 expect("declined request is gone", ok(r) && !r.json.items.some((p) => p.id === customer.user.id), r.text.slice(0, 120));
-await call("PUT", "/api/auth/profile", { token: security.token, body: { fullName: sec.fullName, phoneNumber: null, isPrivate: false } });
+await call("PUT", "/api/auth/profile", { token: security.token, body: { fullName: sec.fullName, isPrivate: false } });
 
 // People search from the first letter; a @username belongs to one person, whatever the case
 r = await call("GET", "/api/people?q=a", { token: c });
@@ -296,11 +296,11 @@ expect("a blank people search lists nobody", ok(r) && r.json.items.length === 0,
 const handle = "check_" + Date.now().toString(36);
 r = await call("GET", `/api/people/username-available?username=${handle}`, { token: c });
 expect("an unused username is free", ok(r) && r.json.available === true, r.text);
-r = await call("PUT", "/api/auth/profile", { token: c, body: { fullName: customer.user.fullName, phoneNumber: null, username: handle } });
+r = await call("PUT", "/api/auth/profile", { token: c, body: { fullName: customer.user.fullName, username: handle } });
 expect("customer takes it", ok(r) && r.json.username === handle, `${r.status} ${r.text.slice(0, 120)}`);
 r = await call("GET", `/api/people/username-available?username=${handle.toUpperCase()}`, { token: security.token });
 expect("then it is taken for everyone else, in any case", ok(r) && r.json.available === false, r.text);
-r = await call("PUT", "/api/auth/profile", { token: security.token, body: { fullName: sec.fullName, phoneNumber: null, username: handle.toUpperCase() } });
+r = await call("PUT", "/api/auth/profile", { token: security.token, body: { fullName: sec.fullName, username: handle.toUpperCase() } });
 expect("saving someone's username is a 409 that says so", r.status === 409 && r.json?.message === "That username is taken.", `${r.status} ${r.text.slice(0, 120)}`);
 r = await call("GET", "/api/people/username-available?username=a", { token: c });
 expect("a malformed username is a 400", r.status === 400 && !!r.json?.message, `${r.status}`);

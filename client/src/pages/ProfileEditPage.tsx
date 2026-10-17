@@ -133,7 +133,7 @@ export default function ProfileEditPage() {
   // Saved on its own, from what is stored, so half-typed name changes are not sent with it.
   function setPrivate(isPrivate: boolean) {
     void run(
-      () => put<UserProfile>("/api/auth/profile", { fullName: user!.fullName, phoneNumber: user!.phoneNumber ?? null, username: user!.username ?? null, isPrivate }),
+      () => put<UserProfile>("/api/auth/profile", { fullName: user!.fullName, username: user!.username ?? null, isPrivate }),
       isPrivate ? t("profile.nowPrivate", "Your account is private.") : t("profile.nowPublic", "Your account is public."),
     ).then(loadCounts);
   }
@@ -194,7 +194,7 @@ export default function ProfileEditPage() {
         onSubmit={(e) => {
           e.preventDefault();
           void run(
-            () => put<UserProfile>("/api/auth/profile", { fullName: fullName.trim(), phoneNumber: user.phoneNumber ?? null, username: handle, bio: bio.trim() }),
+            () => put<UserProfile>("/api/auth/profile", { fullName: fullName.trim(), username: handle, bio: bio.trim() }),
             t("profile.saved", "Profile saved."),
           );
         }}

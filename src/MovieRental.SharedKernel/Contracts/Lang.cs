@@ -3,7 +3,7 @@ using System.Globalization;
 namespace MovieRental.SharedKernel.Contracts;
 
 /// <summary>
-/// The reader's language for text the server writes itself — e-mails, SMS, PDFs. The host
+/// The reader's language for text the server writes itself — e-mails and PDFs. The host
 /// sets the request's UI culture from the visitor's language choice; outside a request
 /// (background jobs) it falls back to Azerbaijani, the site's default.
 /// </summary>

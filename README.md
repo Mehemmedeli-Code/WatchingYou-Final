@@ -47,7 +47,12 @@ Either way the site comes up at **https://localhost:7139**, the API reference at
 
 ### Signing in
 
-The first run creates the database, the schemas and two accounts:
+The first run creates the database and the schemas, and no accounts: register with the address in
+`Staff:OwnerEmail` (user secrets) and that account becomes the owner (SuperAdmin) on the next start.
+
+Test databases (`tools/api-check.ps1`, or `Seed:TestAccounts=true`) also get these logins. Their
+passwords are public, so anywhere else they are never created, and a database that has them
+closes them at start-up:
 
 | Role | E-mail | Password |
 |---|---|---|
@@ -94,7 +99,7 @@ WatchingYou.sln
 ├── src/
 │   ├── MovieRental.SharedKernel/        no module depends on another module, only on this
 │   │   ├── Abstractions/                BaseEntity, ISoftDeletable
-│   │   ├── Contracts/                   ICatalogApi, IUserDirectory, IEmailSender, ISmsSender
+│   │   ├── Contracts/                   ICatalogApi, IUserDirectory, IEmailSender
 │   │   ├── Cqrs/                        ICommand, IQuery, Dispatcher, pipeline behaviours
 │   │   ├── Persistence/ModuleDbContext   schema-per-module, soft delete, audit stamps
 │   │   ├── Results/                     Result, Error, PagedResult
@@ -203,7 +208,7 @@ Repeat per context: `IdentityDbContext`, `CatalogDbContext`, `RentalsDbContext`,
 
 | Feature | Code |
 |---|---|
-| Registration, e-mail/SMS verification | `Modules.Identity/Features/{Register,Login,Verification}.cs`, `Infrastructure/VerificationService.cs` |
+| Registration, e-mail verification | `Modules.Identity/Features/{Register,Login,Verification}.cs`, `Infrastructure/VerificationService.cs` |
 | Catalogue browsing, search, filters | `Modules.Catalog/Features/GetMovies.cs` |
 | Rent, extend, return, late fees | `Modules.Rentals/Features/`, `Domain/LateFeePolicy.cs` |
 | Admin inventory, soft delete, restore | `Modules.Catalog/Features/ManageMovies.cs` |
@@ -704,17 +709,13 @@ it does model correctly is the part students usually get wrong: never keeping th
 Signing in is required before checkout. Pressing Confirm while signed out sends the visitor
 to `/account?returnUrl=…` and back to the same performance afterwards.
 
-## Profile and SMS
+## Profile
 
-**Account → Profile** sets the display name and the phone number. This is what makes SMS
-verification reachable at all: the phone field at registration is optional, and until this
-existed anyone who skipped it had no way to add one later, so the SMS button never appeared.
-
-Changing the number clears its confirmation — a new number is an unproven number, and carrying
-the old flag across would mean a "verified" phone nobody verified.
+**Account → Profile** sets the display name; **Edit profile** the @username, bio, picture and
+privacy. The site sends everything by e-mail — there is no SMS and no phone number.
 
 Requesting a code while signed in uses the account already in session rather than a typed
-address, so an SMS cannot be aimed at somebody else's number.
+address.
 
 ## Password reset
 
@@ -830,12 +831,11 @@ alone would leave an existing session working until it happened to expire.
 Codes are six digits, hashed with a per-code salt, valid ten minutes, single use, five
 attempts, one resend per minute. An account cannot sign in until its e-mail is confirmed.
 
-`Notifications:Email:Provider` and `Notifications:Sms:Provider` choose the transport:
+`Notifications:Email:Provider` chooses the transport (every code and ticket goes by e-mail):
 
 - `Console` writes the code to the log — the default, so a fresh clone runs with no credentials.
 - `Smtp` sends for real. Set host, port, from-address in `appsettings.json`; put the username
   and password in user secrets.
-- `Twilio` sends SMS. Account SID and auth token likewise belong in user secrets.
 
 ```bash
 dotnet user-secrets set "Notifications:Email:UserName" "you@gmail.com" --project src/MovieRental.Host
@@ -925,7 +925,7 @@ What a deployment has to get right:
 ## Before this goes anywhere real
 
 - Move `Jwt:SecretKey` into user secrets or environment variables. The value in `appsettings.json` is a placeholder and the app refuses to start if it is under 32 characters.
-- Replace `ConsoleEmailSender` and `ConsoleSmsSender` with real transports. They are registered in `IdentityModule.RegisterServices`, so nothing else changes.
+- Set `Notifications:Email:Provider` to `Smtp` (the app refuses to start outside Development on `Console`). It is registered in `IdentityModule.RegisterServices`, so nothing else changes.
 - Swap the development bootstrapper for real migrations.
 - Uploaded films land on the local disk under `src/MovieRental.Host/uploads/`. Point that at blob storage before any real traffic.
 - Add rate limiting on `/api/auth/login`.

@@ -5,11 +5,6 @@ public interface IEmailSender
     Task SendAsync(EmailRequest request, CancellationToken ct = default);
 }
 
-public interface ISmsSender
-{
-    Task SendAsync(SmsRequest request, CancellationToken ct = default);
-}
-
 public sealed record EmailRequest(string To, string Subject, string HtmlBody)
 {
     public string? PlainTextBody { get; init; }
@@ -20,5 +15,3 @@ public sealed record EmailRequest(string To, string Subject, string HtmlBody)
 }
 
 public sealed record EmailAttachment(string FileName, string ContentType, byte[] Content);
-
-public sealed record SmsRequest(string PhoneNumber, string Text);

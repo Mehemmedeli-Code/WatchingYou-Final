@@ -23,7 +23,6 @@ public sealed class IdentityModule : IModule
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
-        services.Configure<SmsOptions>(configuration.GetSection(SmsOptions.SectionName));
 
         services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
         services.AddSingleton<ITokenService, TokenService>();
@@ -40,7 +39,7 @@ public sealed class IdentityModule : IModule
     }
 
     /// <summary>
-    /// Which transport is live is a configuration decision, not a code one. An unrecognised
+    /// Everything the site sends goes by e-mail. Which transport is live is a configuration decision, not a code one. An unrecognised
     /// provider name throws at startup rather than falling back to the console, because a
     /// silent fallback in production means verification codes nobody ever receives.
     /// </summary>
@@ -53,18 +52,6 @@ public sealed class IdentityModule : IModule
             case "console": services.AddSingleton<IEmailSender, ConsoleEmailSender>(); break;
             default: throw new InvalidOperationException(
                 $"Notifications:Email:Provider is '{emailProvider}'. Use 'Smtp' or 'Console'.");
-        }
-
-        var smsProvider = configuration[$"{SmsOptions.SectionName}:Provider"] ?? "Console";
-        switch (smsProvider.ToLowerInvariant())
-        {
-            case "twilio":
-                services.AddHttpClient(nameof(TwilioSmsSender));
-                services.AddSingleton<ISmsSender, TwilioSmsSender>();
-                break;
-            case "console": services.AddSingleton<ISmsSender, ConsoleSmsSender>(); break;
-            default: throw new InvalidOperationException(
-                $"Notifications:Sms:Provider is '{smsProvider}'. Use 'Twilio' or 'Console'.");
         }
     }
 

@@ -119,12 +119,14 @@ public static class DevelopmentDatabaseBootstrapper
     }
 
     /// <summary>Outside Development: bring every module's schema up to date at start-up. Nothing
-    /// else ever created the tables on a real server. Seeds nothing; real data is never touched.</summary>
+    /// else ever created the tables on a real server. Seeds nothing; the only rows it touches are
+    /// test logins copied over with a development database, which it closes.</summary>
     public static async Task ApplyMigrationsAsync(IServiceProvider services, CancellationToken ct = default)
     {
         await using var scope = services.CreateAsyncScope();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DbMigrate");
         await MigrateAsync(scope.ServiceProvider, logger, ct);
+        await RetireTestAccountsAsync(scope.ServiceProvider, ct);
     }
 
     /// <summary>
@@ -341,12 +343,59 @@ public static class DevelopmentDatabaseBootstrapper
         finally { await context.Database.CloseConnectionAsync(); }
     }
 
+    /// <summary>The four logins whose passwords are written in the repository (README,
+    /// tools/test-accounts.md).</summary>
+    private static readonly string[] TestAccounts =
+        ["admin@reelandrow.test", "security@reelandrow.test", "customer@reelandrow.test", "kassa@reelandrow.test"];
+
     private static async Task SeedAsync(IServiceProvider services, CancellationToken ct)
+    {
+        // A login whose password anybody who has read the repository knows is a door left open.
+        // They belong in throwaway test databases only: tools/api-check.ps1 turns them on with
+        // Seed:TestAccounts. Anywhere else they are not created, and a database that still has
+        // them closes them, the way a deleted account is closed.
+        if (services.GetRequiredService<IConfiguration>().GetValue("Seed:TestAccounts", false))
+            await SeedTestAccountsAsync(services, ct);
+        else
+            await RetireTestAccountsAsync(services, ct);
+
+        await SeedVenuesAndCatalogueAsync(services, ct);
+    }
+
+    private static async Task RetireTestAccountsAsync(IServiceProvider services, CancellationToken ct)
+    {
+        var identity = services.GetRequiredService<IdentityDbContext>();
+        var users = await identity.Users.Include(u => u.RefreshTokens).Where(u => TestAccounts.Contains(u.Email)).ToListAsync(ct);
+        if (users.Count == 0) return;
+
+        var hasher = services.GetRequiredService<IPasswordHasher>();
+        var ids = users.Select(u => u.Id).ToList();
+        foreach (var user in users)
+        {
+            user.Anonymise(hasher.Hash(Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))),
+                DateTime.UtcNow, "test account retired");
+            user.Roles = AppRoles.Customer;
+            user.StaffPinHash = null;
+            identity.Users.Remove(user);   // soft delete, like a closed account: bookings keep their row
+        }
+        await identity.Follows.Where(f => ids.Contains(f.FollowerId) || ids.Contains(f.FolloweeId)).ExecuteDeleteAsync(ct);
+        await identity.SaveChangesAsync(ct);
+
+        // Their films leave the galleries with them.
+        var media = services.GetRequiredService<MediaDbContext>();
+        media.ShortFilms.RemoveRange(await media.ShortFilms.Where(f => ids.Contains(f.UserId)).ToListAsync(ct));
+        await media.SaveChangesAsync(ct);
+
+        services.GetRequiredService<ILoggerFactory>().CreateLogger("DbBootstrap")
+            .LogWarning("Closed {Count} test account(s): their passwords are public. Seed:TestAccounts=true keeps them, in test databases only.", users.Count);
+    }
+
+    private static async Task SeedTestAccountsAsync(IServiceProvider services, CancellationToken ct)
     {
         var identity = services.GetRequiredService<IdentityDbContext>();
         var hasher = services.GetRequiredService<IPasswordHasher>();
 
-        if (!await identity.Users.AnyAsync(ct))
+        if (!await identity.Users.AnyAsync(u => TestAccounts.Contains(u.Email), ct))
         {
             identity.Users.AddRange(
                 new AppUser
@@ -383,13 +432,16 @@ public static class DevelopmentDatabaseBootstrapper
             await identity.SaveChangesAsync(ct);
         }
 
-        // The seeded staff need a staff PIN to reach their screens (development only; real
+        // The seeded staff need a staff PIN to reach their screens (test databases only; real
         // staff get theirs from the owner). Listed with the passwords in tools/test-accounts.md.
         string[] seededStaff = ["admin@reelandrow.test", "security@reelandrow.test", "kassa@reelandrow.test"];
         var withoutPin = await identity.Users.Where(u => seededStaff.Contains(u.Email) && u.StaffPinHash == null).ToListAsync(ct);
         foreach (var user in withoutPin) user.StaffPinHash = hasher.Hash("580417");
         if (withoutPin.Count > 0) await identity.SaveChangesAsync(ct);
+    }
 
+    private static async Task SeedVenuesAndCatalogueAsync(IServiceProvider services, CancellationToken ct)
+    {
         var catalog = services.GetRequiredService<CatalogDbContext>();
         if (!await catalog.Movies.AnyAsync(ct))
         {

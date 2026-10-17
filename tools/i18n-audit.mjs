@@ -39,7 +39,7 @@ const WORDS = /\p{L}{2,}/u;
 const SENTENCE = /\p{L}{2,}.*\s.*\p{L}{2,}/u;
 // Things that are words to a regex but not to a reader: class lists, URLs, ids, units, brand.
 const IGNORE = /^(?:← Watching PRO|WATCHINGYOU|[\s·•|/–—:,.()+\-#%*×→←↑↓✓…"'!?]*|WatchingYou|Watching PRO|PRO|AZN|USD|QR|PDF|CSV|API|AI|OK|ID|URL|IMAX|VIP|Stripe|Higgsfield|https?:\S+|\/\S*|[\w.-]+@[\w.-]+|\{[^}]*\}|[A-Z]{1,4}\d*|[A-Z]+\d+)$/u;
-const userFacing = (s) => WORDS.test(s) && !/^[·\s(]*(?:[A-Z]{2}\s?\*?|SMS\)|Aa|Watching PRO ·)$/.test(s.trim()) && !/[{};]\s*$|@keyframes/.test(s) && !IGNORE.test(s.trim()) && !/^[a-z0-9_-]+(\s[a-z0-9_:\/\[\]().-]+)+$/.test(s.trim()) /* class lists */;
+const userFacing = (s) => WORDS.test(s) && !/^[·\s(]*(?:[A-Z]{2}\s?\*?|Aa|Watching PRO ·)$/.test(s.trim()) && !/[{};]\s*$|@keyframes/.test(s) && !IGNORE.test(s.trim()) && !/^[a-z0-9_-]+(\s[a-z0-9_:\/\[\]().-]+)+$/.test(s.trim()) /* class lists */;
 
 const offsets = (src) => { const lines = [0]; for (let i = 0; i < src.length; i++) if (src[i] === "\n") lines.push(i + 1); return lines; };
 const lineOf = (lines, pos) => { let lo = 0, hi = lines.length - 1; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (lines[mid] <= pos) lo = mid; else hi = mid - 1; } return lo + 1; };

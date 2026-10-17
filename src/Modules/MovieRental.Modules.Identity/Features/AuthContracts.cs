@@ -11,6 +11,6 @@ public sealed record AuthResponse(
 public sealed record RegistrationResponse(string Email, bool VerificationSent, string Message);
 
 public sealed record UserProfileResponse(
-    Guid Id, string FullName, string Email, string? PhoneNumber,
-    bool IsEmailConfirmed, bool IsPhoneConfirmed, string[] Roles,
+    Guid Id, string FullName, string Email,
+    bool IsEmailConfirmed, string[] Roles,
     bool ShareOnGlobe, string? City, string? AvatarUrl, string? Username = null, bool IsPrivate = false, string? Bio = null);

@@ -39,7 +39,7 @@ internal sealed class RequestPasswordResetHandler(IdentityDbContext db, IVerific
 
         // Always the same answer: a "wait a minute" for some addresses and not others showed
         // which ones have an account.
-        await verification.IssueAsync(user, VerificationChannel.Email, VerificationPurpose.PasswordReset, ct);
+        await verification.IssueAsync(user, VerificationPurpose.PasswordReset, ct);
         return Result.Success();
     }
 }
@@ -71,7 +71,7 @@ internal sealed class ResetPasswordHandler(
             return Result.Failure(Error.Validation("That code has expired or been used up. Ask for a new one."));
 
         var checkResult = await verification.CheckAsync(
-            user, VerificationChannel.Email, VerificationPurpose.PasswordReset, command.Code, ct);
+            user, VerificationPurpose.PasswordReset, command.Code, ct);
         if (checkResult.IsFailure) return checkResult;
 
         user.PasswordHash = hasher.Hash(command.NewPassword);

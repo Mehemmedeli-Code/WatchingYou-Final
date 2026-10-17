@@ -12,24 +12,17 @@ using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Identity.Features;
 
-// The missing half of SMS verification.
-//
-// The phone number was only ever collected at registration, and it was optional there. Anyone
-// who skipped it could never receive an SMS code, because nothing on the site could give them
-// a number to send it to — the button simply never appeared. This is that endpoint.
+// The profile: name, @username, privacy and bio.
 
-/// <param name="Username">Null leaves the handle as it is, so older callers that only send a name
-/// and phone keep working.</param>
-public sealed record UpdateProfileCommand(string FullName, string? PhoneNumber, string? Username = null, bool? IsPrivate = null, string? Bio = null) : ICommand<Result<UserProfileResponse>>;
+/// <param name="Username">Null leaves the handle as it is, so older callers that only send a
+/// name keep working.</param>
+public sealed record UpdateProfileCommand(string FullName, string? Username = null, bool? IsPrivate = null, string? Bio = null) : ICommand<Result<UserProfileResponse>>;
 
 internal sealed class UpdateProfileValidator : AbstractValidator<UpdateProfileCommand>
 {
     public UpdateProfileValidator()
     {
         RuleFor(x => x.FullName).NotEmpty().MaximumLength(150);
-        RuleFor(x => x.PhoneNumber).Matches(@"^\+?[0-9]{7,15}$")
-            .When(x => !string.IsNullOrWhiteSpace(x.PhoneNumber))
-            .WithMessage("Use digits only, optionally starting with +.");
         RuleFor(x => x.Username).Must(u => Usernames.IsValid(Usernames.Normalize(u)))
             .When(x => x.Username is not null)
             .WithMessage("Username: 3-30 characters, lower-case letters, digits, dots and underscores.");
@@ -47,16 +40,6 @@ internal sealed class UpdateProfileHandler(IdentityDbContext db, ICurrentUser cu
     {
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.RequireId(), ct);
         if (user is null) return Result.Failure<UserProfileResponse>(Error.NotFound("User"));
-
-        var phone = string.IsNullOrWhiteSpace(command.PhoneNumber) ? null : command.PhoneNumber.Trim();
-
-        // A new number is an unproven number. Carrying the old confirmation across would mean
-        // a "verified" phone that nobody ever verified.
-        if (!string.Equals(phone, user.PhoneNumber, StringComparison.Ordinal))
-        {
-            user.PhoneNumber = phone;
-            user.IsPhoneConfirmed = false;
-        }
 
         if (command.Username is not null)
         {
@@ -113,7 +96,6 @@ public static class UpdateProfileEndpoint
                 };
             })
         .WithName("UpdateProfile").WithTags("Auth").RequireAuthorization()
-        .WithSummary("Change my name, phone, username, privacy or bio")
-        .WithDescription("Fields left out (null) stay as they are; `fullName` is always needed. A new phone number has to be " +
-                         "confirmed again. 409: the username is taken.");
+        .WithSummary("Change my name, username, privacy or bio")
+        .WithDescription("Fields left out (null) stay as they are; `fullName` is always needed. 409: the username is taken.");
 }
