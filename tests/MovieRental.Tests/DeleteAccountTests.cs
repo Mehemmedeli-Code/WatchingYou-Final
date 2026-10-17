@@ -45,7 +45,7 @@ public sealed class DeleteAccountTests : IAsyncLifetime
         await using var db = NewContext();
         var user = new AppUser
         {
-            Email = email, FullName = "Aysel Quliyeva", PhoneNumber = "+994501234567",
+            Email = email, FullName = "Aysel Quliyeva", Username = "aysel." + Guid.NewGuid().ToString("N")[..6], Bio = "Bakı",
             PasswordHash = _hasher.Hash(Password), IsEmailConfirmed = true, Roles = roles,
             ShareOnGlobe = true, City = "Baku", Latitude = 40.4, Longitude = 49.9,
         };
@@ -93,7 +93,8 @@ public sealed class DeleteAccountTests : IAsyncLifetime
         Assert.True(row.IsDeleted);
         Assert.DoesNotContain("aysel", row.Email);
         Assert.Equal("Deleted user", row.FullName);
-        Assert.Null(row.PhoneNumber);
+        Assert.Null(row.Username);
+        Assert.Null(row.Bio);
         Assert.Null(row.City);
         Assert.Null(row.Latitude);
         Assert.False(row.ShareOnGlobe);

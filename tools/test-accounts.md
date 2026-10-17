@@ -1,27 +1,38 @@
 # Test hesabları
 
-Yalnız development üçün. Bu hesablar bazaya seed ilə yazılıb, heç birinə e-poçt göndərilmir.
+Bu hesablar **yalnız test bazalarında** var (`tools/api-check.ps1` onları `Seed:TestAccounts=true` ilə yaradır).
+Şifrələri bu faylda açıq yazıldığı üçün əsl saytın bazasında (MovieRentalDB) yoxdur: sayt açılanda tapsa, silinmiş hesab kimi bağlayır.
 
-## Əsas hesablar
+## Əsl hesablar (əsl sayt)
+
+| E-poçt | Rol |
+|---|---|
+| mkbabayev428@gmail.com | SuperAdmin (sahib, `Staff:OwnerEmail`) |
+| mahammadalishb@code.edu.az | Security |
+| thedarkovf@gmail.com | adi istifadəçi |
+
+Şifrələri sahibləri bilir. Security-nin işçi PIN-ini sahib Admin → İstifadəçilər səhifəsindən qoyur.
+
+## Test hesabları (yalnız test bazası)
 
 | E-poçt | Ad | İstifadəçi adı | Rol | Şifrə |
 |---|---|---|---|---|
 | admin@reelandrow.test | Rena Alverdiyeva | @user_fbddc7e366 | Admin,Customer | Admin1234 |
 | customer@reelandrow.test | Mahammadali Babayev | @babayev | Customer | Customer1234 |
 | kassa@reelandrow.test | Leyla Karimova | @user_067f890126 | Cashier | Kassa1234 |
-| mkbabayev428@gmail.com | M | @user_45ec039afe | Customer | (öz şifrən) |
 | security@reelandrow.test | Kamran Hasanli | @user_47f9e3fdac | Security,Customer | Security1234 |
 
 Seed şifrələri src/MovieRental.Host/Infrastructure/DevelopmentDatabaseBootstrapper.cs-dədir. Sonradan saytda dəyişilibsə, yeni şifrə keçərlidir.
 
 ## İşçi PIN-i
 
-Admin, Security və Kassa test hesabları işçi səhifələrinə girəndə PIN soruşulur: `580417` (yalnız development).
+Admin, Security və Kassa test hesabları işçi səhifələrinə girəndə PIN soruşulur: `580417` (yalnız test bazası).
 İşçi səhifələrinin ünvanı gizlidir: `dotnet user-secrets list --project src/MovieRental.Host` → `Staff:PathKey`.
 Admin paneli: `https://localhost:7139/<PathKey>/admin`, Security: `/<PathKey>/security`, Back office: `/<PathKey>/backoffice`.
 
 ## Demo istifadəçilər
 
+Əsl saytın bazasından silinib. Lazım olsa, development-də `MovieRental.Host.exe --seed-demo-people` geri qaytarır, `--remove-demo-people` yenidən silir.
 Hamısının şifrəsi: `Demo12345` (DemoPeople.Password). Bir-birini izləyirlər, aralarında mesajlar və filmlər var.
 
 | E-poçt | Ad | İstifadəçi adı | Hesab |

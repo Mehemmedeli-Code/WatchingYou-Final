@@ -56,7 +56,7 @@ async function registerAndConfirm(email, password = "Passw0rdTest") {
   await sleep(300);
   const log = readFileSync(LOG, "utf8");
   const code = [...log.slice(log.lastIndexOf(email)).matchAll(/<strong>(\d{6})<\/strong>/g)].at(0)?.[1];
-  r = await call("POST", "/api/auth/verification/confirm", { body: { email, channel: "Email", code }, headers: X() });
+  r = await call("POST", "/api/auth/verification/confirm", { body: { email, code }, headers: X() });
   if (r.status !== 204) throw new Error(`confirm ${r.status} ${r.text}`);
   return login(email, password);
 }
