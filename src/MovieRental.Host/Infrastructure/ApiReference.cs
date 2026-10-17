@@ -184,7 +184,7 @@ public static class ApiReference
 
     private static readonly (string Name, string Description)[] Tags =
     [
-        ("Auth", "Sign-up, sign-in and tokens, e-mail and SMS codes, password reset, and the signed-in account."),
+        ("Auth", "Sign-up, sign-in and tokens, e-mail codes, password reset, and the signed-in account."),
         ("Users", "Admin: accounts, roles, suspension, staff PINs and the audit log."),
         ("Globe", "The members' map: cities, who is online where, and comparing film taste."),
         ("Catalog", "Films: browse and search, details, posters, trailers, watching, reviews and recommendations."),

@@ -14,10 +14,8 @@ interface AdminUser {
   id: string;
   fullName: string;
   email: string;
-  phoneNumber?: string | null;
   roles: string[];
   isEmailConfirmed: boolean;
-  isPhoneConfirmed: boolean;
   isSuspended: boolean;
   suspensionReason?: string | null;
   createdAtUtc: string;

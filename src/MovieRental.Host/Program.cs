@@ -83,15 +83,13 @@ if (!builder.Environment.IsDevelopment() &&
         "dotnet user-secrets set \"Jwt:SecretKey\" \"<64 random characters>\"");
 }
 
-// The Console senders write every verification and password-reset code to the log. Fine on a
+// The Console sender writes every verification and password-reset code to the log. Fine on a
 // developer's machine; on a live site anyone who can read the logs can take over any account.
 if (!builder.Environment.IsDevelopment() &&
-    (string.Equals(builder.Configuration["Notifications:Email:Provider"] ?? "Console", "Console", StringComparison.OrdinalIgnoreCase) ||
-     string.Equals(builder.Configuration["Notifications:Sms:Provider"] ?? "Console", "Console", StringComparison.OrdinalIgnoreCase)))
+    string.Equals(builder.Configuration["Notifications:Email:Provider"] ?? "Console", "Console", StringComparison.OrdinalIgnoreCase))
 {
     throw new InvalidOperationException(
-        "Notifications:Email:Provider / Notifications:Sms:Provider is 'Console', which logs one-time codes. " +
-        "Configure Smtp / Twilio for this environment.");
+        "Notifications:Email:Provider is 'Console', which logs one-time codes. Configure Smtp for this environment.");
 }
 
 if (jwt.SecretKey.Length < 32)

@@ -35,7 +35,6 @@ export default function AccountPage() {
   const [email, setEmail] = useState(() => new URLSearchParams(window.location.search).get("email") ?? "");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error" | "info"; text: string } | null>(null);
@@ -104,7 +103,7 @@ export default function AccountPage() {
     setBusy(true); setMessage(null); setFieldErrors({});
     try {
       const result = await post<RegistrationResponse>("/api/auth/register",
-        { fullName, email, password, phoneNumber: phone || null });
+        { fullName, email, password });
       setMode("verify");
       setMessage({ tone: result.verificationSent ? "ok" : "error", text: result.message });
     } catch (err) {
@@ -117,7 +116,7 @@ export default function AccountPage() {
   async function confirm() {
     setBusy(true); setMessage(null);
     try {
-      await post("/api/auth/verification/confirm", { email, channel: "Email", code });
+      await post("/api/auth/verification/confirm", { email, code });
       setMode("signin");
       setCode("");
       setMessage({ tone: "ok", text: t("account.emailConfirmed", "E-mail confirmed. You can sign in now.") });
@@ -157,10 +156,10 @@ export default function AccountPage() {
     }
   }
 
-  async function resend(channel: "Email" | "Sms") {
+  async function resend() {
     setBusy(true); setMessage(null);
     try {
-      await post("/api/auth/verification/send", { email: email || user?.email, channel });
+      await post("/api/auth/verification/send", { email: email || user?.email });
       setMessage({ tone: "ok", text: t("account.verifyLede") });
     } catch (err) {
       fail(err, t("account.codeNotSent", "The code could not be sent."));
@@ -184,29 +183,15 @@ export default function AccountPage() {
             <Badge tone={user.isEmailConfirmed ? "good" : "warn"}>
               {t("account.email")}: {user.isEmailConfirmed ? "✓" : "—"}
             </Badge>
-            {user.phoneNumber ? (
-              <Badge tone={user.isPhoneConfirmed ? "good" : "warn"}>
-                {t("account.phone")}: {user.isPhoneConfirmed ? "✓" : "—"}
-              </Badge>
-            ) : null}
           </div>
 
           {message ? <div className="mt-4"><Notice tone={message.tone === "info" ? "info" : message.tone}>{message.text}</Notice></div> : null}
 
-          {/* Without this, anyone who skipped the optional phone field at registration had no
-              way to add one later — and so no way to ever receive an SMS code. */}
           <div className="mt-6 border-t border-line pt-5">
             <p className="font-display text-lg text-ink">{t("account.profile")}</p>
             <div className="mt-3 space-y-3">
               <Field label={t("account.fullName")}>
                 <Input value={fullName || user.fullName} onChange={(e) => setFullName(e.target.value)} />
-              </Field>
-              <Field label={t("account.phone")} hint={t("account.phoneHint")}>
-                <Input
-                  value={phone || user.phoneNumber || ""}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+994..."
-                />
               </Field>
               <Button
                 size="sm"
@@ -215,10 +200,7 @@ export default function AccountPage() {
                 onClick={async () => {
                   setBusy(true); setMessage(null);
                   try {
-                    const updated = await put<UserProfile>("/api/auth/profile", {
-                      fullName: fullName || user.fullName,
-                      phoneNumber: (phone || user.phoneNumber) ?? null,
-                    });
+                    const updated = await put<UserProfile>("/api/auth/profile", { fullName: fullName || user.fullName });
                     auth.patchUser(updated);
                     setMessage({ tone: "ok", text: t("account.saved") });
                   } catch (err) { fail(err, t("account.saveFailed", "Could not save.")); }
@@ -229,32 +211,6 @@ export default function AccountPage() {
               </Button>
             </div>
           </div>
-
-          {user.phoneNumber && !user.isPhoneConfirmed ? (
-            <div className="mt-5 space-y-3">
-              <p className="text-xs text-ink-mute">{t("account.smsConsole")}</p>
-              <Button size="sm" variant="outline" disabled={busy} onClick={() => resend("Sms")}>
-                {t("account.resend")} (SMS)
-              </Button>
-              <div className="flex gap-2">
-                <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder={t("account.code")} />
-                <Button
-                  size="sm"
-                  disabled={busy || !code}
-                  onClick={async () => {
-                    setBusy(true);
-                    try {
-                      await post("/api/auth/verification/confirm", { email: user.email, channel: "Sms", code });
-                      setMessage({ tone: "ok", text: t("account.phoneConfirmed", "Phone confirmed.") });
-                    } catch (err) { fail(err, t("account.codeRejected", "That code was not accepted.")); }
-                    finally { setBusy(false); setCode(""); }
-                  }}
-                >
-                  {t("common.send")}
-                </Button>
-              </div>
-            </div>
-          ) : null}
 
           <Button
             className="mt-6"
@@ -362,7 +318,7 @@ export default function AccountPage() {
             </Button>
 
             <div className="flex justify-between text-sm">
-              <button type="button" className="text-accent hover:underline" onClick={() => resend("Email")} disabled={busy}>
+              <button type="button" className="text-accent hover:underline" onClick={() => resend()} disabled={busy}>
                 {t("account.resend")}
               </button>
               <button type="button" className="text-ink-mute hover:underline" onClick={() => setMode("signin")}>
@@ -390,12 +346,6 @@ export default function AccountPage() {
                 autoComplete={mode === "register" ? "new-password" : "current-password"}
               />
             </Field>
-
-            {mode === "register" ? (
-              <Field label={t("account.phone")} hint={fieldErrors.PhoneNumber?.[0]}>
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+994..." />
-              </Field>
-            ) : null}
 
             <Button type="submit" className="w-full" disabled={busy}>
               {busy ? t("common.loading") : mode === "register" ? t("account.register") : t("account.signIn")}
@@ -457,7 +407,7 @@ function DeleteAccountPanel({ isAdmin }: { isAdmin: boolean }) {
         ) : !open ? (
           <div className="space-y-3">
             <p className="text-sm text-ink-mute">
-              {t("account.deleteLede", "Your name, e-mail, phone and profile are erased and you are signed out everywhere. Tickets you bought stop showing in the app. This cannot be undone.")}
+              {t("account.deleteLede", "Your name, e-mail and profile are erased and you are signed out everywhere. Tickets you bought stop showing in the app. This cannot be undone.")}
             </p>
             <Button variant="danger" onClick={() => setOpen(true)}>{t("account.deleteStart", "Delete my account")}</Button>
           </div>

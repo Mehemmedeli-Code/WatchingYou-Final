@@ -10,7 +10,7 @@ public static partial class InfoPages
             "Every ticket you buy is kept on the phone with its QR code, so it opens at the door even in a basement with no signal. Signing out removes them from the device.",
             "The app reminds you before a show starts, so the popcorn queue never costs you the opening scene.",
         ]),
-        new("Account", ["Sign in, register, confirm your e-mail or phone, change your profile and delete your account — all from the app."]),
+        new("Account", ["Sign in, register, confirm your e-mail, change your profile and delete your account — all from the app."]),
         new("For staff", ["Security staff get a Door tab that scans tickets at the entrance; a ticket that has already been used is refused on the spot."]),
         new("Get it", ["The app is being prepared for the App Store and Google Play. Until then, the website works on any phone and can be added to the home screen from the browser menu."]),
     ]);
@@ -22,7 +22,7 @@ public static partial class InfoPages
             "Aldığın hər bilet QR kodu ilə telefonda saxlanılır, ona görə siqnal olmayan zirzəmidə belə girişdə açılır. Hesabdan çıxanda cihazdan silinir.",
             "Tətbiq seans başlamazdan əvvəl xatırladır, popkorn növbəsi sənə ilk səhnəni itirtməsin.",
         ]),
-        new("Hesab", ["Daxil ol, qeydiyyatdan keç, e-poçtunu və ya telefonunu təsdiqlə, profilini dəyiş və hesabını sil — hamısı tətbiqdən."]),
+        new("Hesab", ["Daxil ol, qeydiyyatdan keç, e-poçtunu təsdiqlə, profilini dəyiş və hesabını sil — hamısı tətbiqdən."]),
         new("Əməkdaşlar üçün", ["Təhlükəsizlik əməkdaşlarının Giriş tabı var: biletləri qapıda skan edir, artıq istifadə olunmuş bilet dərhal rədd edilir."]),
         new("Necə əldə etmək olar", ["Tətbiq App Store və Google Play üçün hazırlanır. O vaxta qədər sayt istənilən telefonda işləyir və brauzer menyusundan ana ekrana əlavə edilə bilər."]),
     ]);
@@ -34,7 +34,7 @@ public static partial class InfoPages
             "Каждый купленный билет хранится в телефоне вместе с QR-кодом, поэтому он открывается у входа даже в подвале без сети. При выходе из аккаунта билеты удаляются с устройства.",
             "Приложение напомнит о сеансе заранее, чтобы очередь за попкорном не стоила вам первой сцены.",
         ]),
-        new("Аккаунт", ["Вход, регистрация, подтверждение e-mail или телефона, изменение профиля и удаление аккаунта — всё в приложении."]),
+        new("Аккаунт", ["Вход, регистрация, подтверждение e-mail, изменение профиля и удаление аккаунта — всё в приложении."]),
         new("Для сотрудников", ["У сотрудников безопасности есть вкладка «Вход» для сканирования билетов; уже использованный билет сразу отклоняется."]),
         new("Как установить", ["Приложение готовится к публикации в App Store и Google Play. А пока сайт работает на любом телефоне, и его можно добавить на главный экран из меню браузера."]),
     ]);
@@ -46,7 +46,7 @@ public static partial class InfoPages
             "Aldığın her bilet QR koduyla telefonda saklanır; çekmeyen bir bodrumda bile kapıda açılır. Çıkış yapınca cihazdan silinir.",
             "Uygulama seans başlamadan önce hatırlatır, patlamış mısır sırası sana açılış sahnesini kaçırtmaz.",
         ]),
-        new("Hesap", ["Giriş yap, kayıt ol, e-postanı veya telefonunu doğrula, profilini değiştir ve hesabını sil — hepsi uygulamadan."]),
+        new("Hesap", ["Giriş yap, kayıt ol, e-postanı doğrula, profilini değiştir ve hesabını sil — hepsi uygulamadan."]),
         new("Personel için", ["Güvenlik personelinin bir Kapı sekmesi var: biletleri girişte tarar, kullanılmış bir bilet anında reddedilir."]),
         new("Nasıl edinilir", ["Uygulama App Store ve Google Play için hazırlanıyor. O zamana kadar web sitesi her telefonda çalışır ve tarayıcı menüsünden ana ekrana eklenebilir."]),
     ]);

@@ -14,9 +14,7 @@ export interface UserProfile {
   id: string;
   fullName: string;
   email: string;
-  phoneNumber?: string | null;
   isEmailConfirmed: boolean;
-  isPhoneConfirmed: boolean;
   roles: string[];
   username?: string | null;
   avatarUrl?: string | null;

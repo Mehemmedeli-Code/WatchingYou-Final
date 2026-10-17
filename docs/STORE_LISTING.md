@@ -118,6 +118,9 @@ Her alışverişte sadakat puanı kazanın, bir sonraki bilette kullanın.
 
 ## Apple yoxlayıcısı üçün qeyd (App Review → Notes)
 
+Diqqət: aşağıdakı iki hesab yalnız test bazalarında var (əsl saytda bağlanır). Göndərməzdən əvvəl
+canlı serverdə yoxlayıcı üçün ayrıca hesab aç və burada onu yaz.
+
 ```
 Demo account (customer): customer@reelandrow.test / Customer1234
 Door scanning (staff role): security@reelandrow.test / Security1234
@@ -148,7 +151,7 @@ Privacy policy: https://<your-domain>/privacy
 ## Google Play "Data safety" anketi
 
 - **Toplanır:** Ad, e-poçt, telefon (istəyə bağlı), alış tarixçəsi, mesajlar, təxmini məkan (istəyə bağlı)
-- **Paylaşılır:** Xeyr (Stripe və e-poçt/SMS provayderləri "service providers" sayılır, paylaşma deyil)
+- **Paylaşılır:** Xeyr (Stripe və e-poçt provayderi "service providers" sayılır, paylaşma deyil)
 - **Ötürülmə zamanı şifrələnir:** Bəli (HTTPS)
 - **Silinmə tələbi:** Bəli — tətbiqdə Hesab → "Hesabı sil"; veb: `https://<your-domain>/account`
 - **Məqsəd:** App functionality, Account management

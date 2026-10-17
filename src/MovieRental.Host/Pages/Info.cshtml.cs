@@ -64,11 +64,11 @@ public static partial class InfoPages
 
     private static string[] MemberEndpoints =>
     [
-        "POST   /api/auth/register      { fullName, email, password, phoneNumber? }",
+        "POST   /api/auth/register      { fullName, email, password }",
         "POST   /api/auth/login         { email, password }  ->  { accessToken, refreshToken, user }",
         "POST   /api/auth/refresh       { refreshToken }     ->  a new pair (the old one stops working)",
         "GET    /api/auth/me            your profile",
-        "PUT    /api/auth/profile       { fullName, phoneNumber?, username?, bio?, isPrivate? }",
+        "PUT    /api/auth/profile       { fullName, username?, bio?, isPrivate? }",
         "GET    /api/people?q=          search members by @username or name",
         "GET    /api/people/u/{username} a profile",
         "POST   /api/people/{id}/follow follow (or request, for a private account)",
