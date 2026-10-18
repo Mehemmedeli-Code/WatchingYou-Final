@@ -54,6 +54,33 @@ const ISLANDS: Record<string, () => Promise<IslandModule>> = {
   guide: () => import("@/pages/GuidePage"),
 };
 
+// Site-wide message pop-ups: their own root, appended to <body>, so no Razor page has to
+// make room for them. Mounted after the session refresh so the socket starts signed in.
+// Loaded on demand and only when signed in: it brings SignalR, motion and the chat window,
+// which used to sit in app.js and be parsed before every page's own island.
+function mountSignedInExtras() {
+  if (!auth.user) return;
+  // Follow requests waiting: a count on the header picture, so nobody has to go looking.
+  void get<{ requests: number }>("/api/people/me").then(({ requests }) => {
+    const avatar = document.querySelector<HTMLElement>("a.rr-avatar");
+    if (avatar && requests > 0) avatar.dataset.count = requests > 9 ? "9+" : String(requests);
+  }).catch(() => null);
+
+  // The message button beside the picture, and the message box it opens.
+  const inboxSlot = document.getElementById("rr-inbox");
+  if (inboxSlot) {
+    void import("@/components/HeaderInbox").then(({ HeaderInbox }) =>
+      createRoot(inboxSlot).render(<ErrorBoundary label="inbox"><HeaderInbox /></ErrorBoundary>));
+  }
+
+  void import("@/components/LiveNotifications").then(({ LiveNotifications }) => {
+    const liveSlot = document.createElement("div");
+    liveSlot.id = "rr-live";
+    document.body.appendChild(liveSlot);
+    createRoot(liveSlot).render(<ErrorBoundary label="live"><LiveNotifications /></ErrorBoundary>);
+  });
+}
+
 async function bootstrap() {
   // Rendered first and separately: the backdrop should appear immediately rather than
   // waiting on the session refresh the page island needs.
@@ -70,7 +97,13 @@ async function bootstrap() {
   }
 
   const container = document.getElementById("root");
-  if (!container) return;
+  // A page with no island (privacy, info, locations) still has the signed-in header: its
+  // message button and pop-ups need the session too.
+  if (!container) {
+    await restoreSession().catch(() => null);
+    mountSignedInExtras();
+    return;
+  }
 
   const name = container.dataset.page ?? "home";
   const loadIsland = ISLANDS[name];
@@ -100,24 +133,7 @@ async function bootstrap() {
   }
   const Island = module.default;
 
-  // Site-wide message pop-ups: their own root, appended to <body>, so no Razor page has to
-  // make room for them. Mounted after the session refresh so the socket starts signed in.
-  // Loaded on demand and only when signed in: it brings SignalR, motion and the chat window,
-  // which used to sit in app.js and be parsed before every page's own island.
-  if (auth.user) {
-    // Follow requests waiting: a count on the header picture, so nobody has to go looking.
-    void get<{ requests: number }>("/api/people/me").then(({ requests }) => {
-      const avatar = document.querySelector<HTMLElement>(".rr-avatar");
-      if (avatar && requests > 0) avatar.dataset.count = requests > 9 ? "9+" : String(requests);
-    }).catch(() => null);
-
-    void import("@/components/LiveNotifications").then(({ LiveNotifications }) => {
-      const liveSlot = document.createElement("div");
-      liveSlot.id = "rr-live";
-      document.body.appendChild(liveSlot);
-      createRoot(liveSlot).render(<ErrorBoundary label="live"><LiveNotifications /></ErrorBoundary>);
-    });
-  }
+  mountSignedInExtras();
   auth.subscribe((user) => {
     if (user) return;
     // Signed out: close the socket and forget anything this device kept for that account.

@@ -125,6 +125,8 @@
             }
             @if (view.IsSignedIn)
             {
+                @* The message button and its box: React, mounted here by main.tsx. *@
+                <div id="rr-inbox" class="rr-inbox-slot"></div>
                 @* /api/avatars/me redirects to the picture, or to the eye logo when there is none. *@
                 <a class="rr-avatar" href="/profile" title="@T["nav.profile"]" aria-label="@T["nav.profile"]">
                     <img src="/api/avatars/me" alt="" width="36" height="36" />

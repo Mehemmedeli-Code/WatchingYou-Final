@@ -101,13 +101,15 @@ internal sealed class GetMyThreadsHandler(IdentityDbContext db, ICurrentUser cur
             .Select(u => new { u.Id, u.FullName, u.AvatarUrl })
             .ToDictionaryAsync(u => u.Id, ct);
 
-        return [.. threads.Select(t =>
+        // A closed account is not in people: its conversation cannot be opened any more
+        // (GET /api/messages/{id} is a 404), so it is not listed as a nameless "—" row either.
+        return [.. threads.Where(t => people.ContainsKey(t.LowUserId == me ? t.HighUserId : t.LowUserId)).Select(t =>
         {
             var otherId = t.LowUserId == me ? t.HighUserId : t.LowUserId;
-            var other = people.GetValueOrDefault(otherId);
+            var other = people[otherId];
 
             return new DirectThreadRow(
-                otherId, other?.FullName ?? "—", other?.AvatarUrl,
+                otherId, other.FullName, other.AvatarUrl,
                 t.Last is { } body ? body[..Math.Min(body.Length, 90)] : "",
                 t.LastMessageAtUtc,
                 t.Unread,
@@ -116,11 +118,12 @@ internal sealed class GetMyThreadsHandler(IdentityDbContext db, ICurrentUser cur
     }
 }
 
-// Everything under the globe in one call: whom I wrote to, who wrote to me, whom I blocked
-// and who blocked me.
+// The message box (the header's inbox) in one call: whom I wrote to, who wrote to me, whom I
+// blocked and who blocked me.
+/// <param name="Unread">Their messages I have not seen yet (in Received; 0 elsewhere).</param>
 public sealed record MessagePerson(
     Guid UserId, string Name, string? AvatarUrl, string? City, string? CountryCode,
-    string? Preview, bool LastWasMine, int Count, DateTime AtUtc);
+    string? Preview, bool LastWasMine, int Count, DateTime AtUtc, int Unread = 0);
 
 public sealed record MessageOverview(
     IReadOnlyList<MessagePerson> Sent,
@@ -148,6 +151,7 @@ internal sealed class GetMessageOverviewHandler(IdentityDbContext db, ICurrentUs
                 Mine = t.Messages.Where(m => m.SenderId == me).OrderByDescending(m => m.CreatedAtUtc)
                     .Select(m => new { m.Body, m.CreatedAtUtc }).FirstOrDefault(),
                 TheirsCount = t.Messages.Count(m => m.SenderId != me),
+                Unread = t.Messages.Count(m => m.SenderId != me && m.SeenAtUtc == null),
                 Theirs = t.Messages.Where(m => m.SenderId != me).OrderByDescending(m => m.CreatedAtUtc)
                     .Select(m => new { m.Body, m.CreatedAtUtc }).FirstOrDefault(),
                 LastSender = t.Messages.OrderByDescending(m => m.CreatedAtUtc).Select(m => (Guid?)m.SenderId).FirstOrDefault()
@@ -167,12 +171,11 @@ internal sealed class GetMessageOverviewHandler(IdentityDbContext db, ICurrentUs
             .Select(u => new { u.Id, u.FullName, u.AvatarUrl, u.City, u.CountryCode })
             .ToDictionaryAsync(u => u.Id, ct);
 
-        MessagePerson Person(Guid id, string? preview, bool lastMine, int count, DateTime at)
-        {
-            var p = people.GetValueOrDefault(id);
-            return new MessagePerson(id, p?.FullName ?? "—", p?.AvatarUrl, p?.City, p?.CountryCode,
-                preview, lastMine, count, at);
-        }
+        // A closed account is left out, as in the thread list: there is nobody left to open.
+        MessagePerson? Person(Guid id, string? preview, bool lastMine, int count, DateTime at, int unread = 0) =>
+            people.GetValueOrDefault(id) is { } p
+                ? new MessagePerson(id, p.FullName, p.AvatarUrl, p.City, p.CountryCode, preview, lastMine, count, at, unread)
+                : null;
 
         List<MessagePerson> sent = [], received = [];
         foreach (var thread in threads)
@@ -181,19 +184,19 @@ internal sealed class GetMessageOverviewHandler(IdentityDbContext db, ICurrentUs
             var lastMine = thread.LastSender == me;
             static string Cut(string body) => body[..Math.Min(body.Length, 90)];
 
-            if (thread.Mine is { } mine)
-                sent.Add(Person(other, Cut(mine.Body), lastMine, thread.MineCount, mine.CreatedAtUtc));
-            if (thread.Theirs is { } theirs)
-                received.Add(Person(other, Cut(theirs.Body), lastMine, thread.TheirsCount, theirs.CreatedAtUtc));
+            if (thread.Mine is { } mine && Person(other, Cut(mine.Body), lastMine, thread.MineCount, mine.CreatedAtUtc) is { } to)
+                sent.Add(to);
+            if (thread.Theirs is { } theirs && Person(other, Cut(theirs.Body), lastMine, thread.TheirsCount, theirs.CreatedAtUtc, thread.Unread) is { } from)
+                received.Add(from);
         }
 
         return new MessageOverview(
             sent,
             received,
             [.. blocks.Where(b => b.BlockerId == me).OrderByDescending(b => b.CreatedAtUtc)
-                .Select(b => Person(b.BlockedId, b.Reason, false, 0, b.CreatedAtUtc))],
+                .Select(b => Person(b.BlockedId, b.Reason, false, 0, b.CreatedAtUtc)).OfType<MessagePerson>()],
             [.. blocks.Where(b => b.BlockedId == me).OrderByDescending(b => b.CreatedAtUtc)
-                .Select(b => Person(b.BlockerId, null, false, 0, b.CreatedAtUtc))]);
+                .Select(b => Person(b.BlockerId, null, false, 0, b.CreatedAtUtc)).OfType<MessagePerson>()]);
     }
 }
 

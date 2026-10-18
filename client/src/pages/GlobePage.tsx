@@ -10,7 +10,6 @@ import { t, lang } from "@/lib/i18n";
 import { WORLD_CITIES, flagUrl, countryName, cityKey, type WorldCity } from "@/lib/worldCities";
 import { TasteCompare } from "@/components/TasteCompare";
 import { DirectChat } from "@/components/DirectChat";
-import { GlobeMessages } from "@/components/GlobeMessages";
 import { GlobeMembersMap } from "@/components/GlobeMembersMap";
 import { CrowdBand } from "@/components/CrowdBand";
 
@@ -179,7 +178,6 @@ function GlobeHome({ onMore }: { onMore: (to: CityRef) => void }) {
   const [total, setTotal] = useState(0);
   const [compareWith, setCompareWith] = useState<GlobeMember | null>(null);
   const [writeTo, setWriteTo] = useState<GlobeMember | null>(null);
-  const [messagesKey, setMessagesKey] = useState(0);
   // The country open on the map, its online count, and (once clicked) its online people.
   const [country, setCountry] = useState<string | null>(null);
   const [onlineCount, setOnlineCount] = useState<number | null>(null);
@@ -362,15 +360,12 @@ function GlobeHome({ onMore }: { onMore: (to: CityRef) => void }) {
         </div>
       </div>
 
-      {/* Remounted after a chat opened from the globe closes, so a new "sent" shows at once. */}
-      <GlobeMessages key={messagesKey} />
-
       {compareWith ? (
         <TasteCompare member={compareWith} onClose={() => setCompareWith(null)} />
       ) : null}
 
       {writeTo ? (
-        <DirectChat userId={writeTo.userId} onClose={() => { setWriteTo(null); setMessagesKey((k) => k + 1); }} />
+        <DirectChat userId={writeTo.userId} onClose={() => setWriteTo(null)} />
       ) : null}
     </Section>
     </>
