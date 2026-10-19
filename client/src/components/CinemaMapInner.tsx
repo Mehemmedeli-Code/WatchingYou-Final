@@ -30,20 +30,10 @@ function CinemaMap({
   const here = CITIES.find((c) => c.city === city) ?? CITIES[0];
   const placed = venues.filter((v) => v.city === here.city && (v.latitude !== 0 || v.longitude !== 0));
 
-  // Centre on the city's cinemas themselves, so one in another district is not off the edge.
-  const centre: [number, number] = placed.length > 0
-    ? [placed.reduce((sum, v) => sum + v.longitude, 0) / placed.length, placed.reduce((sum, v) => sum + v.latitude, 0) / placed.length]
-    : here.centre;
-
-  // Close enough to tell the cinemas apart, far enough to fit all of them with their labels:
-  // Baku's four are a few streets apart, Ankara's twelve kilometres. The view is fixed, so it
-  // has to be right without the visitor zooming.
-  const latSpan = Math.max(0.02, ...placed.map((v) => Math.abs(v.latitude - centre[1]) * 2));
-  const lngSpan = Math.max(0.02, ...placed.map((v) => Math.abs(v.longitude - centre[0]) * 2));
-  const cos = Math.cos((centre[1] * Math.PI) / 180);
-  const zoom = Math.min(12.5,
-    Math.log2((288 * 360 * cos) / (256 * latSpan * 2.2)),
-    Math.log2((520 * 360) / (256 * lngSpan * 2.2)));
+  // Every cinema of the city in view, with its name: Baku's four are a few streets apart,
+  // Ankara's twelve kilometres. The view is fixed, so it has to be right without the visitor
+  // zooming — and on a phone as well as a desktop, so the map fits them at its real size.
+  const points = placed.map((v) => [v.longitude, v.latitude] as [number, number]);
 
   return (
     <div className="mb-6">
@@ -58,7 +48,7 @@ function CinemaMap({
       </div>
 
       <div className="h-72 overflow-hidden rounded-xl border border-line sm:h-96">
-        <VenueMap center={centre} zoom={zoom} locked>
+        <VenueMap center={here.centre} zoom={11} fit={points} locked>
           {placed.map((venue) => {
             const active = venue.id === selectedId;
             return (

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FileText, X } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Section, Panel, Notice, Empty, Spinner } from "@/components/Shell";
@@ -97,6 +97,19 @@ export default function AdminPage() {
   const [movies, setMovies] = useState<Paged<MovieListItem> | null>(null);
   const [shorts, setShorts] = useState<ShortFilmDetail[]>([]);
   const [screenings, setScreenings] = useState<Screening[]>([]);
+  // Every show ever scheduled comes back, oldest first: hundreds of rows, eighty thousand
+  // pixels of table on a phone. The coming ones first (soonest on top), then the past (latest
+  // on top), twenty-five at a time.
+  const [screeningsShown, setScreeningsShown] = useState(25);
+  const orderedScreenings = useMemo(() => {
+    const now = Date.now();
+    return [...screenings].sort((a, b) => {
+      const at = Date.parse(a.startsAtUtc), bt = Date.parse(b.startsAtUtc);
+      const aPast = at < now, bPast = bt < now;
+      if (aPast !== bPast) return aPast ? 1 : -1;
+      return aPast ? bt - at : at - bt;
+    });
+  }, [screenings]);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [editing, setEditing] = useState<MovieListItem | null>(null);
   const [editingScreening, setEditingScreening] = useState<Screening | null>(null);
@@ -384,7 +397,7 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {screenings.map((screening) => (
+                {orderedScreenings.slice(0, screeningsShown).map((screening) => (
                   <tr key={screening.id} className="border-t border-line">
                     <td className="px-4 py-3">
                       <p className="text-ink">{screening.movieTitle}</p>
@@ -445,6 +458,13 @@ export default function AdminPage() {
                 ))}
               </tbody>
             </table>
+            {orderedScreenings.length > screeningsShown ? (
+              <div className="border-t border-line p-3 text-center">
+                <Button size="sm" variant="outline" onClick={() => setScreeningsShown((n) => n + 25)}>
+                  {t("globe.loadMore", "Load more")} · {orderedScreenings.length - screeningsShown}
+                </Button>
+              </div>
+            ) : null}
           </div>
 
           <div className="space-y-6">

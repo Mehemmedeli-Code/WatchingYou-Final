@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input, Field } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/useAuth";
-import { MessagesInbox } from "@/components/MessagesInbox";
 import { LoyaltyPanel } from "@/components/LoyaltyPanel";
 import { auth, post, put, ApiError, type AuthResponse, type RegistrationResponse, type UserProfile } from "@/lib/api";
 import { t } from "@/lib/i18n";
@@ -226,7 +225,6 @@ export default function AccountPage() {
         </Panel>
       </Section>
       <LoyaltyPanel />
-      <MessagesInbox />
       {/* The watchlist moved to its own page, /favourites, linked from the header. */}
       <DeleteAccountPanel isAdmin={user.roles.includes("Admin")} />
       <div className="mx-auto w-full max-w-6xl px-4 pb-12 sm:px-6"><PrivacyLink /></div>

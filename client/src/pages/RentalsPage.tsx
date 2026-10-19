@@ -100,7 +100,8 @@ export default function RentalsPage() {
       <div className="mb-5 flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <Button key={f} size="sm" variant={filter === f ? "solid" : "outline"} onClick={() => setFilter(f)}>
-            {t(`rentals.${f}`, t("common.everything"))}
+            {/* "rentals.returned" is the "returned. Thank you!" notice, not a label. */}
+            {t(f === "returned" ? "rentals.statusReturned" : `rentals.${f}`, t("common.everything"))}
           </Button>
         ))}
       </div>

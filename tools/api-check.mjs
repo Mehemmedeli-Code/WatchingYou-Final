@@ -320,7 +320,7 @@ const uploaded = await patient(() => fetch(BASE + "/api/shorts", { method: "POST
 const shortFilm = uploaded.ok ? await uploaded.json() : null;
 expect("upload a short film", !!shortFilm?.id, `${uploaded.status}`);
 if (shortFilm) {
-  const play = (token) => patient(() => call("POST", `/api/shorts/${shortFilm.id}/view`, { token }));
+  const play = (token) => patient(() => call("POST", `/api/shorts/${shortFilm.id}/view`, { token, body: {} }));
   r = await play(cashier.token);
   expect("a film still in review has no views to count (404)", r.status === 404, `${r.status}`);
   await call("POST", `/api/security/shorts/${shortFilm.id}/claim`, { token: security.token });

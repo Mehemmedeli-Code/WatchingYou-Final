@@ -1,0 +1,31 @@
+#!/bin/sh
+# Runs before every commit, on its own (git config core.hooksPath tools/githooks — set once
+# per clone). Only what the commit touches is checked:
+#   server code (src/, tests/) -> the host builds, and every unit test passes (about 30 s)
+#   client code (client/src/)  -> the type checker and the smoke test pass
+#   texts (client/src/, locales/) -> the translation audit finds nothing
+# A failing check stops the commit and shows why. The full API check (tools/api-check.ps1,
+# a few minutes) is still run before each deploy, not on every commit.
+# `git commit --no-verify` skips this; keep that for emergencies.
+
+staged=$(git diff --cached --name-only --diff-filter=ACMRD)
+log=".git/pre-commit.log"
+fail() { echo "pre-commit: $1 (details: $log)"; tail -n 25 "$log"; exit 1; }
+
+if echo "$staged" | grep -qE '^(src|tests)/'; then
+  echo "pre-commit: server build and tests..."
+  dotnet build src/MovieRental.Host -p:SkipClientBuild=true --nologo -v q > "$log" 2>&1 || fail "the server does not build"
+  dotnet test --project tests/MovieRental.Tests -p:SkipClientBuild=true > "$log" 2>&1 || fail "a test failed"
+fi
+
+if echo "$staged" | grep -qE '^client/src/'; then
+  echo "pre-commit: client type check and smoke test..."
+  (cd client && npx tsc -b --noEmit) > "$log" 2>&1 || fail "type errors in the client"
+  (cd client && npm run --silent smoke) > "$log" 2>&1 || fail "a page throws when it mounts"
+fi
+
+if echo "$staged" | grep -qE '^(client/src/|src/MovieRental.Host/locales/)'; then
+  node tools/i18n-audit.mjs > "$log" 2>&1 || fail "the translation audit found untranslated text"
+fi
+
+exit 0

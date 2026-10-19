@@ -2,7 +2,8 @@
 # demand); it starts the database, starts the site, and starts it again if it ever stops.
 # Everything it does is written to logs\site.log next to the project.
 #
-#   Stop the site:        powershell -File C:\wy\WatchingYou\tools\stop-site.ps1
+#   Stop the site:        powershell -File tools\stop-site.ps1
+#   Back up right now:    powershell -File tools\backup-db.ps1 -Force   (it runs daily on its own)
 #   Start it again:       schtasks /run /tn WatchingYou
 #   Remove the autostart: schtasks /delete /tn WatchingYou /f
 
@@ -54,7 +55,12 @@ try {
         Say "Starting the site."
         $site = Start-Process -FilePath $exe -WorkingDirectory $hostDir -WindowStyle Hidden -PassThru `
             -RedirectStandardOutput (Join-Path $logDir "site-output.log") -RedirectStandardError (Join-Path $logDir "site-error.log")
-        $site.WaitForExit()
+        # While the site runs, a backup every day (tools\backup-db.ps1 does nothing until the
+        # newest one is a day old). A failed backup is logged; it never stops the site.
+        while (-not $site.WaitForExit(600000)) {
+            $result = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "backup-db.ps1") 2>&1
+            if ($LASTEXITCODE -ne 0) { Say "Backup FAILED: $result" } elseif ($result) { Say "$result" }
+        }
         Say "The site stopped (exit code $($site.ExitCode)); starting it again in 5 seconds."
         Start-Sleep 5
     }

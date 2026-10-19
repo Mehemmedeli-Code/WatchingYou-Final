@@ -48,7 +48,7 @@ export function Gallery({ origin }: { origin: ShortFilmOrigin }) {
 
   // Every play is a view; the server's count replaces the one on the card.
   async function countView(id: string) {
-    const result = await post<{ views: number }>(`/api/shorts/${id}/view`).catch(() => null);
+    const result = await post<{ views: number }>(`/api/shorts/${id}/view`, {}).catch(() => null);
     if (result) setItems((list) => list?.map((x) => (x.film.id === id ? { ...x, film: { ...x.film, viewCount: result.views } } : x)) ?? null);
   }
 
@@ -59,7 +59,11 @@ export function Gallery({ origin }: { origin: ShortFilmOrigin }) {
     >
       {items === null ? <Spinner label={t("common.loading")} /> : null}
 
-      {items?.length === 0 ? <Empty title={t("gallery.empty")} hint="" /> : null}
+      {/* Empty until the first film is approved: say how one gets here. */}
+      {items?.length === 0 ? (
+        <Empty title={t("gallery.empty")} hint={t("gallery.emptyHint", "Be the first: upload your film in Studio. It appears here once it is approved.")}
+          action={<a href="/studio" className="inline-flex h-9 items-center rounded-full bg-accent px-4 text-sm font-semibold text-surface hover:bg-accent-bright">{t("profile.shareFirst", "Upload your first film")}</a>} />
+      ) : null}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {items?.map((item) => {

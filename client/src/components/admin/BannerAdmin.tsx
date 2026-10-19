@@ -70,7 +70,7 @@ function BannerEditor({ banner, codes, onSaved }: { banner: Banner; codes: Promo
           : <Badge tone="warn">{banner.isActive ? t("banner.outOfSeason", "Waiting for its days") : t("banner.off", "Off")}</Badge>}
       </div>
 
-      <div className="h-48 overflow-hidden rounded-xl border border-line sm:h-56"><BannerSlide banner={preview} /></div>
+      <div className="grid min-h-48 overflow-hidden rounded-xl border border-line sm:h-56"><BannerSlide banner={preview} /></div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Field label={t("banner.show", "Show")}>

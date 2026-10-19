@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using MovieRental.Modules.Media.Domain;
 using MovieRental.Modules.Media.Persistence;
 using MovieRental.SharedKernel.Contracts;
@@ -18,7 +19,8 @@ public sealed record UploadShortFilmCommand(
     : ICommand<Result<ShortFilmSummary>>;
 
 internal sealed class UploadShortFilmHandler(
-    MediaDbContext db, ICurrentUser currentUser, IUserDirectory users, IHostEnvironment environment)
+    MediaDbContext db, ICurrentUser currentUser, IUserDirectory users, IHostEnvironment environment,
+    ILogger<UploadShortFilmHandler> logger)
     : ICommandHandler<UploadShortFilmCommand, Result<ShortFilmSummary>>
 {
     internal const long MaxBytes = 512L * 1024 * 1024;
@@ -72,11 +74,23 @@ internal sealed class UploadShortFilmHandler(
                 await command.Content.CopyToAsync(target, ct);
             }
         }
-        catch
+        catch (Exception ex)
         {
             // A cancelled or failed copy must not leave half a video on the disk.
             File.Delete(path);
+            if (VirusScan.IsBlockedWrite(ex)) return Infected();
             throw;
+        }
+
+        switch (await VirusScan.ScanAsync(path, ct))
+        {
+            case ScanVerdict.Infected:
+                File.Delete(path);
+                logger.LogWarning("Virus scanner flagged an upload by {UserId}; the file was deleted.", userId);
+                return Infected();
+            case ScanVerdict.NotScanned:
+                logger.LogWarning("Upload {File} could not be virus-scanned (no scanner, or it did not finish); let through.", storedName);
+                break;
         }
 
         var film = new ShortFilm
@@ -108,6 +122,9 @@ internal sealed class UploadShortFilmHandler(
         }
         return Result.Success(film.ToSummary(DateTime.UtcNow));
     }
+
+    private static Result<ShortFilmSummary> Infected() =>
+        Result.Failure<ShortFilmSummary>(Error.Validation("The virus scanner flagged this file, so it was not uploaded."));
 
     private static bool LooksLikeVideo(byte[] h)
     {

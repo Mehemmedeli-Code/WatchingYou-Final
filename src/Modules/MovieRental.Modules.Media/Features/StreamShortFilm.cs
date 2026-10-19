@@ -51,9 +51,15 @@ public static class StreamShortFilmEndpoint
         // A view is a play. The stream could not tell: browsers ask for it with a Range header
         // from the first byte (so a "no Range" rule counted nothing), and a page of films fetches
         // each one's opening without anybody pressing play. The player says when it starts.
-        app.MapPost("/api/shorts/{id:guid}/view", async Task<Results<Ok<FilmViews>, NotFound<Error>>> (
-            Guid id, MediaDbContext db, ICurrentUser currentUser, IUserDirectory users, CancellationToken ct) =>
+        app.MapPost("/api/shorts/{id:guid}/view", async Task<Results<Ok<FilmViews>, BadRequest<Error>, NotFound<Error>>> (
+            Guid id, MediaDbContext db, ICurrentUser currentUser, IUserDirectory users, HttpContext context, CancellationToken ct) =>
         {
+            // JSON only. A bare form post is something any other site can make its visitors'
+            // browsers send, which would let it count views for films nobody watched; a JSON
+            // post from another origin needs a preflight, and CORS refuses it.
+            if (!context.Request.HasJsonContentType())
+                return TypedResults.BadRequest(Error.Validation("Send an empty JSON object (Content-Type: application/json)."));
+
             var film = await db.ShortFilms.AsNoTracking().FirstOrDefaultAsync(f => f.Id == id, ct);
             if (film is null || film.Status != Domain.SubmissionStatus.Approved || !await ViewerRules.MayWatchAsync(film, currentUser, users, ct))
                 return TypedResults.NotFound(Error.NotFound("Film"));
@@ -66,7 +72,7 @@ public static class StreamShortFilmEndpoint
         .WithName("CountShortFilmView").WithTags("Shorts").AllowAnonymous()
         .RequireRateLimiting(AppPolicies.WriteRateLimit)
         .WithSummary("Count one play of a published film")
-        .WithDescription("No body. The player sends it when a film starts, and again when it is played once more after it " +
+        .WithDescription("Body: {} as JSON (a plain form post is refused with 400). The player sends it when a film starts, and again when it is played once more after it " +
                          "ended; pausing and seeking stay the same view. Every play counts, the maker's too. Answers with " +
                          "the new count. 404: no such published film, or one you may not watch.");
     }

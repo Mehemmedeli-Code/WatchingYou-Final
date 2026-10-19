@@ -9,7 +9,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 /// <reference types="vite/client" />
-import { Map as MapLibreMap, Marker, NavigationControl, setWorkerUrl } from "maplibre-gl";
+import { LngLatBounds, Map as MapLibreMap, Marker, NavigationControl, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 // MapLibre draws in a web worker that it loads from a file next to its own module. Bundled,
 // there is no such file — the worker request came back 404 and the map sat on its loading
@@ -64,9 +64,14 @@ export function VenueMap({
   spin = false,
   clickToActivate = false,
   locked = false,
+  fit,
   className,
   children,
 }: {
+  /** Points to keep in view, as [lng, lat]. The camera fits them at whatever size the map
+   *  is, with room around them for the pins and their names, and fits them again when the
+   *  map is resized (a phone turned on its side). Replaces `center`/`zoom` once set. */
+  fit?: [number, number][];
   /** A fixed view: no dragging, zooming or turning — the pins are what is clicked. A new
    *  centre still moves it (a city picked from outside the map). */
   locked?: boolean;
@@ -122,7 +127,9 @@ export function VenueMap({
     if (!locked) instance.addControl(new NavigationControl({ showCompass: false }), "top-right");
 
     let loaded = false;
-    const onLoad = () => { loaded = true; setReady(true); };
+    // A late load clears the "could not open" the 12-second timer below put up: a page opened
+    // in a background tab draws nothing until it is shown, and a slow connection takes longer.
+    const onLoad = () => { loaded = true; setReady(true); setFailed(false); };
     // The basemap comes from a third party. If the style itself cannot be fetched — a blocked
     // CDN, no network — say so rather than sit on loading dots. Once the map has loaded, a
     // single tile that fails (a hiccup, one missing square) is not a broken map: it is logged
@@ -185,11 +192,29 @@ export function VenueMap({
   // A new centre or zoom from the page (another city) moves the camera there.
   const [lng, lat] = center;
   const first = useRef(true);
+  const fitKey = fit && fit.length > 0 ? JSON.stringify(fit) : null;
   useEffect(() => {
-    if (!map) return;
+    if (!map || fitKey) return;
     if (first.current) { first.current = false; return; }
     map.flyTo({ center: [lng, lat], zoom, duration: 1400, essential: true });
-  }, [map, lng, lat, zoom]);
+  }, [map, lng, lat, zoom, fitKey]);
+
+  // Points to fit: worked out from the map's real size. A zoom computed for one width put the
+  // outer cinemas off the edge of a phone-sized map.
+  const fitted = useRef(false);
+  useEffect(() => {
+    if (!map || !fitKey) return;
+    const points = JSON.parse(fitKey) as [number, number][];
+    const bounds = points.reduce((box, point) => box.extend(point), new LngLatBounds(points[0], points[0]));
+    const frame = (duration: number) => map.fitBounds(bounds, {
+      padding: { top: 44, bottom: 36, left: 64, right: 64 }, maxZoom: 12.5, duration, essential: true,
+    });
+    frame(fitted.current ? 1400 : 0);
+    fitted.current = true;
+    const refit = () => frame(0);
+    map.on("resize", refit);
+    return () => { map.off("resize", refit); };
+  }, [map, fitKey]);
 
   // Swapping the style keeps the camera and the markers; only the tiles repaint. Only on a
   // real change: re-applying the style the map was just built with would reload every tile

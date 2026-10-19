@@ -232,6 +232,18 @@ html.rr { background: var(--surface); }
 }
 .rr-info-tabs a:hover { border-color: var(--accent); color: var(--accent); }
 .rr-info-tabs a.is-current { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+/* On a phone the ten tabs wrapped into four rows and pushed the page half a screen down: one
+   row that scrolls sideways instead, like the header's, fading out at the edge to say so. */
+@media (max-width: 640px) {
+  .rr-info-tabs {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    margin-bottom: 1.25rem; padding-bottom: .25rem;
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent);
+    mask-image: linear-gradient(to right, #000 85%, transparent);
+  }
+  .rr-info-tabs::-webkit-scrollbar { display: none; }
+  .rr-info-tabs a { white-space: nowrap; flex-shrink: 0; }
+}
 .rr-legal .rr-info-lede { font-size: 1.1rem; color: var(--ink); margin-bottom: 1.5rem; }
 .rr-info-post {
   margin: 1.25rem 0; padding: 1.25rem 1.5rem; border: 1px solid var(--line); border-radius: 1rem;

@@ -57,21 +57,47 @@ public sealed class SmtpEmailSender(IOptions<EmailOptions> options, ILogger<Smtp
         foreach (var file in request.Attachments ?? [])
             message.Attachments.Add(new Attachment(new MemoryStream(file.Content), file.FileName, file.ContentType));
 
-        using var client = new SmtpClient(_options.Host, _options.Port)
+        // Gmail answers a burst with "421/450, try again later", and a connection can drop. Two
+        // more tries, a few seconds apart, before a code is given up on. A refusal that will not
+        // change (wrong password, the day's sending quota used up) fails at once.
+        // ponytail: retried in the request; a provider made for volume (Brevo, SES) is the fix
+        // for Gmail's ~500 messages a day, and only needs its SMTP settings in user secrets.
+        TimeSpan[] waits = [TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5)];
+        for (var attempt = 0; ; attempt++)
         {
-            EnableSsl = _options.UseStartTls,
-            Credentials = new NetworkCredential(_options.UserName, _options.Password)
-        };
-
-        try
-        {
-            await client.SendMailAsync(message, ct);
-            logger.LogInformation("E-mail delivered to {To} | {Subject}", request.To, request.Subject);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "E-mail to {To} failed", request.To);
-            throw new InvalidOperationException("The e-mail could not be sent. Check Notifications:Email settings.", ex);
+            using var client = new SmtpClient(_options.Host, _options.Port)
+            {
+                EnableSsl = _options.UseStartTls,
+                Credentials = new NetworkCredential(_options.UserName, _options.Password)
+            };
+            // A try that failed half-way has read the attachments (the PDF ticket) to the end.
+            foreach (var attachment in message.Attachments) attachment.ContentStream.Position = 0;
+            try
+            {
+                await client.SendMailAsync(message, ct);
+                logger.LogInformation("E-mail delivered to {To} | {Subject}", request.To, request.Subject);
+                return;
+            }
+            catch (Exception ex) when (attempt < waits.Length && IsTransient(ex) && !ct.IsCancellationRequested)
+            {
+                logger.LogWarning(ex, "E-mail to {To} failed for now; trying again in {Wait}", request.To, waits[attempt]);
+                await Task.Delay(waits[attempt], ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "E-mail to {To} failed", request.To);
+                throw new InvalidOperationException("The e-mail could not be sent. Check Notifications:Email settings.", ex);
+            }
         }
     }
+
+    /// <summary>A busy or dropped server, not a refusal: 4xx replies and broken connections.</summary>
+    internal static bool IsTransient(Exception ex) => ex switch
+    {
+        SmtpException smtp when (int)smtp.StatusCode is >= 400 and < 500 => true,
+        SmtpException { StatusCode: SmtpStatusCode.GeneralFailure } => true,   // no connection made
+        SmtpException { InnerException: IOException or System.Net.Sockets.SocketException } => true,
+        IOException or System.Net.Sockets.SocketException => true,
+        _ => false
+    };
 }

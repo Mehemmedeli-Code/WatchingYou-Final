@@ -182,6 +182,12 @@
         document.querySelectorAll("select[data-nav-select]").forEach(function (select) {
             select.addEventListener("change", function () { location.href = select.value; });
         });
+        // On a phone the footer-page tabs are one sideways row: bring the current one into view.
+        var currentTab = document.querySelector(".rr-info-tabs .is-current");
+        if (currentTab) {
+            var tabs = currentTab.parentElement;
+            tabs.scrollLeft += currentTab.getBoundingClientRect().left - tabs.getBoundingClientRect().left - (tabs.clientWidth - currentTab.clientWidth) / 2;
+        }
     </script>
 
     @if (view.Assets.ViteClientUrl is { } viteClient)

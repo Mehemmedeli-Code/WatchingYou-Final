@@ -103,6 +103,8 @@ const MESSAGES: Record<string, Row> = {
   "Give your film a title.": ["Filminizə ad verin.", "Дайте фильму название.", "Filminize bir ad verin."],
   "No file was attached.": ["Fayl əlavə edilməyib.", "Файл не прикреплён.", "Dosya eklenmedi."],
   "Upload a file between 1 byte and 512 MB.": ["1 bayt ilə 512 MB arasında fayl yükləyin.", "Загрузите файл от 1 байта до 512 МБ.", "1 bayt ile 512 MB arasında bir dosya yükleyin."],
+  "The virus scanner flagged this file, so it was not uploaded.": ["Virus skaneri bu faylı təhlükəli saydı, ona görə yüklənmədi.", "Антивирус счёл этот файл опасным, поэтому он не загружен.", "Virüs tarayıcısı bu dosyayı tehlikeli buldu, bu yüzden yüklenmedi."],
+  "Send an empty JSON object (Content-Type: application/json).": ["Boş JSON obyekti göndərin (Content-Type: application/json).", "Отправьте пустой JSON-объект (Content-Type: application/json).", "Boş bir JSON nesnesi gönderin (Content-Type: application/json)."],
   "Supported formats: {0}.": ["Dəstəklənən formatlar: {0}.", "Поддерживаемые форматы: {0}.", "Desteklenen biçimler: {0}."],
   "Say whether the film is AI-generated or hand-crafted.": ["Filmin süni intellektlə, yoxsa əl ilə hazırlandığını qeyd edin.", "Укажите, создан фильм ИИ или вручную.", "Filmin yapay zekâyla mı, elle mi yapıldığını belirtin."],
   "This is not your submission.": ["Bu film sizə aid deyil.", "Это не ваша работа.", "Bu gönderi size ait değil."],

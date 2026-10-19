@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Panel, Spinner, Empty } from "@/components/Shell";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { get } from "@/lib/api";
 import { t, formatWhen } from "@/lib/i18n";
@@ -18,6 +19,8 @@ interface AuditRecord {
 /** Read-only by design. There is no edit and no delete, here or on the server. */
 export function AuditTrail() {
   const [entries, setEntries] = useState<AuditRecord[] | null>(null);
+  // The newest twenty first; a hundred cards ran to twelve thousand pixels on a phone.
+  const [shown, setShown] = useState(20);
 
   useEffect(() => {
     get<AuditRecord[]>("/api/admin/audit?take=100").then(setEntries).catch(() => setEntries([]));
@@ -36,7 +39,7 @@ export function AuditTrail() {
 
   return (
     <div className="space-y-2">
-      {entries.map((entry) => (
+      {entries.slice(0, shown).map((entry) => (
         <Panel key={entry.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -53,6 +56,13 @@ export function AuditTrail() {
           </p>
         </Panel>
       ))}
+      {entries.length > shown ? (
+        <div className="pt-2 text-center">
+          <Button size="sm" variant="outline" onClick={() => setShown((n) => n + 20)}>
+            {t("globe.loadMore", "Load more")} · {entries.length - shown}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

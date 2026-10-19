@@ -43,7 +43,12 @@ function dayMonth(iso: string) {
   return formatDateIn(new Date(`${iso}T12:00:00Z`), { day: "numeric", month: "long", timeZone: "UTC" });
 }
 
-/** One board, drawn. Used on the catalogue and as the admin's preview. */
+/**
+ * One board, drawn. Used on the catalogue and as the admin's preview.
+ *
+ * On a phone the words take the whole width and the drawing fades behind them: at 64% of a
+ * 340px card the headline had 150px, wrapped to four lines, and was cut off top and bottom.
+ */
 export function BannerSlide({ banner, className }: { banner: Banner; className?: string }) {
   const id = useId().replace(/:/g, "");
   const look = LOOKS[banner.theme];
@@ -59,14 +64,14 @@ export function BannerSlide({ banner, className }: { banner: Banner; className?:
 
   return (
     <div className={cn("relative isolate h-full w-full overflow-hidden", className)} style={{ background: look.paper, color: look.ink }}>
-      <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 -z-10 w-[62%] sm:w-[55%]">
+      <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 -z-10 w-[70%] opacity-35 sm:w-[55%] sm:opacity-100">
         <look.Art id={id} />
       </div>
-      <div className="flex h-full max-w-[64%] flex-col justify-center gap-1.5 px-6 py-5 sm:max-w-[56%] sm:px-9">
+      <div className="flex h-full flex-col justify-center gap-1.5 px-5 py-6 sm:max-w-[56%] sm:px-9 sm:py-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: look.accent }}>
           {t(`banner.${key}.kicker`)}
         </p>
-        <p className="font-display text-2xl font-extrabold leading-[1.05] sm:text-4xl">{headline}</p>
+        <p className="font-display text-2xl font-extrabold leading-[1.1] [text-wrap:balance] sm:text-4xl sm:leading-[1.05]">{headline}</p>
         <p className="text-sm opacity-90 sm:text-base">{subline}</p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {dates ? <span className="text-sm font-medium opacity-90">{dates}</span> : null}
@@ -105,15 +110,17 @@ export function PromoBanners() {
 
   if (banners.length === 0) return null;
 
+  // The slides share one grid cell rather than being absolutely placed, so the board is as
+  // tall as its tallest slide: a fixed height cut long headlines off on phones.
   return (
     <section aria-roledescription="carousel" aria-label={t("banner.label", "Offers")}
-      className="relative mb-8 h-56 overflow-hidden rounded-2xl border border-line shadow-xl shadow-black/30 sm:h-64"
+      className="relative mb-8 grid min-h-56 overflow-hidden rounded-2xl border border-line shadow-xl shadow-black/30 sm:h-64"
       onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
       {banners.map((banner, i) => (
         <div key={banner.id} role="group" aria-roledescription="slide" aria-label={`${i + 1} / ${banners.length}`}
           aria-hidden={i !== index} inert={i !== index}
-          className={cn("absolute inset-0 transition-all duration-700 ease-out", i === index ? "opacity-100" : "pointer-events-none opacity-0 translate-x-4")}>
+          className={cn("[grid-area:1/1] transition-all duration-700 ease-out", i === index ? "opacity-100" : "pointer-events-none opacity-0 translate-x-4")}>
           <BannerSlide banner={banner} />
         </div>
       ))}

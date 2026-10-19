@@ -99,7 +99,7 @@ export default function ProfilePage() {
 
   // Every play is a view; the server's count replaces the one in the grid and the player.
   async function countView(id: string) {
-    const result = await post<{ views: number }>(`/api/shorts/${id}/view`).catch(() => null);
+    const result = await post<{ views: number }>(`/api/shorts/${id}/view`, {}).catch(() => null);
     if (!result) return;
     setFilms((list) => list && list.map((f) => f.id === id ? { ...f, viewCount: result.views } : f));
     setPlaying((p) => p && p.id === id ? { ...p, viewCount: result.views } : p);
@@ -118,6 +118,16 @@ export default function ProfilePage() {
       <section className="mx-auto max-w-4xl px-4 py-16">
         <Empty title={t("profile.notFound", "This profile does not exist.")} hint={t("profile.notFoundHint", "The link may be wrong, or the account was removed.")}
           action={<a href="/people"><Button variant="outline">{t("profile.findPeople", "Find people")}</Button></a>} />
+      </section>
+    );
+  }
+  // Signed in without a @username yet (an account from before handles existed): there is no
+  // address to load, so say how to get one rather than spin for ever.
+  if (!handle) {
+    return (
+      <section className="mx-auto max-w-4xl px-4 py-16">
+        <Empty title={t("profile.noHandle", "Pick a @username first")} hint={t("profile.noHandleHint", "Your profile lives at your username. Choose one in Edit profile.")}
+          action={<a href="/profile/edit"><Button>{t("profile.edit", "Edit profile")}</Button></a>} />
       </section>
     );
   }
