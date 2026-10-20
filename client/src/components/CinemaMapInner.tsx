@@ -58,16 +58,19 @@ function CinemaMap({
                 latitude={venue.latitude}
                 onClick={() => onSelect?.(active ? null : venue.id)}
               >
-                <div className="group flex -translate-y-1/2 cursor-pointer flex-col items-center">
+                {/* The box is the pin alone, lifted by half: its tip lands on the cinema. The name
+                    hangs below, outside the box. Lifting pin and name together put the point
+                    under the name, and a cinema at the top of the map lost its pin over the edge. */}
+                <div className="group relative -translate-y-1/2 cursor-pointer">
                   <MapPin
                     size={active ? 32 : 26}
                     aria-hidden
-                    className="drop-shadow-lg transition-all"
+                    className="block drop-shadow-lg transition-all"
                     style={{ color: "#FF3B30", fill: active ? "#FF3B30" : "#7a1410" }}
                   />
                   <span
                     className={
-                      "mt-0.5 whitespace-nowrap rounded px-1.5 py-0.5 text-[11px] font-medium shadow " +
+                      "absolute left-1/2 top-full mt-0.5 -translate-x-1/2 whitespace-nowrap rounded px-1.5 py-0.5 text-[11px] font-medium shadow " +
                       (active ? "bg-accent text-surface" : "bg-surface/90 text-ink")
                     }
                   >

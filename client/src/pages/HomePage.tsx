@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import StackSpread from "@/components/ui/stack-spread";
 import { HeroEye } from "@/components/ui/hero-eye";
 import { MovieCarousel } from "@/components/ui/movie-carousel";
+import { PhoneDemo } from "@/components/PhoneDemo";
 import { MovieCard, type MovieListItem } from "@/components/MovieCard";
 import { SearchField } from "@/components/SearchField";
 import { Section, Notice, Empty, Spinner } from "@/components/Shell";
@@ -309,13 +310,19 @@ export default function HomePage() {
 
       {featured.length > 0 ? (
         <Section title={t("featured.title")} lede={t("featured.lede")}>
-          <MovieCarousel
-            movies={featured}
-            onRent={inApp ? undefined : rent}
-            onOpen={openMovie}
-            canWatch={inApp ? undefined : canWatch}
-            busyId={rentingId}
-          />
+          {/* On a computer, a phone playing the site in use stands to the ribbon's left. */}
+          <div className="lg:flex lg:items-start lg:gap-10">
+            {inApp ? null : <PhoneDemo />}
+            <div className="min-w-0 flex-1">
+              <MovieCarousel
+                movies={featured}
+                onRent={inApp ? undefined : rent}
+                onOpen={openMovie}
+                canWatch={inApp ? undefined : canWatch}
+                busyId={rentingId}
+              />
+            </div>
+          </div>
         </Section>
       ) : null}
 

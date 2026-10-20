@@ -1,40 +1,9 @@
-using System.Globalization;
-using System.Text;
-using System.Text.RegularExpressions;
+using MovieRental.SharedKernel;
 
 namespace MovieRental.Modules.Catalog.Domain;
 
-public static partial class SlugFactory
+public static class SlugFactory
 {
-    public static string Create(string title, int year)
-    {
-        // Letters Unicode does not decompose into "base + accent", so the fold below would
-        // drop them entirely: "Şəki" came out as "s-ki". Mapped by hand first. The ampersand is
-        // spelled out, because "dust-copper" reads as a different title from "Dust & Copper".
-        var spelled = new StringBuilder(title.Length + 8);
-        foreach (var ch in title)
-        {
-            spelled.Append(ch switch
-            {
-                'ə' or 'Ə' => "e",
-                'ı' => "i",
-                'İ' => "I",
-                '&' => " and ",
-                _ => ch.ToString()
-            });
-        }
-
-        var normalized = spelled.ToString().Normalize(NormalizationForm.FormD);
-        var builder = new StringBuilder(normalized.Length);
-
-        foreach (var ch in normalized)
-            if (CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark)
-                builder.Append(ch);
-
-        var ascii = NonAlphanumeric().Replace(builder.ToString().ToLowerInvariant(), "-").Trim('-');
-        return $"{ascii}-{year}";
-    }
-
-    [GeneratedRegex("[^a-z0-9]+")]
-    private static partial Regex NonAlphanumeric();
+    /// <summary>The title as a slug, with the year so two films of one name stay apart.</summary>
+    public static string Create(string title, int year) => $"{Slug.From(title)}-{year}";
 }

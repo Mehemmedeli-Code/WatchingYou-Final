@@ -353,6 +353,19 @@ r = await call("POST", "/api/auth/refresh", { body: { refreshToken: rotated } })
 // Edge cases: answers that were a 500, or wrong, when a value sat at the edge or two requests
 // raced. The made-up client address keeps the per-address sign-up limit out of the way.
 const elsewhere = () => ({ "X-Forwarded-For": `10.77.${(Math.random() * 255) | 0}.${(Math.random() * 255) | 0}` });
+
+// Sign-in and the reset form say plainly when an e-mail has no account; codes go to registered ones only
+const nobody = { email: "nobody-here@reelandrow.test", password: "Whatever123" };
+r = await call("POST", "/api/auth/login", { body: nobody, headers: elsewhere() });
+expect("sign-in, unknown e-mail: 404 account_not_found", r.status === 404 && r.json?.code === "account_not_found", `${r.status} ${r.text.slice(0, 120)}`);
+r = await call("POST", "/api/auth/login", { body: { email: customer.user.email, password: "Wrong123456" }, headers: elsewhere() });
+expect("sign-in, wrong password: 401 invalid_credentials", r.status === 401 && r.json?.code === "invalid_credentials", `${r.status} ${r.text.slice(0, 120)}`);
+r = await call("POST", "/api/auth/password/forgot", { body: { email: nobody.email }, headers: elsewhere() });
+expect("reset, unknown e-mail: 404, no code", r.status === 404 && r.json?.code === "account_not_found", `${r.status} ${r.text.slice(0, 120)}`);
+r = await call("POST", "/api/auth/password/forgot", { body: { email: customer.user.email }, headers: elsewhere() });
+expect("reset, registered e-mail: 204, code sent", r.status === 204, `${r.status} ${r.text.slice(0, 120)}`);
+r = await call("POST", "/api/auth/password/forgot", { body: { email: customer.user.email }, headers: elsewhere() });
+expect("reset asked again within a minute: 409", r.status === 409, `${r.status} ${r.text.slice(0, 120)}`);
 for (const q of ["from=0001-01-01&to=9999-12-31", "from=9999-12-31&to=9999-12-31"]) {
   r = await call("GET", `/api/backoffice/reports/sales?${q}`, { token: admin.token });
   expect(`sales report for ${q} falls back, not a 500`, r.status === 200, `${r.status} ${r.text.slice(0, 120)}`);
@@ -377,6 +390,14 @@ if (ok(r)) {
   expect("a second one an hour later in the same hall: 409", clash.status === 409 && clash.json?.message, `${clash.status} ${clash.text.slice(0, 160)}`);
   await call("DELETE", `/api/admin/screenings/${r.json.id}`, { token: admin.token });
 }
+// Ten saves of one slot at once (a double click, two admins): the check and the insert are one
+// step under the hall's lock, so one show is created and the other nine are told the hall is busy.
+const burstSlot = new Date(Date.now() + 13 * 86400000).toISOString();
+const burst = await Promise.all(Array.from({ length: 10 }, () =>
+  call("POST", "/api/admin/screenings", { token: admin.token, body: { movieId: movie.id, hallId: ids.hall, startsAtUtc: burstSlot, seatPrice: 9, audioLanguage: "az" } })));
+expect("ten saves of one slot at once: one screening, nine 409",
+  burst.filter(ok).length === 1 && burst.filter((x) => x.status === 409).length === 9, burst.map((x) => x.status).join(","));
+for (const won of burst.filter(ok)) await call("DELETE", `/api/admin/screenings/${won.json.id}`, { token: admin.token });
 await call("POST", "/api/backoffice/shift/close", { token: cashier.token, body: { countedCash: 0, note: "api check reset" } });
 await call("POST", "/api/backoffice/shift/open", { token: cashier.token, body: { openingFloat: 0 } });
 const closes = await Promise.all([1, 2, 3].map(() => call("POST", "/api/backoffice/shift/close", { token: cashier.token, body: { countedCash: 0 } })));

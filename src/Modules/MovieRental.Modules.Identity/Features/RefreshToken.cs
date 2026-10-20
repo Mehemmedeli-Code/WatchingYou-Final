@@ -36,6 +36,11 @@ internal sealed class RefreshTokenHandler(
         if (stored?.User is null || (fromCookie && stored.UserId != command.UserId))
             return Result.Failure<AuthResponse>(Error.Unauthorized("Unknown refresh token."));
 
+        // A suspended account gets no new session, as sign-in gives it none (and says why there).
+        // Suspending revokes its tokens; this holds even for one that was missed.
+        if (stored.User.IsSuspended)
+            return Result.Failure<AuthResponse>(Error.Unauthorized("This session was ended. Sign in again."));
+
         // Replay detection: a token that was already rotated should never come back.
         // When it does, the chain is compromised, so every live token for the user dies.
         //
@@ -77,7 +82,7 @@ internal sealed class RefreshTokenHandler(
         // Re-issue the page cookie with the current roles and stamp, so a cookie that
         // AuthCookie.ValidateAsync rejected (role change, or issued before stamps) recovers on
         // the next refresh instead of leaving pages signed out while the API is signed in.
-        if (!user.IsSuspended) await AuthCookie.SignInAsync(http.HttpContext, user);
+        await AuthCookie.SignInAsync(http.HttpContext, user);
 
         var access = tokens.CreateAccessToken(user);
         var handedOut = RefreshCookie.Issue(http.HttpContext, user.Id, replacementValue, replacement.ExpiresAtUtc);

@@ -225,6 +225,10 @@ public static class DemoPeople
         await identity.DirectMessages.Where(m => identity.DirectThreads.IgnoreQueryFilters()
             .Any(t => t.Id == m.ThreadId && (ids.Contains(t.LowUserId) || ids.Contains(t.HighUserId)))).ExecuteDeleteAsync();
         await identity.DirectThreads.IgnoreQueryFilters().Where(t => ids.Contains(t.LowUserId) || ids.Contains(t.HighUserId)).ExecuteDeleteAsync();
+        // Marks and reports point at a person, not at a thread: left behind, they outlived the
+        // people they were about (a report about a removed demo person stayed on the live site).
+        await identity.DirectMessageMarks.Where(m => ids.Contains(m.UserId)).ExecuteDeleteAsync();
+        await identity.MessageReports.Where(r => ids.Contains(r.ReporterId) || ids.Contains(r.AboutUserId)).ExecuteDeleteAsync();
         await identity.Follows.Where(f => ids.Contains(f.FollowerId) || ids.Contains(f.FolloweeId)).ExecuteDeleteAsync();
         await identity.UserBlocks.Where(b => ids.Contains(b.BlockerId) || ids.Contains(b.BlockedId)).ExecuteDeleteAsync();
         await identity.RefreshTokens.IgnoreQueryFilters().Where(r => ids.Contains(r.UserId)).ExecuteDeleteAsync();

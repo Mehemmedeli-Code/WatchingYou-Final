@@ -719,8 +719,10 @@ address.
 
 ## Password reset
 
-Two steps, both anonymous, both answering identically whether or not the address exists —
-anything else turns the form into a way of discovering who has an account here.
+Two steps, both anonymous. A code goes only to a registered address; any other is told
+"No account is registered with this e-mail" (404), as sign-in says too — the register form
+already answered "already registered", so a vaguer answer hid nothing. The rate limit is
+what slows anyone trying addresses one by one.
 
 A reset code carries a `Purpose` distinct from an account-verification code. Without that
 column the two would be interchangeable, and a harmless "confirm your e-mail" message would

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
@@ -24,11 +25,24 @@ public sealed record HallGeometry(
 
 public sealed record VenueItem(
     Guid Id, string Name, string City, string? Address,
-    double Latitude, double Longitude, IReadOnlyList<HallGeometry> Halls);
+    double Latitude, double Longitude, IReadOnlyList<HallGeometry> Halls, string? PhotoUrl = null);
+
+/// <summary>
+/// A cinema's photo is a file named after it: wwwroot/img/venues/28-mall.jpg for "28 Mall".
+/// No column to keep in step with the files: put a photo there and the cinema has one.
+/// </summary>
+public static class VenuePhotos
+{
+    public static string? UrlFor(IWebHostEnvironment env, string name)
+    {
+        var path = $"img/venues/{SharedKernel.Slug.From(name)}.jpg";
+        return env.WebRootFileProvider.GetFileInfo(path).Exists ? "/" + path : null;
+    }
+}
 
 public sealed record GetVenuesQuery : IQuery<IReadOnlyList<VenueItem>>;
 
-internal sealed class GetVenuesHandler(CinemaDbContext db) : IQueryHandler<GetVenuesQuery, IReadOnlyList<VenueItem>>
+internal sealed class GetVenuesHandler(CinemaDbContext db, IWebHostEnvironment env) : IQueryHandler<GetVenuesQuery, IReadOnlyList<VenueItem>>
 {
     public async Task<IReadOnlyList<VenueItem>> Handle(GetVenuesQuery query, CancellationToken ct)
     {
@@ -38,7 +52,7 @@ internal sealed class GetVenuesHandler(CinemaDbContext db) : IQueryHandler<GetVe
             .ToListAsync(ct);
 
         return [.. venues.Select(v => new VenueItem(v.Id, v.Name, v.City, v.Address,
-            v.Latitude, v.Longitude, [.. v.Halls.OrderBy(h => h.Name).Select(Map)]))];
+            v.Latitude, v.Longitude, [.. v.Halls.OrderBy(h => h.Name).Select(Map)], VenuePhotos.UrlFor(env, v.Name)))];
     }
 
     internal static HallGeometry Map(Domain.Hall h) => new(

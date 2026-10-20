@@ -1,6 +1,7 @@
 @page "/locations"
 @model LocationsModel
 @inject MovieRental.Host.Infrastructure.Localization.ILanguageContext T
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment Env
 <article class="rr-legal rr-info">
     <partial name="_InfoTabs" model="@("locations")" />
 
@@ -10,6 +11,10 @@
     @foreach (var venue in Model.Venues)
     {
         <section class="rr-info-post">
+            @if (MovieRental.Modules.Cinema.Features.VenuePhotos.UrlFor(Env, venue.Name) is { } photo)
+            {
+                <img class="rr-venue-photo" src="@photo" alt="@venue.Name" loading="lazy" decoding="async" />
+            }
             <p class="rr-info-meta">@venue.City</p>
             <h2>@venue.Name</h2>
             @if (!string.IsNullOrWhiteSpace(venue.Address))

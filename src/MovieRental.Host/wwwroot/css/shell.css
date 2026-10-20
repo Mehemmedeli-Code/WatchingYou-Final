@@ -250,6 +250,11 @@ html.rr { background: var(--surface); }
   background: var(--surface-raised);
 }
 .rr-info-post h2 { margin-top: .25rem; }
+/* A cinema's photo across the top of its card, cut to one shape whatever its source size. */
+.rr-venue-photo {
+  display: block; width: calc(100% + 3rem); max-width: none; aspect-ratio: 16 / 7; object-fit: cover;
+  margin: -1.25rem -1.5rem 1rem; border-radius: 1rem 1rem 0 0; border-bottom: 1px solid var(--line);
+}
 .rr-legal .rr-info-meta { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; margin: 0; }
 .rr-info pre {
   overflow-x: auto; padding: 1rem 1.25rem; border: 1px solid var(--line); border-radius: .75rem;

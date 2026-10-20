@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using MovieRental.Modules.Cinema.Domain;
 using MovieRental.Modules.Cinema.Persistence;
 using MovieRental.SharedKernel.Contracts;
@@ -87,6 +88,23 @@ internal sealed class SaveScreeningValidator : AbstractValidator<SaveScreeningCo
     }
 }
 
+/// <summary>
+/// One writer per hall at a time. "Is the hall free then?" and the insert have to be one step:
+/// ten saves sent together all read "free", and three shows landed in one room at the same time.
+/// The same pattern as one PRO purchase per person (WatchingPro).
+/// </summary>
+internal static class HallLock
+{
+    public static async Task<IDbContextTransaction> TakeAsync(CinemaDbContext db, Guid hallId, CancellationToken ct)
+    {
+        var tx = await db.Database.BeginTransactionAsync(ct);
+        var name = $"hall:{hallId:N}";
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"EXEC sp_getapplock @Resource = {name}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 15000", ct);
+        return tx;
+    }
+}
+
 internal sealed class SaveScreeningHandler(CinemaDbContext db, ICatalogApi catalog)
     : ICommandHandler<SaveScreeningCommand, Result<ScreeningAdminItem>>
 {
@@ -102,6 +120,8 @@ internal sealed class SaveScreeningHandler(CinemaDbContext db, ICatalogApi catal
         // rentals do it: a screening in the past should still read correctly after a rename.
         var movie = await catalog.GetMovieAsync(command.MovieId, ct);
         if (movie is null) return Result.Failure<ScreeningAdminItem>(Error.NotFound("Film"));
+
+        await using var tx = await HallLock.TakeAsync(db, hall.Id, ct);
 
         var screening = command.Id is { } id
             ? await db.Screenings.Include(s => s.Bookings).FirstOrDefaultAsync(s => s.Id == id, ct)
@@ -158,6 +178,7 @@ internal sealed class SaveScreeningHandler(CinemaDbContext db, ICatalogApi catal
         screening.RefundNote = string.IsNullOrWhiteSpace(command.RefundNote) ? null : command.RefundNote.Trim();
 
         await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
 
         return Result.Success(new ScreeningAdminItem(
             screening.Id, screening.MovieId, screening.MovieTitle, hall.Id, hall.Venue?.Name ?? "",

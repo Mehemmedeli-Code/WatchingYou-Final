@@ -9,7 +9,7 @@ type Row = [az: string, ru: string, tr: string];
 
 const MESSAGES: Record<string, Row> = {
   // Account
-  "E-mail or password is incorrect.": ["E-poçt və ya şifrə yanlışdır.", "Неверный e-mail или пароль.", "E-posta veya şifre yanlış."],
+  "No account is registered with this e-mail.": ["Bu e-poçt ilə qeydiyyatdan keçilməyib.", "С этим e-mail никто не зарегистрирован.", "Bu e-posta ile kayıtlı bir hesap yok."],
   "That e-mail is already registered.": ["Bu e-poçt artıq qeydiyyatdan keçib.", "Этот e-mail уже зарегистрирован.", "Bu e-posta zaten kayıtlı."],
   "That password is not correct.": ["Şifrə düzgün deyil.", "Неверный пароль.", "Şifre doğru değil."],
   "Password needs at least one capital letter.": ["Şifrədə ən azı bir böyük hərf olmalıdır.", "Пароль должен содержать хотя бы одну заглавную букву.", "Şifrede en az bir büyük harf olmalı."],

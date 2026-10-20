@@ -10,6 +10,8 @@ export interface MappedVenue {
   latitude: number;
   longitude: number;
   halls: { id: string; name: string }[];
+  /** /img/venues/<name>.jpg when that file exists (see VenuePhotos on the server). */
+  photoUrl?: string | null;
 }
 
 /**
@@ -51,9 +53,14 @@ export function CinemaMap(props: {
 export function VenueFilterHint({ venue }: { venue?: MappedVenue | null }) {
   if (!venue) return null;
   return (
-    <p className="mb-3 text-sm text-accent">
-      {t("cinema.venue")}: {venue.name}
-      {venue.address ? ` · ${venue.address}` : ""}
-    </p>
+    <div className="mb-4 flex items-center gap-3 rounded-xl border border-accent/40 bg-surface-raised p-2 pr-4">
+      {venue.photoUrl ? (
+        <img src={venue.photoUrl} alt={venue.name} className="h-16 w-24 shrink-0 rounded-lg object-cover sm:h-20 sm:w-32" />
+      ) : null}
+      <p className="min-w-0 text-sm text-accent">
+        {t("cinema.venue")}: <span className="font-semibold">{venue.name}</span>
+        {venue.address ? <span className="block text-xs text-ink-mute">{venue.address}</span> : null}
+      </p>
+    </div>
   );
 }

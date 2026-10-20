@@ -15,9 +15,7 @@ using MovieRental.SharedKernel.Security;
 namespace MovieRental.Modules.Identity.Features;
 
 // Password reset, in two steps: ask for a code, then send it back with a new password.
-//
-// Both endpoints answer the same way whether or not the address exists. Anything else turns
-// the form into a way of discovering who has an account here.
+// Codes go only to registered addresses; any other is told so, as sign-in and register do.
 
 public sealed record RequestPasswordResetCommand(string Email) : ICommand<Result>;
 
@@ -34,13 +32,12 @@ internal sealed class RequestPasswordResetHandler(IdentityDbContext db, IVerific
         var email = command.Email.Trim().ToLowerInvariant();
         var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
 
-        // Unknown address, or one that cannot sign in anyway: report success, send nothing.
-        if (user is null || user.IsSuspended) return Result.Success();
+        if (user is null)
+            return Result.Failure(new Error("account_not_found", "No account is registered with this e-mail."));
+        // Suspended: a new password would not let it sign in anyway.
+        if (user.IsSuspended) return Result.Success();
 
-        // Always the same answer: a "wait a minute" for some addresses and not others showed
-        // which ones have an account.
-        await verification.IssueAsync(user, VerificationPurpose.PasswordReset, ct);
-        return Result.Success();
+        return await verification.IssueAsync(user, VerificationPurpose.PasswordReset, ct);
     }
 }
 
@@ -102,15 +99,19 @@ public static class ForgotPasswordEndpoints
     public static void Map(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/auth/password/forgot",
-            async Task<NoContent> (
+            async Task<Results<NoContent, NotFound<Error>, Conflict<Error>>> (
                 RequestPasswordResetCommand command, IDispatcher dispatcher, CancellationToken ct) =>
             {
-                await dispatcher.Send(command, ct);
-                return TypedResults.NoContent();
+                var result = await dispatcher.Send(command, ct);
+                if (result.IsSuccess) return TypedResults.NoContent();
+                return result.Error.Code == "account_not_found"
+                    ? TypedResults.NotFound(result.Error)
+                    : TypedResults.Conflict(result.Error);
             })
         .WithName("RequestPasswordReset").WithTags("Auth").AllowAnonymous()
         .WithSummary("E-mail a password-reset code")
-        .WithDescription("Always 204, whether or not the address has an account, so the form cannot tell who is registered.")
+        .WithDescription("204: the code is on its way. 404: no account has this e-mail (`code`: account_not_found). " +
+                         "409: a code was sent less than a minute ago.")
         .RequireRateLimiting(AppPolicies.CodeRateLimit);
 
         app.MapPost("/api/auth/password/reset",

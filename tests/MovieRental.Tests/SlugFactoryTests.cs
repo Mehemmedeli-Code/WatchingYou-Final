@@ -29,6 +29,16 @@ public class SlugFactoryTests
         Assert.Equal("dust-and-copper-2017", SlugFactory.Create("Dust & Copper", 2017));
     }
 
+    // A cinema's photo is the file named by its slug (wwwroot/img/venues), so these must match
+    // the file names there.
+    [Theory]
+    [InlineData("28 Mall", "28-mall")]
+    [InlineData("Afimall City", "afimall-city")]
+    [InlineData("Gənclik Mall", "genclik-mall")]
+    [InlineData(" Nizami ", "nizami")]
+    public void Cinema_names_become_photo_file_names(string name, string expected) =>
+        Assert.Equal(expected, MovieRental.SharedKernel.Slug.From(name));
+
     [Fact]
     public void The_year_keeps_remakes_apart()
     {

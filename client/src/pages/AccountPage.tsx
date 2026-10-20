@@ -43,15 +43,14 @@ export default function AccountPage() {
   function fail(err: unknown, fallback: string) {
     if (err instanceof ApiError) {
       setFieldErrors(err.fieldErrors ?? {});
-      // A failed sign-in is one 401 for both mistakes on purpose — the server will not say
-      // which half of the pair was wrong. Say it in the page's language, and a network
-      // failure likewise.
+      // A wrong password is a 401; an unknown e-mail is a 404 whose message says so. Say it in
+      // the page's language, and a network failure likewise.
       // The resend cooldown comes back in English from the server; say it in the page's language.
       const wait = /Wait (\d+) more seconds/i.exec(err.message ?? "");
       const text = wait
         ? t("account.waitSeconds", "Wait {s} more seconds before asking for another code.").replace("{s}", wait[1])
         : err.status === 401 && (!err.code || err.code === "invalid_credentials")
-        ? t("account.badLogin", "E-mail or password is incorrect.")
+        ? t("account.badLogin", "That password is not correct.")
         : err.status === 0 || err.status >= 500 ? fallback : err.message;
       setMessage({ tone: "error", text });
       return err;
@@ -130,9 +129,8 @@ export default function AccountPage() {
     setBusy(true); setMessage(null);
     try {
       await post("/api/auth/password/forgot", { email });
+      // An unknown e-mail is a 404: it stays on this step, told it has no account.
       setMode("reset");
-      // Deliberately vague: a definite "no such account" would turn this form into a way
-      // of discovering who has one.
       setMessage({ tone: "ok", text: t("account.resetSent") });
     } catch (err) {
       fail(err, t("account.codeNotSent", "The code could not be sent."));

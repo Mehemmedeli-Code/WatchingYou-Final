@@ -207,7 +207,8 @@ export function VenueMap({
     const points = JSON.parse(fitKey) as [number, number][];
     const bounds = points.reduce((box, point) => box.extend(point), new LngLatBounds(points[0], points[0]));
     const frame = (duration: number) => map.fitBounds(bounds, {
-      padding: { top: 44, bottom: 36, left: 64, right: 64 }, maxZoom: 12.5, duration, essential: true,
+      // Room above for a pin (it stands on its point) and below for its name, which hangs under it.
+      padding: { top: 56, bottom: 48, left: 64, right: 64 }, maxZoom: 12.5, duration, essential: true,
     });
     frame(fitted.current ? 1400 : 0);
     fitted.current = true;

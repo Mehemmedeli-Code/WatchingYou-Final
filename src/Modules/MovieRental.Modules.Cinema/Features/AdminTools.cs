@@ -82,6 +82,10 @@ internal sealed class BulkScheduleHandler(CinemaDbContext db, ICatalogApi catalo
         var first = slots.Count == 0 ? now : slots.Min();
         var last = slots.Count == 0 ? now : slots.Max();
 
+        // Read and written under the hall's lock, so a single save or another batch for the
+        // same room cannot slip in between.
+        await using var tx = await HallLock.TakeAsync(db, hall.Id, ct);
+
         // Everything already booked into this room over the whole range, read once.
         var taken = await db.Screenings.AsNoTracking()
             .Where(s => s.HallId == hall.Id && !s.IsCancelled
@@ -120,6 +124,7 @@ internal sealed class BulkScheduleHandler(CinemaDbContext db, ICatalogApi catalo
         if (created > 0)
         {
             await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
             await audit.RecordAsync(new AuditEntry("screening.bulk",
                 $"{movie.Title} · {hall.Venue?.Name} {hall.Name}",
                 $"{created} screening(s) from {command.FirstDate} over {command.Days} day(s)"), ct);
