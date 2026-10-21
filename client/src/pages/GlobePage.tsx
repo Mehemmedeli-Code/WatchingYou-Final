@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Globe2, MapPin, Users, X } from "lucide-react";
+import { ArrowLeft, Camera, Globe2, MapPin, Trash2, Users, X } from "lucide-react";
 import { Section, Panel, Notice, Empty, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Input, Field } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/useAuth";
-import { get, put, query } from "@/lib/api";
+import { ApiError, del, get, postForm, put, query } from "@/lib/api";
 import { t, lang } from "@/lib/i18n";
 import { WORLD_CITIES, flagUrl, countryName, cityKey, type WorldCity } from "@/lib/worldCities";
 import { TasteCompare } from "@/components/TasteCompare";
@@ -402,6 +402,25 @@ function PresencePanel({ onSaved }: { onSaved: () => void }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  // The picture is the profile's own, uploaded the same way as on Edit profile — not a link.
+  async function picture(file: File | null) {
+    if (file && file.size > 2 * 1024 * 1024) { setMessage(t("profile.pictureTooBig", "The picture must be 2 MB or smaller.")); return; }
+    setBusy(true); setMessage(null);
+    try {
+      let me: { avatarUrl?: string | null };
+      if (file) { const form = new FormData(); form.append("file", file); me = await postForm("/api/auth/avatar", form); }
+      else me = await del("/api/auth/avatar");
+      setAvatar(me.avatarUrl ?? "");
+      // The header picture follows at once.
+      const header = document.querySelector<HTMLImageElement>("a.rr-avatar img");
+      if (header) header.src = `/api/avatars/me?${Date.now()}`;
+      setMessage(file ? t("profile.pictureSaved", "Picture updated.") : t("profile.pictureRemoved", "Picture removed."));
+    } catch (e) {
+      setMessage(e instanceof ApiError ? e.message : t("error.generic", "Something went wrong."));
+    } finally { setBusy(false); }
+  }
 
   useEffect(() => {
     get<{ shareOnGlobe: boolean; city?: string | null; countryCode?: string | null; avatarUrl?: string | null }>("/api/auth/me")
@@ -425,7 +444,6 @@ function PresencePanel({ onSaved }: { onSaved: () => void }) {
         countryCode: share ? chosen?.country ?? null : null,
         latitude: share ? chosen?.lat ?? null : null,
         longitude: share ? chosen?.lon ?? null : null,
-        avatarUrl: avatar || null,
       });
       setVisible(share);
       setMessage(share ? t("globe.show") : t("globe.hide"));
@@ -445,8 +463,20 @@ function PresencePanel({ onSaved }: { onSaved: () => void }) {
           <CityPicker value={chosen} onChange={setChosen} />
         </Field>
 
-        <Field label={t("globe.avatar")}>
-          <Input value={avatar} onChange={(e) => setAvatar(e.target.value)} placeholder="https://…" />
+        <Field label={t("globe.avatar")} hint={t("profile.pictureHint", "JPEG, PNG or WebP, up to 2 MB.")}>
+          <div className="flex flex-wrap items-center gap-3">
+            <img src={avatar || "/icons/avatar.svg"} alt="" className="h-12 w-12 rounded-full border border-line object-cover" />
+            <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+              onChange={(e) => { void picture(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+            <Button size="sm" variant="outline" disabled={busy} onClick={() => fileInput.current?.click()}>
+              <Camera size={14} aria-hidden /> {t("profile.changePicture", "Change picture")}
+            </Button>
+            {avatar ? (
+              <Button size="sm" variant="ghost" disabled={busy} onClick={() => void picture(null)}>
+                <Trash2 size={14} aria-hidden /> {t("profile.removePicture", "Remove")}
+              </Button>
+            ) : null}
+          </div>
         </Field>
 
         {message ? <Notice tone="ok">{message}</Notice> : null}

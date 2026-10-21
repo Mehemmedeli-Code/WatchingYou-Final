@@ -94,6 +94,7 @@ internal sealed class PageShellFactory(
             if (!isSecurity) nav.Add(new NavItem("help", "/help", language["nav.help"]));
             nav.Add(new NavItem("globe", "/globe", language["nav.globe"]));
             nav.Add(new NavItem("people", "/people", language["nav.people"]));
+            nav.Add(new NavItem("searching", "/searching", "SearchingYou"));
             nav.Add(new NavItem("favourites", "/favourites", language["nav.favourites"]));
             nav.Add(new NavItem("rentals", "/rentals", language["nav.rentals"]));
             nav.Add(new NavItem("studio", "/studio", language["nav.studio"]));

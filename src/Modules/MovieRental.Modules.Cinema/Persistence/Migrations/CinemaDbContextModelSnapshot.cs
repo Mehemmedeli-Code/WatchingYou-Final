@@ -379,6 +379,77 @@ namespace MovieRental.Modules.Cinema.Persistence.Migrations
                     b.ToTable("LoyaltyEntries", "cinema");
                 });
 
+            modelBuilder.Entity("MovieRental.Modules.Cinema.Domain.PartnerRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CancelledAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ClosedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FilledAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("HasTickets")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Partner")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PeopleWanted")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ScreeningId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScreeningId", "UserId")
+                        .IsUnique()
+                        .HasFilter("[ClosedAtUtc] IS NULL AND [FilledAtUtc] IS NULL AND [CancelledAtUtc] IS NULL");
+
+                    b.ToTable("PartnerRequests", "cinema");
+                });
+
+            modelBuilder.Entity("MovieRental.Modules.Cinema.Domain.PartnerRequestMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("PartnerRequestMembers", "cinema");
+                });
+
             modelBuilder.Entity("MovieRental.Modules.Cinema.Domain.PromoBanner", b =>
                 {
                     b.Property<Guid>("Id")
@@ -880,6 +951,26 @@ namespace MovieRental.Modules.Cinema.Persistence.Migrations
                     b.Navigation("Venue");
                 });
 
+            modelBuilder.Entity("MovieRental.Modules.Cinema.Domain.PartnerRequest", b =>
+                {
+                    b.HasOne("MovieRental.Modules.Cinema.Domain.Screening", "Screening")
+                        .WithMany()
+                        .HasForeignKey("ScreeningId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Screening");
+                });
+
+            modelBuilder.Entity("MovieRental.Modules.Cinema.Domain.PartnerRequestMember", b =>
+                {
+                    b.HasOne("MovieRental.Modules.Cinema.Domain.PartnerRequest", null)
+                        .WithMany("Members")
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("MovieRental.Modules.Cinema.Domain.Screening", b =>
                 {
                     b.HasOne("MovieRental.Modules.Cinema.Domain.Hall", "HallRoom")
@@ -924,6 +1015,11 @@ namespace MovieRental.Modules.Cinema.Persistence.Migrations
             modelBuilder.Entity("MovieRental.Modules.Cinema.Domain.ConcessionSale", b =>
                 {
                     b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("MovieRental.Modules.Cinema.Domain.PartnerRequest", b =>
+                {
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("MovieRental.Modules.Cinema.Domain.Screening", b =>

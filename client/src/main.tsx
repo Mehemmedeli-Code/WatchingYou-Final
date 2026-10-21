@@ -52,6 +52,7 @@ const ISLANDS: Record<string, () => Promise<IslandModule>> = {
   favourites: () => import("@/pages/FavouritesPage"),
   pro: () => import("@/pages/ProPage"),
   guide: () => import("@/pages/GuidePage"),
+  searching: () => import("@/pages/SearchingPage"),
 };
 
 // Site-wide message pop-ups: their own root, appended to <body>, so no Razor page has to

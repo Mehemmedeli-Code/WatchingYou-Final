@@ -27,6 +27,7 @@ public sealed class CinemaModule : IModule
         services.AddSingleton<RefundPolicy>();
 
         services.AddHostedService<HoldExpiryService>();
+        services.AddHostedService<SearchWatchService>();
 
         services.AddScoped<CheckoutPricing>();
         services.AddScoped<CinemaAnalytics>();
@@ -53,6 +54,7 @@ public sealed class CinemaModule : IModule
         PaymentEndpoints.Map(endpoints);
         BannerEndpoints.Map(endpoints);
         CinemaAdminToolEndpoints.Map(endpoints);
+        SearchingYouEndpoints.Map(endpoints);
 
         // Back office: tills, shifts, set-up and reports.
         CashShiftEndpoints.Map(endpoints);

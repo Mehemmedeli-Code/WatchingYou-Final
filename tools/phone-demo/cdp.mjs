@@ -1,5 +1,5 @@
 // A small Chrome DevTools Protocol driver for headless Edge, phone-sized. Demo site only (7142).
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
@@ -10,8 +10,7 @@ const PORT = 9333;
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export async function launch({ width = 390, height = 844, scale = 1.2, mobile = true } = {}) {
-  const profile = path.join(os.tmpdir(), "wy-phone-demo-edge");
-  fs.rmSync(profile, { recursive: true, force: true });
+  const profile = path.join(os.tmpdir(), `wy-edge-${process.pid}`);   // a fresh one per run: a closing Edge can hold the last one for a while
   const edge = spawn(EDGE, [
     "--headless=new", `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
     "--no-first-run", "--no-default-browser-check", "--ignore-certificate-errors",
@@ -82,6 +81,11 @@ export async function launch({ width = 390, height = 844, scale = 1.2, mobile = 
     if (status !== 200) throw new Error("sign-in " + status);
   };
 
-  const close = () => { try { ws.close(); } catch { /* gone */ } edge.kill(); };
+  const close = () => {
+    try { ws.close(); } catch { /* gone */ }
+    // The whole tree: killing only the parent left its helpers running, holding the profile.
+    spawnSync("taskkill", ["/PID", String(edge.pid), "/T", "/F"], { stdio: "ignore" });
+    try { fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch { /* Windows may hold it a moment longer; it is in %TEMP% */ }
+  };
   return { send, on, evaluate, goto, shot, signIn, close };
 }

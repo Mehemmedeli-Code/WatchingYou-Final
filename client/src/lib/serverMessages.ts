@@ -10,6 +10,14 @@ type Row = [az: string, ru: string, tr: string];
 const MESSAGES: Record<string, Row> = {
   // Account
   "No account is registered with this e-mail.": ["Bu e-poçt ilə qeydiyyatdan keçilməyib.", "С этим e-mail никто не зарегистрирован.", "Bu e-posta ile kayıtlı bir hesap yok."],
+  // SearchingYou
+  "Pick a film you have a ticket for that has not started yet.": ["Biletin olan və hələ başlamamış bir film seç.", "Выберите фильм, на который у вас есть билет и который ещё не начался.", "Biletin olan ve henüz başlamamış bir film seç."],
+  "You are already searching for this screening.": ["Bu seans üçün artıq axtarışın var.", "Вы уже ищете компанию на этот сеанс.", "Bu seans için zaten araman var."],
+  "Pick a film that has not started yet.": ["Hələ başlamamış bir film seç.", "Выберите фильм, который ещё не начался.", "Henüz başlamamış bir film seç."],
+  "You can invite one person fewer than the tickets you hold.": ["Aldığın biletlərdən bir nəfər az dəvət edə bilərsən.", "Пригласить можно на одного меньше, чем у вас билетов.", "Elindeki biletlerden bir kişi eksik davet edebilirsin."],
+  "Too few seats are left at this screening for the whole group.": ["Bu seansda bütün qrup üçün yer qalmayıb.", "На этом сеансе не хватает мест для всей группы.", "Bu seansta tüm grup için yer kalmadı."],
+  "This is your own search.": ["Bu, sənin öz axtarışındır.", "Это ваш собственный поиск.", "Bu senin kendi araman."],
+  "You have already joined.": ["Artıq qoşulmusan.", "Вы уже присоединились.", "Zaten katıldın."],
   "That e-mail is already registered.": ["Bu e-poçt artıq qeydiyyatdan keçib.", "Этот e-mail уже зарегистрирован.", "Bu e-posta zaten kayıtlı."],
   "That password is not correct.": ["Şifrə düzgün deyil.", "Неверный пароль.", "Şifre doğru değil."],
   "Password needs at least one capital letter.": ["Şifrədə ən azı bir böyük hərf olmalıdır.", "Пароль должен содержать хотя бы одну заглавную букву.", "Şifrede en az bir büyük harf olmalı."],

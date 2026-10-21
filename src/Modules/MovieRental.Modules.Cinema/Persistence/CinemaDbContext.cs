@@ -26,6 +26,10 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
     public DbSet<CashShift> CashShifts => Set<CashShift>();
     public DbSet<FilmDeal> FilmDeals => Set<FilmDeal>();
 
+    // SearchingYou
+    public DbSet<PartnerRequest> PartnerRequests => Set<PartnerRequest>();
+    public DbSet<PartnerRequestMember> PartnerRequestMembers => Set<PartnerRequestMember>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<Screening>(e =>
@@ -239,6 +243,24 @@ public sealed class CinemaDbContext(DbContextOptions<CinemaDbContext> options) :
             e.Property(x => x.Note).HasMaxLength(300);
             e.HasIndex(x => x.MovieId).IsUnique().HasFilter("[IsDeleted] = 0");
         });
+
+        b.Entity<PartnerRequest>(e =>
+        {
+            e.ToTable("PartnerRequests");
+            e.HasKey(x => x.Id);
+            // One open search per person per screening: the database says so, not just a check.
+            e.HasIndex(x => new { x.ScreeningId, x.UserId }).IsUnique().HasFilter("[ClosedAtUtc] IS NULL AND [FilledAtUtc] IS NULL AND [CancelledAtUtc] IS NULL");
+            e.HasOne(x => x.Screening).WithMany().HasForeignKey(x => x.ScreeningId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Members).WithOne().HasForeignKey(x => x.RequestId).OnDelete(DeleteBehavior.Cascade);
+        });
+        b.Entity<PartnerRequestMember>(e =>
+        {
+            e.ToTable("PartnerRequestMembers");
+            e.HasKey(x => x.Id);
+            // One seat per person per request, even when "Join" is pressed twice at once.
+            e.HasIndex(x => new { x.RequestId, x.UserId }).IsUnique();
+        });
+        b.Entity<PartnerRequest>().HasQueryFilter(r => !r.Screening!.IsDeleted);
 
         // Payments follow their screening out of sight.
         b.Entity<SeatPayment>().HasQueryFilter(p => !p.Screening!.IsDeleted);

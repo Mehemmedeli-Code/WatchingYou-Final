@@ -119,7 +119,10 @@ expect("openapi document", !!doc?.paths, "admin could not read /swagger/v1/swagg
 const skip = new Set(["POST /api/admin/movies/seed", "POST /api/backoffice/shift/open", "POST /api/backoffice/shift/close",
   "POST /api/auth/logout", "POST /api/auth/account/delete", "POST /api/auth/register", "POST /api/auth/login",
   "POST /api/auth/verification/send", "POST /api/auth/password/forgot", "POST /api/auth/password/reset",
-  "POST /api/auth/verification/confirm", "POST /api/auth/refresh"]);
+  "POST /api/auth/verification/confirm", "POST /api/auth/refresh",
+  // SearchingYou is exercised as a scenario of its own; three more writes here spent the minute's
+  // write allowance the follow-request checks after the sweep need.
+  "POST /api/searching", "POST /api/searching/{id}/join", "DELETE /api/searching/{id}/join", "DELETE /api/searching/{id}"]);
 
 for (const [path, ops] of Object.entries(doc.paths)) {
   for (const method of Object.keys(ops)) {

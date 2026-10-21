@@ -8,12 +8,18 @@ import { Notice } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/Shell";
-import { get } from "@/lib/api";
+import { get, query } from "@/lib/api";
 import { formatRuntime, formatUsd } from "@/lib/format";
 import { useAuth } from "@/components/useAuth";
 import { t, formatWhen, genreName, lang } from "@/lib/i18n";
 import { isApp } from "@/lib/platform";
 import { TrailerPlayer } from "@/components/TrailerPlayer";
+
+interface Show {
+  id: string; movieId: string; hall: string; venueName: string; startsAtUtc: string;
+  seatPrice: number; capacity: number; seatsTaken: number; audioLanguage: string; subtitleLanguage?: string | null;
+}
+interface Similar { id: string; title: string; releaseYear: number; posterUrl?: string | null }
 
 export interface MovieDetail {
   id: string;
@@ -66,7 +72,7 @@ export function embedFor(url: string): { kind: "iframe" | "file"; src: string } 
 }
 
 export function MovieDialog({
-  movieId,
+  movieId: startId,
   mode,
   onClose,
   onRent,
@@ -76,7 +82,11 @@ export function MovieDialog({
   onClose: () => void;
   onRent?: (id: string) => void;
 }) {
+  // A similar film picked inside the dialog replaces the one shown, without closing it.
+  const [movieId, setMovieId] = useState(startId);
   const [detail, setDetail] = useState<MovieDetail | null>(null);
+  const [shows, setShows] = useState<Show[]>([]);
+  const [similar, setSimilar] = useState<Similar[]>([]);
   // Staff (Admin, Security) watch everything and are never offered a rental or PRO.
   const { isSignedIn, isSecurity: isStaff } = useAuth();
   // The phone app sells no digital content (the stores require their own billing for that),
@@ -124,6 +134,24 @@ export function MovieDialog({
   useEffect(() => {
     reload().catch(() => onClose());
   }, [reload, onClose]);
+
+  // Where it plays in the cinemas, and what else is like it.
+  useEffect(() => {
+    let live = true;
+    setShows([]); setSimilar([]); setPlaying(false); setBlocked(null);
+    get<Show[]>("/api/screenings")
+      .then((all) => live && setShows(all.filter((x) => x.movieId === movieId && new Date(x.startsAtUtc) > new Date()).slice(0, 4)))
+      .catch(() => {});
+    return () => { live = false; };
+  }, [movieId]);
+  useEffect(() => {
+    if (!detail) return;
+    let live = true;
+    get<{ items: Similar[] }>("/api/movies" + query({ genre: detail.genre, pageSize: 7 }))
+      .then((r) => live && setSimilar(r.items.filter((m) => m.id !== detail.id).slice(0, 6)))
+      .catch(() => {});
+    return () => { live = false; };
+  }, [detail?.id, detail?.genre]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function postReview() {
     setPosting(true);
@@ -211,12 +239,29 @@ export function MovieDialog({
                   )}
                 </div>
               ) : (
-                <div className="mt-4 flex gap-4">
-                  {detail.posterUrl ? (
-                    <img src={detail.posterUrl} alt="" className="h-40 w-28 shrink-0 rounded-lg object-cover" />
-                  ) : null}
-                  <p className="text-sm leading-relaxed text-ink-mute">{detail.descriptions?.[lang] ?? detail.description}</p>
-                </div>
+                <>
+                  <div className="mt-4 flex gap-4">
+                    {detail.posterUrl ? (
+                      <img src={detail.posterUrl} alt="" className="h-52 w-36 shrink-0 rounded-lg object-cover sm:h-60 sm:w-40" />
+                    ) : null}
+                    <p className="whitespace-pre-line text-sm leading-relaxed text-ink/90">{detail.descriptions?.[lang] ?? detail.description}</p>
+                  </div>
+                  <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line text-sm sm:grid-cols-3">
+                    {([
+                      [t("movie.genre"), genreName(detail.genre)],
+                      [t("movie.year"), String(detail.releaseYear)],
+                      [t("movie.runtime"), formatRuntime(detail.durationMinutes)],
+                      [t("movie.directorLabel"), detail.director || "—"],
+                      [t("movie.rating"), detail.reviewCount > 0 ? `★ ${detail.averageRating.toFixed(1)} (${detail.reviewCount})` : t("movie.noReviews")],
+                      [t("movie.copies"), `${detail.availableCopies} / ${detail.totalCopies}`],
+                    ] as [string, string][]).map(([k, v]) => (
+                      <div key={k} className="bg-surface-raised px-3 py-2.5">
+                        <dt className="text-xs text-ink-mute">{k}</dt>
+                        <dd className="mt-0.5 font-medium text-ink">{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </>
               )}
 
               <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -282,6 +327,39 @@ export function MovieDialog({
                       </div>
                     </>
                   )}
+                </div>
+              ) : null}
+
+              {shows.length > 0 ? (
+                <div className="mt-6 border-t border-line pt-4">
+                  <h3 className="font-display text-lg text-ink">{t("movie.showtimes")}</h3>
+                  <ul className="mt-3 space-y-2">
+                    {shows.map((x) => (
+                      <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line px-3 py-2 text-sm">
+                        <span className="text-ink">
+                          <span className="font-medium">{x.venueName}</span> · {x.hall}
+                          <span className="block text-xs text-ink-mute">
+                            {formatWhen(x.startsAtUtc)} · {x.audioLanguage}{x.subtitleLanguage ? ` + ${x.subtitleLanguage}` : ""} · {x.capacity - x.seatsTaken} {t("searching.seatsLeft")}
+                          </span>
+                        </span>
+                        <a href={`/cinema?screening=${x.id}`}><Button size="sm" variant="outline">{formatUsd(x.seatPrice)}</Button></a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {similar.length > 0 ? (
+                <div className="mt-6 border-t border-line pt-4">
+                  <h3 className="font-display text-lg text-ink">{t("movie.similar")}</h3>
+                  <div className="mt-3 flex gap-3 overflow-x-auto pb-1">
+                    {similar.map((m) => (
+                      <button key={m.id} type="button" onClick={() => setMovieId(m.id)} className="group w-24 shrink-0 text-left">
+                        {m.posterUrl ? <img src={m.posterUrl} alt="" className="h-36 w-24 rounded-lg object-cover" /> : <div className="h-36 w-24 rounded-lg bg-surface" />}
+                        <p className="mt-1 line-clamp-2 text-xs text-ink group-hover:text-accent">{m.title}</p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ) : null}
 
