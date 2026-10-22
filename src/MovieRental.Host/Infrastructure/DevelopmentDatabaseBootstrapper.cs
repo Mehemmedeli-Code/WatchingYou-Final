@@ -92,6 +92,10 @@ public static class DevelopmentDatabaseBootstrapper
             IF COL_LENGTH('cinema.TicketTypes', 'NameTr') IS NULL ALTER TABLE cinema.TicketTypes ADD NameTr nvarchar(40) NULL;
             """, ct);
 
+        var identity = services.GetRequiredService<IdentityDbContext>();
+        await identity.Database.ExecuteSqlRawAsync(
+            "IF COL_LENGTH('identity.Users', 'Gender') IS NULL ALTER TABLE [identity].Users ADD Gender nvarchar(10) NULL;", ct);
+
         // A whole new table in an existing schema is additive too: the schema already has tables,
         // so the create-tables step above skips it. Same shape EF would make.
         var rentals = services.GetRequiredService<RentalsDbContext>();
@@ -343,8 +347,8 @@ public static class DevelopmentDatabaseBootstrapper
         finally { await context.Database.CloseConnectionAsync(); }
     }
 
-    /// <summary>The four logins whose passwords are written in the repository (README,
-    /// tools/test-accounts.md).</summary>
+    /// <summary>The four test logins. Their passwords are this machine's own (TestLogins), but they
+    /// are still test accounts: real databases never keep them.</summary>
     private static readonly string[] TestAccounts =
         ["admin@reelandrow.test", "security@reelandrow.test", "customer@reelandrow.test", "kassa@reelandrow.test"];
 
@@ -401,19 +405,19 @@ public static class DevelopmentDatabaseBootstrapper
                 new AppUser
                 {
                     Email = "admin@reelandrow.test", FullName = "Rena Alverdiyeva",
-                    PasswordHash = hasher.Hash("Admin1234"), IsEmailConfirmed = true,
+                    PasswordHash = hasher.Hash(TestLogins.Current.Admin), IsEmailConfirmed = true,
                     Roles = $"{AppRoles.Admin},{AppRoles.Customer}"
                 },
                 new AppUser
                 {
                     Email = "security@reelandrow.test", FullName = "Kamran Hasanli",
-                    PasswordHash = hasher.Hash("Security1234"), IsEmailConfirmed = true,
+                    PasswordHash = hasher.Hash(TestLogins.Current.Security), IsEmailConfirmed = true,
                     Roles = $"{AppRoles.Security},{AppRoles.Customer}"
                 },
                 new AppUser
                 {
                     Email = "customer@reelandrow.test", FullName = "Tural Mammadov",
-                    PasswordHash = hasher.Hash("Customer1234"), IsEmailConfirmed = true,
+                    PasswordHash = hasher.Hash(TestLogins.Current.Customer), IsEmailConfirmed = true,
                     Roles = AppRoles.Customer
                 });
             await identity.SaveChangesAsync(ct);
@@ -426,17 +430,17 @@ public static class DevelopmentDatabaseBootstrapper
             identity.Users.Add(new AppUser
             {
                 Email = "kassa@reelandrow.test", FullName = "Leyla Karimova",
-                PasswordHash = hasher.Hash("Kassa1234"), IsEmailConfirmed = true,
+                PasswordHash = hasher.Hash(TestLogins.Current.Kassa), IsEmailConfirmed = true,
                 Roles = AppRoles.Cashier
             });
             await identity.SaveChangesAsync(ct);
         }
 
         // The seeded staff need a staff PIN to reach their screens (test databases only; real
-        // staff get theirs from the owner). Listed with the passwords in tools/test-accounts.md.
+        // staff get theirs from the owner). Kept with the passwords in TestLogins.FilePath.
         string[] seededStaff = ["admin@reelandrow.test", "security@reelandrow.test", "kassa@reelandrow.test"];
         var withoutPin = await identity.Users.Where(u => seededStaff.Contains(u.Email) && u.StaffPinHash == null).ToListAsync(ct);
-        foreach (var user in withoutPin) user.StaffPinHash = hasher.Hash("580417");
+        foreach (var user in withoutPin) user.StaffPinHash = hasher.Hash(TestLogins.Current.StaffPin);
         if (withoutPin.Count > 0) await identity.SaveChangesAsync(ct);
     }
 

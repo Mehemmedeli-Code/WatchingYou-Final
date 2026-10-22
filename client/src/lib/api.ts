@@ -20,6 +20,8 @@ export interface UserProfile {
   avatarUrl?: string | null;
   isPrivate?: boolean;
   bio?: string | null;
+  /** "female" or "male"; null on accounts made before it was asked. */
+  gender?: "female" | "male" | null;
 }
 
 /** Registration hands back a destination, not a session — the code has to be confirmed first. */

@@ -8,6 +8,8 @@
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
+import { logins } from "./test-logins.mjs";   // this machine's test passwords, outside the repository
+import { staffPath } from "./staff-paths.mjs";   // the staff screens' addresses
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // the local dev certificate
 const BASE = process.argv[2] ?? "https://localhost:7140";
@@ -24,10 +26,8 @@ let checks = 0;
 
 // Staff screens and APIs also want the staff PIN (StaffGate). The seeded staff share the
 // development PIN; the secret path comes from the host's user secrets.
-const STAFF_PIN = process.env.STAFF_PIN ?? "580417";
-const STAFF_BASE = "/" + (process.env.STAFF_KEY ?? execFileSync("dotnet",
-  ["user-secrets", "list", "--project", new URL("../src/MovieRental.Host", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")],
-  { encoding: "utf8" }).match(/Staff:PathKey = (\S+)/)?.[1]);
+const STAFF_PIN = process.env.STAFF_PIN ?? logins.staffPin;
+const STAFF_UNLOCK = staffPath("unlock");
 const staffCookies = new Map();   // access token -> its wy.staff cookie
 
 async function call(method, path, { token, body, cookie, headers: extra } = {}) {
@@ -58,9 +58,9 @@ async function login(email, password) {
 }
 
 async function unlockStaff(session) {
-  const page = await call("GET", STAFF_BASE + "/unlock", { token: session.token });
+  const page = await call("GET", STAFF_UNLOCK, { token: session.token });
   const form = /name="__RequestVerificationToken" type="hidden" value="([^"]+)"/.exec(page.text)?.[1];
-  const res = await fetch(BASE + STAFF_BASE + "/unlock", {
+  const res = await fetch(BASE + STAFF_UNLOCK, {
     method: "POST", redirect: "manual",
     headers: { Authorization: `Bearer ${session.token}`, "Content-Type": "application/x-www-form-urlencoded",
                Cookie: page.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ") },
@@ -71,10 +71,10 @@ async function unlockStaff(session) {
   staffCookies.set(session.token, staff);
 }
 
-const admin = await login("admin@reelandrow.test", "Admin1234");
-const security = await login("security@reelandrow.test", "Security1234");
-const customer = await login("customer@reelandrow.test", "Customer1234");
-const cashier = await login("kassa@reelandrow.test", "Kassa1234");
+const admin = await login("admin@reelandrow.test", logins.admin);
+const security = await login("security@reelandrow.test", logins.security);
+const customer = await login("customer@reelandrow.test", logins.customer);
+const cashier = await login("kassa@reelandrow.test", logins.kassa);
 
 // ---------------------------------------------------------------- real ids for path params
 const movies = (await call("GET", "/api/movies?pageSize=50")).json.items;
@@ -308,6 +308,18 @@ expect("saving someone's username is a 409 that says so", r.status === 409 && r.
 r = await call("GET", "/api/people/username-available?username=a", { token: c });
 expect("a malformed username is a 400", r.status === 400 && !!r.json?.message, `${r.status}`);
 
+// The picture: a flag, then removed (the grey figure stays, and removing again changes nothing)
+r = await call("PUT", "/api/auth/avatar/flag/AZ", { token: c });
+expect("a flag becomes the picture", ok(r) && r.json.avatarUrl === "/app/flags/az.svg", `${r.status} ${r.text.slice(0, 120)}`);
+r = await call("PUT", "/api/auth/avatar/flag/zz", { token: c });
+expect("a country without a flag is a 400", r.status === 400 && !!r.json?.message, `${r.status}`);
+r = await call("PUT", "/api/auth/avatar/flag/..%2F..%2Fweb.config", { token: c });
+expect("a path for a country is refused", r.status === 400 || r.status === 404, `${r.status}`);
+r = await call("DELETE", "/api/auth/avatar", { token: c });
+expect("removing leaves the grey figure, not the eye", ok(r) && r.json.avatarUrl === "/icons/avatar-blank.svg", `${r.status} ${r.text.slice(0, 120)}`);
+r = await call("DELETE", "/api/auth/avatar", { token: c });
+expect("removing again keeps the grey figure", ok(r) && r.json.avatarUrl === "/icons/avatar-blank.svg", `${r.status}`);
+
 // A short film's views: every play counts, fetching the file does not
 const upload = new FormData();
 upload.append("file", new Blob([Uint8Array.from([0, 0, 0, 0x18, ...Buffer.from("ftypisom"), ...new Array(52).fill(0)])], { type: "video/mp4" }), "check.mp4");
@@ -407,7 +419,7 @@ const closes = await Promise.all([1, 2, 3].map(() => call("POST", "/api/backoffi
 expect("three closes of one shift at once: one Z report, the others 404",
   closes.filter(ok).length === 1 && closes.filter((x) => x.status === 404).length === 2, closes.map((x) => x.status).join(","));
 const twice = `api-check-twice-${Date.now().toString(36)}@example.test`;
-const signUps = await Promise.all([1, 2, 3].map(() => call("POST", "/api/auth/register", { headers: elsewhere(), body: { fullName: "Api Check", email: twice, password: "Passw0rdTest" } })));
+const signUps = await Promise.all([1, 2, 3].map(() => call("POST", "/api/auth/register", { headers: elsewhere(), body: { fullName: "Api Check", email: twice, password: "Passw0rdTest", gender: "male" } })));
 expect("one e-mail registered three times at once: one account, the others 409 saying so",
   signUps.filter(ok).length === 1 && signUps.filter((x) => x.status === 409 && x.json?.message === "That e-mail is already registered.").length === 2,
   signUps.map((x) => `${x.status} ${x.json?.message ?? ""}`).join(" | "));

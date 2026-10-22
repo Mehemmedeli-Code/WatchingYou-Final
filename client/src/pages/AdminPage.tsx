@@ -12,6 +12,7 @@ import { BulkScheduleForm } from "@/components/admin/BulkScheduleForm";
 import { LanguageFlags } from "@/components/admin/LanguageFlags";
 import { PromoAdmin } from "@/components/admin/PromoAdmin";
 import { BannerAdmin } from "@/components/admin/BannerAdmin";
+import { HealthPanel } from "@/components/admin/HealthPanel";
 import { formatDate, formatMoney } from "@/lib/format";
 import { t, languageName, genreName } from "@/lib/i18n";
 import { VideoPlayer } from "@/components/VideoPlayer";
@@ -170,6 +171,7 @@ export default function AdminPage() {
 
   return (
     <>
+      <HealthPanel />
       <Section
         title={t("admin.whereTitle")}
         lede={t("admin.whereLede")}

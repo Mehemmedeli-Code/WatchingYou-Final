@@ -48,7 +48,7 @@ public sealed class SeatConcurrencyTests : IAsyncLifetime
             AudioLanguage = "en",
             SubtitleLanguage = "az"
         });
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -89,7 +89,7 @@ public sealed class SeatConcurrencyTests : IAsyncLifetime
             db.SeatPayments.Add(PaymentFor(userId, row: 3, number: 5));
             try
             {
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(TestContext.Current.CancellationToken);
                 return true;
             }
             catch (DbUpdateException)
@@ -104,7 +104,7 @@ public sealed class SeatConcurrencyTests : IAsyncLifetime
         Assert.Equal(1, outcomes.Count(success => !success));
 
         await using var check = NewContext();
-        var held = await check.SeatBookings.CountAsync(s => s.Row == 3 && s.Number == 5);
+        var held = await check.SeatBookings.CountAsync(s => s.Row == 3 && s.Number == 5, TestContext.Current.CancellationToken);
         Assert.Equal(1, held);
     }
 
@@ -116,13 +116,13 @@ public sealed class SeatConcurrencyTests : IAsyncLifetime
         {
             await using var db = NewContext();
             db.SeatPayments.Add(PaymentFor(Guid.NewGuid(), row: 6, number: number));
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await Task.WhenAll(Book(1), Book(2), Book(3));
 
         await using var check = NewContext();
-        Assert.Equal(3, await check.SeatBookings.CountAsync(s => s.Row == 6));
+        Assert.Equal(3, await check.SeatBookings.CountAsync(s => s.Row == 6, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -137,24 +137,24 @@ public sealed class SeatConcurrencyTests : IAsyncLifetime
         await using (var db = NewContext())
         {
             db.SeatPayments.Add(first);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using (var db = NewContext())
         {
-            var stale = await db.SeatPayments.Include(p => p.Seats).SingleAsync(p => p.Id == first.Id);
+            var stale = await db.SeatPayments.Include(p => p.Seats).SingleAsync(p => p.Id == first.Id, TestContext.Current.CancellationToken);
             db.SeatBookings.RemoveRange(stale.Seats);
             stale.Status = PaymentStatus.Expired;
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using (var db = NewContext())
         {
             db.SeatPayments.Add(PaymentFor(Guid.NewGuid(), row: 2, number: 9));
-            await db.SaveChangesAsync();      // must not throw
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);      // must not throw
         }
 
         await using var check = NewContext();
-        Assert.Equal(1, await check.SeatBookings.CountAsync(s => s.Row == 2 && s.Number == 9));
+        Assert.Equal(1, await check.SeatBookings.CountAsync(s => s.Row == 2 && s.Number == 9, TestContext.Current.CancellationToken));
     }
 }

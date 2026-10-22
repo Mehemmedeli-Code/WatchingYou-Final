@@ -21,7 +21,10 @@ internal sealed class SearchWatchService(IServiceScopeFactory scopes, ILogger<Se
             try
             {
                 await using var scope = scopes.CreateAsyncScope();
-                var off = await Searches.CallOffShortAsync(scope.ServiceProvider.GetRequiredService<CinemaDbContext>(), DateTime.UtcNow, stoppingToken);
+                var db = scope.ServiceProvider.GetRequiredService<CinemaDbContext>();
+                // Bought first: a group whose seats are all paid for is never called off.
+                await Searches.MarkBoughtAsync(db, DateTime.UtcNow, stoppingToken);
+                var off = await Searches.CallOffShortAsync(db, DateTime.UtcNow, stoppingToken);
                 if (off > 0) logger.LogInformation("Called off {Count} search(es): too few seats left for the group.", off);
             }
             catch (OperationCanceledException) { break; }

@@ -35,6 +35,7 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             e.HasIndex(x => x.Email).IsUnique().HasFilter("[IsDeleted] = 0");
             e.Property(x => x.Username).HasMaxLength(30);
             e.Property(x => x.Bio).HasMaxLength(150);
+            e.Property(x => x.Gender).HasMaxLength(10);
             e.HasIndex(x => x.Username).IsUnique().HasFilter("[Username] IS NOT NULL AND [IsDeleted] = 0");
             e.HasMany(x => x.RefreshTokens).WithOne(x => x.User!).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.VerificationCodes).WithOne(x => x.User!).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);

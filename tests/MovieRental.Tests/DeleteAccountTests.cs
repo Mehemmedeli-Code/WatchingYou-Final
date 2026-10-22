@@ -51,7 +51,7 @@ public sealed class DeleteAccountTests : IAsyncLifetime
         };
         user.RefreshTokens.Add(new RefreshTokenEntity { Token = Guid.NewGuid().ToString("N"), ExpiresAtUtc = DateTime.UtcNow.AddDays(14) });
         db.Users.Add(user);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         return user.Id;
     }
 
@@ -65,12 +65,12 @@ public sealed class DeleteAccountTests : IAsyncLifetime
 
         await using (var db = NewContext())
         {
-            var result = await Handler(db, id).Handle(new DeleteAccountCommand("not-it"), default);
+            var result = await Handler(db, id).Handle(new DeleteAccountCommand("not-it"), TestContext.Current.CancellationToken);
             Assert.False(result.IsSuccess);
         }
 
         await using var check = NewContext();
-        var user = await check.Users.SingleAsync(u => u.Id == id);
+        var user = await check.Users.SingleAsync(u => u.Id == id, TestContext.Current.CancellationToken);
         Assert.Equal("aysel@example.test", user.Email);
         Assert.False(user.IsDeleted);
     }
@@ -82,14 +82,14 @@ public sealed class DeleteAccountTests : IAsyncLifetime
 
         await using (var db = NewContext())
         {
-            var result = await Handler(db, id).Handle(new DeleteAccountCommand(Password), default);
+            var result = await Handler(db, id).Handle(new DeleteAccountCommand(Password), TestContext.Current.CancellationToken);
             Assert.True(result.IsSuccess);
         }
 
         await using var check = NewContext();
-        Assert.False(await check.Users.AnyAsync(u => u.Id == id));   // gone from every normal query
+        Assert.False(await check.Users.AnyAsync(u => u.Id == id, TestContext.Current.CancellationToken));   // gone from every normal query
 
-        var row = await check.Users.IgnoreQueryFilters().Include(u => u.RefreshTokens).SingleAsync(u => u.Id == id);
+        var row = await check.Users.IgnoreQueryFilters().Include(u => u.RefreshTokens).SingleAsync(u => u.Id == id, TestContext.Current.CancellationToken);
         Assert.True(row.IsDeleted);
         Assert.DoesNotContain("aysel", row.Email);
         Assert.Equal("Deleted user", row.FullName);
@@ -113,13 +113,13 @@ public sealed class DeleteAccountTests : IAsyncLifetime
 
         await using (var db = NewContext())
         {
-            var result = await Handler(db, id).Handle(new DeleteAccountCommand(Password), default);
+            var result = await Handler(db, id).Handle(new DeleteAccountCommand(Password), TestContext.Current.CancellationToken);
             Assert.False(result.IsSuccess);
             Assert.Equal("forbidden", result.Error.Code);
         }
 
         await using var check = NewContext();
-        Assert.True(await check.Users.AnyAsync(u => u.Id == id));
+        Assert.True(await check.Users.AnyAsync(u => u.Id == id, TestContext.Current.CancellationToken));
     }
 
     private sealed class FixedUser(Guid id) : ICurrentUser

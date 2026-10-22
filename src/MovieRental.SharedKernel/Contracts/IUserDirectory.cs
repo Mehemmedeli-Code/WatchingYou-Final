@@ -18,4 +18,4 @@ public interface IUserDirectory
 }
 
 /// <param name="Username">The public handle (/u/{name}), when the person has one.</param>
-public sealed record UserContact(Guid Id, string FullName, string Email, bool ShareOnGlobe = false, string? Username = null, string? AvatarUrl = null);
+public sealed record UserContact(Guid Id, string FullName, string Email, bool ShareOnGlobe = false, string? Username = null, string? AvatarUrl = null, string? Gender = null);

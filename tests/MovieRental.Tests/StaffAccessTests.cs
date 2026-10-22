@@ -43,12 +43,12 @@ public sealed class StaffAccessTests : IAsyncLifetime
             Roles = roles, StaffPinHash = pin is null ? null : _hasher.Hash(pin)
         };
         db.Users.Add(user);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         return user.Id;
     }
 
     private Task<StaffUnlockResult> UnlockAsync(IdentityDbContext db, Guid id, string pin) =>
-        new UnlockStaffHandler(db, new As(id), _hasher, new NoAudit()).Handle(new UnlockStaffCommand(pin), default);
+        new UnlockStaffHandler(db, new As(id), _hasher, new NoAudit()).Handle(new UnlockStaffCommand(pin), TestContext.Current.CancellationToken);
 
     [Fact]
     public async Task The_right_pin_unlocks_and_five_wrong_ones_lock()
@@ -84,15 +84,15 @@ public sealed class StaffAccessTests : IAsyncLifetime
         await using var db = NewContext();
 
         var asAdmin = new SetUserRolesHandler(db, new As(admin, AppRoles.Admin), new NoAudit());
-        Assert.False((await asAdmin.Handle(new SetUserRolesCommand(customer, ["Admin"]), default)).IsSuccess);
-        Assert.True((await asAdmin.Handle(new SetUserRolesCommand(customer, ["Moderator"]), default)).IsSuccess);
-        Assert.False((await asAdmin.Handle(new SetUserRolesCommand(owner, ["Customer"]), default)).IsSuccess);
+        Assert.False((await asAdmin.Handle(new SetUserRolesCommand(customer, ["Admin"]), TestContext.Current.CancellationToken)).IsSuccess);
+        Assert.True((await asAdmin.Handle(new SetUserRolesCommand(customer, ["Moderator"]), TestContext.Current.CancellationToken)).IsSuccess);
+        Assert.False((await asAdmin.Handle(new SetUserRolesCommand(owner, ["Customer"]), TestContext.Current.CancellationToken)).IsSuccess);
         Assert.False((await new SetUserSuspensionHandler(db, new As(admin, AppRoles.Admin), new NoAudit())
-            .Handle(new SetUserSuspensionCommand(owner, true, "no"), default)).IsSuccess);
-        Assert.False((await asAdmin.Handle(new SetUserRolesCommand(customer, ["SuperAdmin"]), default)).IsSuccess);
+            .Handle(new SetUserSuspensionCommand(owner, true, "no"), TestContext.Current.CancellationToken)).IsSuccess);
+        Assert.False((await asAdmin.Handle(new SetUserRolesCommand(customer, ["SuperAdmin"]), TestContext.Current.CancellationToken)).IsSuccess);
 
         var asOwner = new SetUserRolesHandler(db, new As(owner, AppRoles.SuperAdmin, AppRoles.Admin), new NoAudit());
-        Assert.True((await asOwner.Handle(new SetUserRolesCommand(customer, ["Admin"]), default)).IsSuccess);
+        Assert.True((await asOwner.Handle(new SetUserRolesCommand(customer, ["Admin"]), TestContext.Current.CancellationToken)).IsSuccess);
     }
 
     private sealed class As(Guid id, params string[] roles) : ICurrentUser

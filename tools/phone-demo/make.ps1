@@ -27,7 +27,8 @@ try {
     $env:ASPNETCORE_URLS = 'https://localhost:7149'
     Push-Location $hostDir
     try { & $exe --seed-demo-people | Out-Null } finally { Pop-Location }
-    sqlcmd -S $server -d $database -I -Q "UPDATE [identity].Users SET ShareOnGlobe = 1, City = 'Baku' WHERE Email = 'customer@reelandrow.test'" | Out-Null
+    # A man, so the SearchingYou searches for men and the mixed ones are his to join.
+    sqlcmd -S $server -d $database -I -Q "UPDATE [identity].Users SET ShareOnGlobe = 1, City = 'Baku', Gender = 'male' WHERE Email = 'customer@reelandrow.test'" | Out-Null
 
     $env:ASPNETCORE_URLS = 'https://localhost:7142'
     $site = Start-Process -FilePath $exe -WorkingDirectory $hostDir -WindowStyle Hidden -PassThru

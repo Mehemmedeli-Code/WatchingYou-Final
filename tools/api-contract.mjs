@@ -15,6 +15,8 @@
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { logins } from "./test-logins.mjs";   // this machine's test passwords, outside the repository
+import { staffPath } from "./staff-paths.mjs";   // the staff screens' addresses
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // the local dev certificate
 const BASE = process.argv[2] ?? "https://localhost:7140";
@@ -24,10 +26,8 @@ if (new URL(BASE).port === "7139") {
 }
 const LOG = process.argv[3] ?? new URL("../logs/site-output.log", import.meta.url);
 const only = process.argv[4] ? new RegExp(process.argv[4]) : null;   // e.g. "^/api/(auth|admin/users)"
-const STAFF_PIN = process.env.STAFF_PIN ?? "580417";
-const KEY = "/" + (process.env.STAFF_KEY ?? execFileSync("dotnet",
-  ["user-secrets", "list", "--project", new URL("../src/MovieRental.Host", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")],
-  { encoding: "utf8" }).match(/Staff:PathKey = (\S+)/)?.[1]);
+const STAFF_PIN = process.env.STAFF_PIN ?? logins.staffPin;
+const UNLOCK = staffPath("unlock");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // A made-up client address per call (the site trusts loopback as a proxy), so the per-address
@@ -51,7 +51,7 @@ async function login(email, password) {
   return { token: r.json.accessToken, user: r.json.user };
 }
 async function registerAndConfirm(email, password = "Passw0rdTest") {
-  let r = await call("POST", "/api/auth/register", { body: { fullName: "Contract Check", email, password }, headers: X() });
+  let r = await call("POST", "/api/auth/register", { body: { fullName: "Contract Check", email, password, gender: "female" }, headers: X() });
   if (r.status !== 200) throw new Error(`register ${r.status} ${r.text}`);
   await sleep(300);
   const log = readFileSync(LOG, "utf8");
@@ -62,9 +62,9 @@ async function registerAndConfirm(email, password = "Passw0rdTest") {
 }
 const ck = (r) => (r.headers.getSetCookie?.() ?? []);
 async function unlock(u) {
-  const page = await call("GET", KEY + "/unlock", { token: u.token, headers: X() });
+  const page = await call("GET", UNLOCK, { token: u.token, headers: X() });
   const form = /name="__RequestVerificationToken" type="hidden" value="([^"]+)"/.exec(page.text)?.[1];
-  const r = await call("POST", KEY + "/unlock", { token: u.token, cookie: ck(page).map((c) => c.split(";")[0]).join("; "),
+  const r = await call("POST", UNLOCK, { token: u.token, cookie: ck(page).map((c) => c.split(";")[0]).join("; "),
     headers: { ...X(), "Content-Type": "application/x-www-form-urlencoded" },
     raw: new URLSearchParams({ pin: STAFF_PIN, returnUrl: "", __RequestVerificationToken: form ?? "" }).toString() });
   u.staff = ck(r).find((c) => c.startsWith("wy.staff="))?.split(";")[0];
@@ -72,9 +72,9 @@ async function unlock(u) {
   return u;
 }
 
-const admin = await unlock(await login("admin@reelandrow.test", "Admin1234"));
-const security = await unlock(await login("security@reelandrow.test", "Security1234"));
-const customer = await login("customer@reelandrow.test", "Customer1234");
+const admin = await unlock(await login("admin@reelandrow.test", logins.admin));
+const security = await unlock(await login("security@reelandrow.test", logins.security));
+const customer = await login("customer@reelandrow.test", logins.customer);
 
 const stamp = Date.now().toString(36);
 const fan = await registerAndConfirm(`contract-${stamp}@example.test`);

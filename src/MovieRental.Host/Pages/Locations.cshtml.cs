@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 ﻿using Microsoft.EntityFrameworkCore;
 using MovieRental.Modules.Cinema.Persistence;
 
@@ -5,6 +6,7 @@ namespace MovieRental.Host.Pages;
 
 /// <summary>Instagram's "Locations", for a cinema: every venue with its address and halls, read
 /// from the same tables the seat maps use, so the page never disagrees with the booking screens.</summary>
+[AllowAnonymous]   // the page itself decides who may see what (see AppPageModel)
 public sealed class LocationsModel(IPageShellFactory shell, CinemaDbContext db) : AppPageModel
 {
     public sealed record HallRow(string Name, string? Format, int Seats);

@@ -57,9 +57,9 @@ const apiBase = (read(API_KEY) || (fromLan ? built.replace("localhost", window.l
 if (apiBase) {
   const fix = (el: Element) => {
     const src = el.getAttribute("src");
-    if (src && (src.startsWith("/api/") || src.startsWith("/icons/"))) el.setAttribute("src", apiBase + src);
+    if (src && (src.startsWith("/api/") || src.startsWith("/icons/") || src.startsWith("/app/"))) el.setAttribute("src", apiBase + src);
   };
-  const scan = (root: ParentNode) => root.querySelectorAll("img[src^='/api/'], img[src^='/icons/'], video[src^='/api/'], source[src^='/api/']").forEach(fix);
+  const scan = (root: ParentNode) => root.querySelectorAll("img[src^='/api/'], img[src^='/icons/'], img[src^='/app/'], video[src^='/api/'], source[src^='/api/']").forEach(fix);
   new MutationObserver((changes) => {
     for (const change of changes) {
       if (change.type === "attributes") fix(change.target as Element);

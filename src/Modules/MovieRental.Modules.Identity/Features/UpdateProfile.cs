@@ -16,7 +16,7 @@ namespace MovieRental.Modules.Identity.Features;
 
 /// <param name="Username">Null leaves the handle as it is, so older callers that only send a
 /// name keep working.</param>
-public sealed record UpdateProfileCommand(string FullName, string? Username = null, bool? IsPrivate = null, string? Bio = null) : ICommand<Result<UserProfileResponse>>;
+public sealed record UpdateProfileCommand(string FullName, string? Username = null, bool? IsPrivate = null, string? Bio = null, string? Gender = null) : ICommand<Result<UserProfileResponse>>;
 
 internal sealed class UpdateProfileValidator : AbstractValidator<UpdateProfileCommand>
 {
@@ -30,6 +30,8 @@ internal sealed class UpdateProfileValidator : AbstractValidator<UpdateProfileCo
             .When(x => x.Username is not null)
             .WithMessage("That username is taken.");
         RuleFor(x => x.Bio).MaximumLength(150);
+        RuleFor(x => x.Gender).Must(Genders.IsValid).When(x => x.Gender is not null)
+            .WithMessage("Choose whether you are a man or a woman.");
     }
 }
 
@@ -59,6 +61,14 @@ internal sealed class UpdateProfileHandler(IdentityDbContext db, ICurrentUser cu
             if (!isPrivate)
                 await db.Follows.Where(f => f.FolloweeId == user.Id && !f.IsAccepted)
                     .ExecuteUpdateAsync(s => s.SetProperty(f => f.IsAccepted, true), ct);
+        }
+
+        // Chosen once: an account that registered before it was asked picks it here, and nobody
+        // switches it later to slip into the other side's searches.
+        if (command.Gender is not null && command.Gender != user.Gender)
+        {
+            if (user.Gender is not null) return Result.Failure<UserProfileResponse>(Error.Validation("Gender cannot be changed once chosen."));
+            user.Gender = command.Gender;
         }
 
         // Null leaves the bio alone; an empty string clears it.
@@ -97,5 +107,5 @@ public static class UpdateProfileEndpoint
             })
         .WithName("UpdateProfile").WithTags("Auth").RequireAuthorization()
         .WithSummary("Change my name, username, privacy or bio")
-        .WithDescription("Fields left out (null) stay as they are; `fullName` is always needed. 409: the username is taken.");
+        .WithDescription("Fields left out (null) stay as they are; `fullName` is always needed. `gender` (\"female\"/\"male\") is set once. 409: the username is taken.");
 }

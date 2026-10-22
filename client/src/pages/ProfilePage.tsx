@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Clapperboard, Eye, Globe2, Grid3x3, Lock, MessageCircle, Settings, Sparkles, Upload, UserRound } from "lucide-react";
+import { Clapperboard, Eye, Globe2, Grid3x3, Lock, MessageCircle, Plus, Settings, Sparkles, Upload, UserRound } from "lucide-react";
+import { AvatarSheet, avatarSrc } from "@/components/AvatarSheet";
 import { Empty, Spinner } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -7,7 +8,7 @@ import { useAuth } from "@/components/useAuth";
 import { FollowButton, FollowList, toggleFollow, type PersonCard } from "@/components/FollowList";
 import { DirectChat } from "@/components/DirectChat";
 import { VideoPlayer } from "@/components/VideoPlayer";
-import { ApiError, get, post, put, query } from "@/lib/api";
+import { ApiError, auth, get, post, put, query } from "@/lib/api";
 import { t, formatWhen } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -66,6 +67,7 @@ export default function ProfilePage() {
   const [playing, setPlaying] = useState<ProfileFilm | null>(null);
   const [openList, setOpenList] = useState<"followers" | "following" | null>(null);
   const [chat, setChat] = useState(false);
+  const [picking, setPicking] = useState(false);
 
   const loadProfile = useCallback(async () => {
     if (!handle) return;
@@ -153,10 +155,16 @@ export default function ProfilePage() {
       <header className="grid grid-cols-[auto_1fr] items-center gap-5 md:gap-12 md:px-8">
         <div className="relative">
           <div className="rounded-full bg-gradient-to-tr from-accent-dim via-accent to-accent-bright p-[3px]">
-            <img src={profile.avatarUrl || "/icons/avatar.svg"} alt=""
+            <img src={avatarSrc(profile.avatarUrl)} alt=""
               className="h-20 w-20 rounded-full border-4 border-surface bg-surface object-cover md:h-36 md:w-36" />
           </div>
-          {profile.isOnline ? (
+          {/* My own picture: the "+" in the corner changes it, as on Instagram. */}
+          {profile.isMe ? (
+            <button type="button" onClick={() => setPicking(true)} aria-label={t("profile.changePicture", "Change picture")}
+              className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full border-[3px] border-surface bg-accent text-surface hover:bg-accent-bright md:bottom-2 md:right-2 md:h-9 md:w-9">
+              <Plus size={16} strokeWidth={3} aria-hidden />
+            </button>
+          ) : profile.isOnline ? (
             <span className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-[3px] border-surface bg-good md:bottom-3 md:right-3 md:h-5 md:w-5"
               title={t("people.online", "Online")} />
           ) : null}
@@ -266,6 +274,8 @@ export default function ProfilePage() {
       ) : null}
 
       {openList ? <FollowList userId={profile.id} kind={openList} onClose={() => setOpenList(null)} onChanged={loadProfile} /> : null}
+      {profile.isMe ? <AvatarSheet open={picking} onClose={() => setPicking(false)}
+        onDone={() => setProfile((p) => p && { ...p, avatarUrl: auth.user?.avatarUrl })} /> : null}
       {chat ? <DirectChat userId={profile.id} onClose={() => setChat(false)} /> : null}
     </section>
   );

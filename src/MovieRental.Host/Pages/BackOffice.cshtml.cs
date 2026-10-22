@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using MovieRental.Host.Infrastructure;
 using MovieRental.SharedKernel.Security;
 
@@ -10,6 +11,7 @@ namespace MovieRental.Host.Pages;
 ///
 /// Guarded on the page as well as on every API it calls.
 /// </summary>
+[AllowAnonymous]   // the page itself decides who may see what (see AppPageModel)
 public sealed class BackOfficeModel(IPageShellFactory shell) : StaffPageModel
 {
     protected override string[] AllowedRoles => [AppRoles.Cashier, AppRoles.Admin];

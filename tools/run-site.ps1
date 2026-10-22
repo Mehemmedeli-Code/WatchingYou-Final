@@ -39,8 +39,10 @@ function Start-Database {
 # The same settings the project's launch profile uses.
 $env:ASPNETCORE_ENVIRONMENT = "Development"
 # Every address of this machine, not only localhost, so a phone on the same Wi-Fi can reach it
-# (Windows Firewall still decides whether it may; see tools\test-accounts.md).
+# (Windows Firewall still decides whether it may; see README.md).
 $env:ASPNETCORE_URLS = "https://*:7139;http://*:5139"
+# The owner is e-mailed when a nightly check finds a problem (see HealthReports.cs).
+$env:Health__MailOwner = "true"
 
 # A site left over from before would hold the port.
 Get-Process MovieRental.Host -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -60,6 +62,18 @@ try {
         while (-not $site.WaitForExit(600000)) {
             $result = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "backup-db.ps1") 2>&1
             if ($LASTEXITCODE -ne 0) { Say "Backup FAILED: $result" } elseif ($result) { Say "$result" }
+
+            # The full API check, every night after 3 o'clock, on its own throwaway copy of the site
+            # (tools\api-check.ps1). Its report goes where the admin panel and the owner's e-mail
+            # read it; this log only says it ran.
+            $report = Join-Path $env:USERPROFILE "WatchingYouBackups\checks\api-check.json"
+            $last = if (Test-Path $report) { (Get-Item $report).LastWriteTime } else { [datetime]::MinValue }
+            if ((Get-Date).Hour -ge 3 -and $last.Date -lt (Get-Date).Date) {
+                Say "Nightly API check starting."
+                & dotnet build $hostDir -c Debug -p:SkipClientBuild=true --nologo -v q 2>&1 | Out-Null
+                & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "api-check.ps1") 2>&1 | Out-Null
+                Say "Nightly API check finished (exit code $LASTEXITCODE)."
+            }
         }
         Say "The site stopped (exit code $($site.ExitCode)); starting it again in 5 seconds."
         Start-Sleep 5

@@ -89,7 +89,7 @@ export default function BackOfficeApp() {
         <div className="space-y-3">
           <ShieldCheck className="mx-auto text-ink-mute" size={32} />
           <p className="font-display text-xl text-ink">{t("bo.staffOnly", "Staff only")}</p>
-          <a className="text-sm text-accent hover:underline" href="/account?returnUrl=%2Fbackoffice">{t("nav.signIn", "Sign in")}</a>
+          <a className="text-sm text-accent hover:underline" href={`/account?returnUrl=${encodeURIComponent(window.location.pathname + window.location.hash)}`}>{t("nav.signIn", "Sign in")}</a>
         </div>
       </div>
     );
@@ -136,7 +136,8 @@ export default function BackOfficeApp() {
       <div className="mt-auto space-y-1 border-t border-line pt-4 text-sm">
         {isAdmin ? (
           <>
-            <a href={window.location.pathname.replace(/\/backoffice\/?$/, "/admin")} className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-ink-mute hover:bg-line/40 hover:text-ink">
+            {/* The admin screen has an address of its own; the page says it (data-admin). */}
+            <a href={document.getElementById("root")?.dataset.admin ?? "/"} className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-ink-mute hover:bg-line/40 hover:text-ink">
               <ExternalLink size={15} />{t("bo.contentAdmin", "Catalogue & users")}
             </a>
             <a href="/swagger" className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-ink-mute hover:bg-line/40 hover:text-ink">

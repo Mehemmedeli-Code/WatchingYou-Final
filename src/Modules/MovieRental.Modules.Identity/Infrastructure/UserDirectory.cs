@@ -10,7 +10,7 @@ internal sealed class UserDirectory(IdentityDbContext db) : IUserDirectory
         await db.Users
             .AsNoTracking()
             .Where(u => u.Id == userId)
-            .Select(u => new UserContact(u.Id, u.FullName, u.Email, u.ShareOnGlobe, u.Username, u.AvatarUrl))
+            .Select(u => new UserContact(u.Id, u.FullName, u.Email, u.ShareOnGlobe, u.Username, u.AvatarUrl, u.Gender))
             .FirstOrDefaultAsync(ct);
 
     public async Task<IReadOnlyDictionary<Guid, UserContact>> GetContactsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct = default)
@@ -20,12 +20,12 @@ internal sealed class UserDirectory(IdentityDbContext db) : IUserDirectory
         return await db.Users
             .AsNoTracking()
             .Where(u => ids.Contains(u.Id))
-            .Select(u => new UserContact(u.Id, u.FullName, u.Email, u.ShareOnGlobe, u.Username, u.AvatarUrl))
+            .Select(u => new UserContact(u.Id, u.FullName, u.Email, u.ShareOnGlobe, u.Username, u.AvatarUrl, u.Gender))
             .ToDictionaryAsync(u => u.Id, ct);
     }
 
     public Task<bool> MayViewProfileAsync(Guid viewerId, Guid ownerId, CancellationToken ct = default) =>
-        Features.PeopleEndpoints.MayViewAsync(ownerId, db, viewerId, ct);
+        Features.PeopleReads.MayViewAsync(ownerId, db, viewerId, ct);
 
     public async Task<IReadOnlySet<Guid>> PrivateAccountsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct = default) =>
         userIds.Count == 0 ? new HashSet<Guid>()

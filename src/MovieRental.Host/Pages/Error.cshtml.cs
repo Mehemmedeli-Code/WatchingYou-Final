@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MovieRental.Host.Infrastructure.Localization;
 
@@ -9,6 +10,7 @@ namespace MovieRental.Host.Pages;
 /// That is deliberate: the times you most need an error page are the times the bundle failed
 /// to load. A page that depends on the same JavaScript that just broke is not an error page.
 /// </summary>
+[AllowAnonymous]   // the page itself decides who may see what (see AppPageModel)
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class ErrorModel(IPageShellFactory shell, ILanguageContext language) : AppPageModel
 {

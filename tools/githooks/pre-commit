@@ -5,7 +5,8 @@
 #   client code (client/src/)  -> the type checker and the smoke test pass
 #   texts (client/src/, locales/) -> the translation audit finds nothing
 # A failing check stops the commit and shows why. The full API check (tools/api-check.ps1,
-# a few minutes) is still run before each deploy, not on every commit.
+# a few minutes) runs before every deploy (tools/deploy.ps1 will not deploy without it) and
+# every night (tools/run-site.ps1), not on every commit.
 # `git commit --no-verify` skips this; keep that for emergencies.
 
 staged=$(git diff --cached --name-only --diff-filter=ACMRD)

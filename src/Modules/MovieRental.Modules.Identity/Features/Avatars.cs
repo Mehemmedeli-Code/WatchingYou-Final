@@ -4,9 +4,83 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using MovieRental.Modules.Identity.Persistence;
+using MovieRental.SharedKernel.Cqrs;
+using MovieRental.SharedKernel.Results;
 using MovieRental.SharedKernel.Security;
 
 namespace MovieRental.Modules.Identity.Features;
+
+/// <summary>A picture already checked by the endpoint (size, and a JPEG/PNG/WebP by its bytes).</summary>
+public sealed record SetAvatarCommand(IFormFile File, string Extension) : ICommand<Result<UserProfileResponse>>;
+
+internal sealed class SetAvatarHandler(IdentityDbContext db, ICurrentUser currentUser, IHostEnvironment environment)
+    : ICommandHandler<SetAvatarCommand, Result<UserProfileResponse>>
+{
+    public async Task<Result<UserProfileResponse>> Handle(SetAvatarCommand command, CancellationToken ct)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.RequireId(), ct);
+        if (user is null) return Result.Failure<UserProfileResponse>(Error.NotFound("Account"));
+
+        var folder = AvatarEndpoints.Folder(environment);
+        Directory.CreateDirectory(folder);
+        var name = $"{user.Id:N}-{Guid.NewGuid():N}{command.Extension}";
+        await using (var target = File.Create(Path.Combine(folder, name)))
+            await command.File.CopyToAsync(target, ct);
+
+        AvatarEndpoints.DeleteOwnFile(environment, user.Id, user.AvatarUrl);
+        user.AvatarUrl = $"/api/avatars/{name}";
+        await db.SaveChangesAsync(ct);
+        return user.ToProfile();
+    }
+}
+
+public sealed record RemoveAvatarCommand : ICommand<Result<UserProfileResponse>>;
+
+internal sealed class RemoveAvatarHandler(IdentityDbContext db, ICurrentUser currentUser, IHostEnvironment environment)
+    : ICommandHandler<RemoveAvatarCommand, Result<UserProfileResponse>>
+{
+    public async Task<Result<UserProfileResponse>> Handle(RemoveAvatarCommand command, CancellationToken ct)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.RequireId(), ct);
+        if (user is null) return Result.Failure<UserProfileResponse>(Error.NotFound("Account"));
+        AvatarEndpoints.DeleteOwnFile(environment, user.Id, user.AvatarUrl);
+        // Removing leaves the plain grey figure, not the eye: the eye is what a new account
+        // starts with, and once taken away it does not come back by itself.
+        user.AvatarUrl = AvatarEndpoints.BlankAvatar;
+        await db.SaveChangesAsync(ct);
+        return user.ToProfile();
+    }
+}
+
+/// <summary>A country's flag as the picture; the code is checked against the flags the site has.</summary>
+public sealed record SetFlagAvatarCommand(string Country) : ICommand<Result<UserProfileResponse>>;
+
+internal sealed class SetFlagAvatarHandler(IdentityDbContext db, ICurrentUser currentUser, IHostEnvironment environment)
+    : ICommandHandler<SetFlagAvatarCommand, Result<UserProfileResponse>>
+{
+    public async Task<Result<UserProfileResponse>> Handle(SetFlagAvatarCommand command, CancellationToken ct)
+    {
+        var code = command.Country.ToLowerInvariant();
+        if (!System.Text.RegularExpressions.Regex.IsMatch(code, "^[a-z]{2}$")
+            || !File.Exists(Path.Combine(environment.ContentRootPath, "wwwroot", "app", "flags", code + ".svg")))
+            return Result.Failure<UserProfileResponse>(Error.Validation("There is no flag for that country."));
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.RequireId(), ct);
+        if (user is null) return Result.Failure<UserProfileResponse>(Error.NotFound("Account"));
+        AvatarEndpoints.DeleteOwnFile(environment, user.Id, user.AvatarUrl);
+        user.AvatarUrl = $"/app/flags/{code}.svg";
+        await db.SaveChangesAsync(ct);
+        return user.ToProfile();
+    }
+}
+
+/// <summary>The signed-in person's picture address; null for none, or nobody signed in.</summary>
+public sealed record MyAvatarQuery : IQuery<string?>;
+
+internal sealed class MyAvatarHandler(IdentityDbContext db, ICurrentUser currentUser) : IQueryHandler<MyAvatarQuery, string?>
+{
+    public async Task<string?> Handle(MyAvatarQuery query, CancellationToken ct) =>
+        currentUser.Id is { } id ? await db.Users.Where(u => u.Id == id).Select(u => u.AvatarUrl).FirstOrDefaultAsync(ct) : null;
+}
 
 // Profile pictures. Small, local and boring on purpose:
 //  - the type comes from the file's first bytes, never from what the browser claims, and the
@@ -18,11 +92,11 @@ public static class AvatarEndpoints
 {
     private const long MaxBytes = 2 * 1024 * 1024;
     private const string DefaultAvatar = "/icons/avatar.svg";   // the eye, close up
+    internal const string BlankAvatar = "/icons/avatar-blank.svg";   // after "remove": a grey figure
 
     public static void Map(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/auth/avatar", async (HttpRequest request, IdentityDbContext db, ICurrentUser currentUser,
-                IHostEnvironment environment, CancellationToken ct) =>
+        app.MapPost("/api/auth/avatar", async (HttpRequest request, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 if (!request.HasFormContentType) return Results.BadRequest(Error("Send the picture as multipart/form-data."));
                 var file = (await request.ReadFormAsync(ct)).Files.GetFile("file");
@@ -35,19 +109,7 @@ public static class AvatarEndpoints
                 var extension = ExtensionOf(header);
                 if (extension is null) return Results.BadRequest(Error("Use a JPEG, PNG or WebP picture."));
 
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.RequireId(), ct);
-                if (user is null) return Results.NotFound(MovieRental.SharedKernel.Results.Error.NotFound("Account"));
-
-                var folder = Folder(environment);
-                Directory.CreateDirectory(folder);
-                var name = $"{user.Id:N}-{Guid.NewGuid():N}{extension}";
-                await using (var target = File.Create(Path.Combine(folder, name)))
-                    await file.CopyToAsync(target, ct);
-
-                DeleteOwnFile(environment, user.Id, user.AvatarUrl);
-                user.AvatarUrl = $"/api/avatars/{name}";
-                await db.SaveChangesAsync(ct);
-                return Results.Ok(user.ToProfile());
+                return (await dispatcher.Send(new SetAvatarCommand(file, extension), ct)).ToHttp();
             })
             .WithName("UploadAvatar").WithTags("Auth").RequireAuthorization()
             .WithSummary("Upload my profile picture")
@@ -61,28 +123,28 @@ public static class AvatarEndpoints
             .RequireRateLimiting(AppPolicies.WriteRateLimit)
             .DisableAntiforgery();
 
-        app.MapDelete("/api/auth/avatar", async (IdentityDbContext db, ICurrentUser currentUser,
-                IHostEnvironment environment, CancellationToken ct) =>
-            {
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.RequireId(), ct);
-                if (user is null) return Results.NotFound(MovieRental.SharedKernel.Results.Error.NotFound("Account"));
-                DeleteOwnFile(environment, user.Id, user.AvatarUrl);
-                user.AvatarUrl = null;
-                await db.SaveChangesAsync(ct);
-                return Results.Ok(user.ToProfile());
-            })
+        app.MapDelete("/api/auth/avatar", async (IDispatcher dispatcher, CancellationToken ct) =>
+                (await dispatcher.Send(new RemoveAvatarCommand(), ct)).ToHttp())
             .WithName("RemoveAvatar").WithTags("Auth").RequireAuthorization()
-            .WithSummary("Remove my profile picture (back to the default eye)")
+            .WithSummary("Remove my profile picture (a plain grey figure from then on)")
             .Produces<UserProfileResponse>()
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status404NotFound);
+
+        app.MapPut("/api/auth/avatar/flag/{country}", async (string country, IDispatcher dispatcher, CancellationToken ct) =>
+                (await dispatcher.Send(new SetFlagAvatarCommand(country), ct)).ToHttp())
+            .WithName("SetFlagAvatar").WithTags("Auth").RequireAuthorization()
+            .WithSummary("Use a country's flag as my profile picture")
+            .WithDescription("`country` is a two-letter code (az, tr, de…). Answers with the updated profile.")
+            .Produces<UserProfileResponse>()
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status400BadRequest)
             .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status404NotFound);
 
         // The header's round picture. One stable URL for the page to use, whoever is signed in:
         // it redirects to their picture, or to the eye logo for no picture or no session.
-        app.MapGet("/api/avatars/me", async (HttpContext http, IdentityDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
+        app.MapGet("/api/avatars/me", async (HttpContext http, IDispatcher dispatcher, CancellationToken ct) =>
             {
                 http.Response.Headers.CacheControl = "no-store";
-                if (currentUser.Id is not { } id) return Results.Redirect(DefaultAvatar);
-                var url = await db.Users.Where(u => u.Id == id).Select(u => u.AvatarUrl).FirstOrDefaultAsync(ct);
+                var url = await dispatcher.Ask(new MyAvatarQuery(), ct);
                 return Results.Redirect(string.IsNullOrEmpty(url) ? DefaultAvatar : url);
             })
             .WithName("MyAvatar").WithTags("Auth").AllowAnonymous()
@@ -107,10 +169,10 @@ public static class AvatarEndpoints
             .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status404NotFound);
     }
 
-    private static string Folder(IHostEnvironment environment) =>
+    internal static string Folder(IHostEnvironment environment) =>
         Path.Combine(environment.ContentRootPath, "uploads", "avatars");
 
-    private static void DeleteOwnFile(IHostEnvironment environment, Guid owner, string? url)
+    internal static void DeleteOwnFile(IHostEnvironment environment, Guid owner, string? url)
     {
         if (url is null || !url.StartsWith("/api/avatars/", StringComparison.Ordinal)) return;
         // Stored names start with the owner's id: never delete a file that is someone else's,
@@ -130,6 +192,5 @@ public static class AvatarEndpoints
     /// <summary>The upload form, as the API reference shows it.</summary>
     private sealed record AvatarForm(IFormFile File);
 
-    private static MovieRental.SharedKernel.Results.Error Error(string message) =>
-        MovieRental.SharedKernel.Results.Error.Validation(message);
+    private static Error Error(string message) => MovieRental.SharedKernel.Results.Error.Validation(message);
 }

@@ -229,7 +229,8 @@ public static class ApiReference
             }));
 
         // Same URL as before, so it stays behind the Admin gate above.
-        app.MapOpenApi("/swagger/{documentName}/swagger.json");
+        // Open to the endpoint layer; the gate above lets only unlocked admins this far.
+        app.MapOpenApi("/swagger/{documentName}/swagger.json").AllowAnonymous();
         app.UseSwaggerUI(options =>
         {
             options.SwaggerEndpoint("/swagger/v1/swagger.json", "WatchingYou API v1");

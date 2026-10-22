@@ -471,7 +471,7 @@ function PresencePanel({ onSaved }: { onSaved: () => void }) {
             <Button size="sm" variant="outline" disabled={busy} onClick={() => fileInput.current?.click()}>
               <Camera size={14} aria-hidden /> {t("profile.changePicture", "Change picture")}
             </Button>
-            {avatar ? (
+            {avatar && avatar !== "/icons/avatar-blank.svg" ? (
               <Button size="sm" variant="ghost" disabled={busy} onClick={() => void picture(null)}>
                 <Trash2 size={14} aria-hidden /> {t("profile.removePicture", "Remove")}
               </Button>

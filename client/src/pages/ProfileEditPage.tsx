@@ -1,12 +1,11 @@
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, AtSign, Camera, Check, Lock, Trash2, UserRound, Users, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, AtSign, Camera, Check, Lock, UserRound, Users } from "lucide-react";
+import { AvatarSheet, avatarSrc } from "@/components/AvatarSheet";
 import { Empty, Notice } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { useAuth } from "@/components/useAuth";
-import { auth, get, post, put, del, postForm, query, ApiError, type UserProfile } from "@/lib/api";
+import { auth, get, post, put, del, query, ApiError, type UserProfile } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { FollowList, PersonRow, flip, toggleFollow, type PersonCard, type PeoplePage } from "@/components/FollowList";
@@ -25,18 +24,8 @@ export default function ProfileEditPage() {
   const [requests, setRequests] = useState<{ person: PersonCard; accepted: boolean }[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
   const [openList, setOpenList] = useState<"followers" | "following" | null>(null);
-  // A picture that has been chosen but not saved: shown in the confirm sheet until the
-  // person says yes (upload) or no (nothing changes).
-  const [pending, setPending] = useState<{ file: File; url: string } | null>(null);
-
-  useEffect(() => {
-    if (!pending) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") discard(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [pending]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [picking, setPicking] = useState(false);
 
   useEffect(() => {
     setFullName(user?.fullName ?? "");
@@ -77,7 +66,7 @@ export default function ProfileEditPage() {
   function showInHeader(profile: UserProfile) {
     auth.setUser(profile);
     const header = document.querySelector<HTMLImageElement>(".rr-avatar img");
-    if (header) header.src = profile.avatarUrl || "/icons/avatar.svg";
+    if (header) header.src = avatarSrc(profile.avatarUrl);
   }
 
   async function run(work: () => Promise<UserProfile>, done: string) {
@@ -91,28 +80,6 @@ export default function ProfileEditPage() {
     } finally {
       setBusy(false);
     }
-  }
-
-  // Choosing a file only previews it; nothing is uploaded until the sheet is confirmed.
-  function choose(file: File | undefined) {
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      setMessage({ tone: "error", text: t("profile.pictureTooBig", "The picture must be 2 MB or smaller.") });
-      return;
-    }
-    setPending({ file, url: URL.createObjectURL(file) });
-  }
-
-  function discard() {
-    setPending((current) => { if (current) URL.revokeObjectURL(current.url); return null; });
-  }
-
-  function savePicture() {
-    if (!pending) return;
-    const form = new FormData();
-    form.append("file", pending.file);
-    discard();
-    void run(() => postForm<UserProfile>("/api/auth/avatar", form), t("profile.pictureSaved", "Picture updated."));
   }
 
   async function answer(person: PersonCard, accept: boolean) {
@@ -160,7 +127,7 @@ export default function ProfileEditPage() {
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-gradient-to-r from-accent/10 via-surface-raised to-surface-raised p-5">
         <div className="flex min-w-0 items-center gap-4">
           <div className="shrink-0 rounded-full bg-gradient-to-tr from-accent-dim via-accent to-accent-bright p-[3px]">
-            <img src={user.avatarUrl || "/icons/avatar.svg"} alt="" className="h-16 w-16 rounded-full border-[3px] border-surface bg-surface object-cover" />
+            <img src={avatarSrc(user.avatarUrl)} alt="" className="h-16 w-16 rounded-full border-[3px] border-surface bg-surface object-cover" />
           </div>
           <div className="min-w-0">
             <p className="truncate font-semibold text-ink">{user.username ? `@${user.username}` : user.fullName}</p>
@@ -173,21 +140,10 @@ export default function ProfileEditPage() {
             ) : null}
           </div>
         </div>
-        <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
-          onChange={(e) => { choose(e.target.files?.[0]); e.target.value = ""; }} />
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" disabled={busy} onClick={() => fileInput.current?.click()}>
-            <Camera size={14} aria-hidden /> {t("profile.changePicture", "Change picture")}
-          </Button>
-          {user.avatarUrl ? (
-            <Button size="sm" variant="outline" disabled={busy}
-              onClick={() => void run(() => del<UserProfile>("/api/auth/avatar"), t("profile.pictureRemoved", "Picture removed."))}>
-              <Trash2 size={14} aria-hidden /> {t("profile.removePicture", "Remove")}
-            </Button>
-          ) : null}
-        </div>
+        <Button size="sm" disabled={busy} onClick={() => setPicking(true)}>
+          <Camera size={14} aria-hidden /> {t("profile.changePicture", "Change picture")}
+        </Button>
       </div>
-      <p className="mt-2 px-1 text-xs text-ink-mute">{t("profile.pictureHint", "JPEG, PNG or WebP, up to 2 MB.")}</p>
 
       <form
         className="mt-6 space-y-5 rounded-2xl border border-line bg-surface-raised p-6"
@@ -267,36 +223,7 @@ export default function ProfileEditPage() {
 
       {openList ? <FollowList userId={user.id} kind={openList} onClose={() => setOpenList(null)} onChanged={loadCounts} /> : null}
 
-      {createPortal(
-        <AnimatePresence>
-          {pending ? (
-            <motion.div
-              key="backdrop"
-              className="fixed inset-0 z-[95] flex items-end justify-center bg-black/70"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={discard}
-            >
-              <motion.div
-                role="dialog"
-                aria-modal="true"
-                aria-label={t("profile.confirmPicture", "Use this picture?")}
-                className="w-full max-w-md rounded-t-2xl border border-b-0 border-line bg-surface-raised px-6 pb-8 pt-6 text-center"
-                initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-                transition={{ type: "spring", stiffness: 380, damping: 34 }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <img src={pending.url} alt="" className="mx-auto h-40 w-40 rounded-full border-2 border-accent object-cover" />
-                <p className="mt-4 font-display text-lg text-ink">{t("profile.confirmPicture", "Use this picture?")}</p>
-                <div className="mt-5 grid grid-cols-2 gap-3">
-                  <Button variant="outline" onClick={discard}><X size={15} aria-hidden /> {t("profile.no", "No")}</Button>
-                  <Button disabled={busy} onClick={savePicture}><Check size={15} aria-hidden /> {t("profile.save", "Save")}</Button>
-                </div>
-              </motion.div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>,
-        document.body,
-      )}
+      <AvatarSheet open={picking} onClose={() => setPicking(false)} onDone={(text, ok) => setMessage({ tone: ok ? "ok" : "error", text })} />
     </section>
   );
 }

@@ -20,8 +20,12 @@ namespace MovieRental.Host.Infrastructure;
 /// </summary>
 public static class DemoPeople
 {
-    public const string Password = "Demo12345";
+    /// <summary>This machine's own (TestLogins), never written in the repository.</summary>
+    public static string Password => TestLogins.Current.Demo;
     private const string Marker = ".wydemo@gmail.com";
+
+    private static readonly HashSet<string> Women =
+        ["aysel", "nigar", "leyla", "sabina", "zeynep", "elif", "aliya", "aigerim", "nino", "anna", "lena", "sophia", "olena"];
 
     private sealed record Person(string Username, string FullName, string Bio, string City, string Country,
         double Lat, double Lon, bool IsPrivate = false);
@@ -103,6 +107,7 @@ public static class DemoPeople
             Username = p.Username,
             Bio = p.Bio,
             IsPrivate = p.IsPrivate,
+            Gender = Women.Contains(p.Username.Split('.')[0]) ? "female" : "male",
             PasswordHash = hash,
             IsEmailConfirmed = true,
             ShareOnGlobe = true,
@@ -211,7 +216,7 @@ public static class DemoPeople
         }
         await media.SaveChangesAsync();
 
-        Console.WriteLine($"Added {users.Count} demo people. Sign in as e.g. {users[0].Email} with the password in DemoPeople.cs.");
+        Console.WriteLine($"Added {users.Count} demo people. Sign in as e.g. {users[0].Email} with the demo password in {TestLogins.FilePath}.");
     }
 
     public static async Task RemoveAsync(IServiceProvider services)

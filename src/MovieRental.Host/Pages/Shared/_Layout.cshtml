@@ -95,7 +95,11 @@
            only way on is back to the welcome page, where Watching PRO is explained. *@
         @if (view.IsSignedIn)
         {
-            <nav class="rr-nav" aria-label="@(T["nav.catalogue"])">
+            @* Narrow windows (a phone, or a zoomed-in desktop): the menu folds behind this. *@
+            <button type="button" class="rr-burger" aria-expanded="false" aria-controls="rr-menu" aria-label="@T["bo.openMenu"]">
+                <span></span><span></span><span></span>
+            </button>
+            <nav id="rr-menu" class="rr-nav rr-nav--menu" aria-label="@(T["nav.catalogue"])">
                 @foreach (var item in view.Nav)
                 {
                     <a href="@item.Href" class="@(item.IsCurrent ? "is-current" : null)">@item.Label</a>
@@ -182,6 +186,17 @@
         document.querySelectorAll("select[data-nav-select]").forEach(function (select) {
             select.addEventListener("change", function () { location.href = select.value; });
         });
+        // The burger opens and closes the menu; Escape closes it too.
+        var burger = document.querySelector(".rr-burger");
+        if (burger) {
+            var header = burger.closest(".rr-header");
+            var setOpen = function (open) {
+                header.classList.toggle("is-open", open);
+                burger.setAttribute("aria-expanded", open ? "true" : "false");
+            };
+            burger.addEventListener("click", function () { setOpen(!header.classList.contains("is-open")); });
+            document.addEventListener("keydown", function (e) { if (e.key === "Escape") setOpen(false); });
+        }
         // On a phone the footer-page tabs are one sideways row: bring the current one into view.
         var currentTab = document.querySelector(".rr-info-tabs .is-current");
         if (currentTab) {

@@ -201,6 +201,28 @@ internal sealed class GetMessageOverviewHandler(IdentityDbContext db, ICurrentUs
 }
 
 /// <param name="Before">Only messages older than this: the page above the one already shown.</param>
+/// <summary>Opening a conversation marks what the other person wrote as read. Its own command,
+/// sent before the read: a query never writes.</summary>
+public sealed record MarkConversationReadCommand(Guid OtherUserId) : ICommand<Result>;
+
+internal sealed class MarkConversationReadHandler(IdentityDbContext db, ICurrentUser currentUser)
+    : ICommandHandler<MarkConversationReadCommand, Result>
+{
+    public async Task<Result> Handle(MarkConversationReadCommand command, CancellationToken ct)
+    {
+        var me = currentUser.RequireId();
+        var (low, high) = DirectThread.Pair(me, command.OtherUserId);
+        // Marking messages read is a set-based update: the window polls, and a tracked write on
+        // every poll is how a chat starts throwing concurrency errors. A request is not "read"
+        // until it is accepted: the writer's ticks stay single while it waits.
+        await db.DirectMessages
+            .Where(m => m.Thread!.LowUserId == low && m.Thread.HighUserId == high && m.Thread.RequestedById == null
+                        && m.SenderId != me && m.SeenAtUtc == null)
+            .ExecuteUpdateAsync(set => set.SetProperty(m => m.SeenAtUtc, DateTime.UtcNow), ct);
+        return Result.Success();
+    }
+}
+
 public sealed record GetConversationQuery(Guid OtherUserId, DateTime? Before = null) : IQuery<DirectConversation?>;
 
 internal sealed class GetConversationHandler(IdentityDbContext db, ICurrentUser currentUser)
@@ -235,16 +257,6 @@ internal sealed class GetConversationHandler(IdentityDbContext db, ICurrentUser 
         // any user id used to return both.
         if (thread is null && !other.ShareOnGlobe) return null;
         var theyWrote = thread is not null && await db.DirectMessages.AnyAsync(m => m.ThreadId == thread.Id && m.SenderId == other.Id, ct);
-
-        // Marking messages read is a set-based update: the window polls, and a tracked write on
-        // every poll is how a chat starts throwing concurrency errors. A request is not "read"
-        // until it is accepted: the writer's ticks stay single while it waits.
-        if (thread is not null && thread.RequestedById is null)
-        {
-            await db.DirectMessages
-                .Where(m => m.ThreadId == thread.Id && m.SenderId != me && m.SeenAtUtc == null)
-                .ExecuteUpdateAsync(set => set.SetProperty(m => m.SeenAtUtc, DateTime.UtcNow), ct);
-        }
 
         var blockedByMe = await db.UserBlocks.AsNoTracking()
             .AnyAsync(b => b.BlockerId == me && b.BlockedId == query.OtherUserId, ct);
@@ -389,6 +401,7 @@ internal sealed class SendDirectMessageHandler(
         // the message already there.
         await realtime.DirectMessageAsync(command.OtherUserId, me, sender.FullName, ct);
 
+        await dispatcher.Send(new MarkConversationReadCommand(command.OtherUserId), ct);
         return Result.Success((await dispatcher.Ask(new GetConversationQuery(command.OtherUserId), ct))!);
     }
 }
@@ -416,6 +429,7 @@ internal sealed class AnswerMessageRequestHandler(
 
         // Accepting changes the writer's window (they may write now); declining tells them nothing.
         if (command.Accept) await realtime.DirectChangedAsync(command.OtherUserId, me, ct);
+        await dispatcher.Send(new MarkConversationReadCommand(command.OtherUserId), ct);
         return Result.Success((await dispatcher.Ask(new GetConversationQuery(command.OtherUserId), ct))!);
     }
 }
@@ -698,6 +712,7 @@ public static class DirectMessageEndpoints
 
         mine.MapGet("/{userId:guid}", async (Guid userId, DateTime? before, IDispatcher dispatcher, CancellationToken ct) =>
             {
+                await dispatcher.Send(new MarkConversationReadCommand(userId), ct);
                 var conversation = await dispatcher.Ask(new GetConversationQuery(userId, before?.ToUniversalTime()), ct);
                 return conversation is null
                     ? (Results<Ok<DirectConversation>, NotFound<Error>>)TypedResults.NotFound(Error.NotFound("User"))

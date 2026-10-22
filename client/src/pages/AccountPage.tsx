@@ -34,6 +34,7 @@ export default function AccountPage() {
   const [email, setEmail] = useState(() => new URLSearchParams(window.location.search).get("email") ?? "");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [gender, setGender] = useState<"female" | "male" | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error" | "info"; text: string } | null>(null);
@@ -101,7 +102,7 @@ export default function AccountPage() {
     setBusy(true); setMessage(null); setFieldErrors({});
     try {
       const result = await post<RegistrationResponse>("/api/auth/register",
-        { fullName, email, password });
+        { fullName, email, password, gender });
       setMode("verify");
       setMessage({ tone: result.verificationSent ? "ok" : "error", text: result.message });
     } catch (err) {
@@ -190,6 +191,12 @@ export default function AccountPage() {
               <Field label={t("account.fullName")}>
                 <Input value={fullName || user.fullName} onChange={(e) => setFullName(e.target.value)} />
               </Field>
+              {/* Asked once: accounts from before registration asked it choose it here. */}
+              {user.gender ? null : (
+                <Field label={t("account.gender")} hint={t("account.genderOnce")}>
+                  <GenderPicker value={gender} onChange={setGender} />
+                </Field>
+              )}
               <Button
                 size="sm"
                 variant="outline"
@@ -197,7 +204,7 @@ export default function AccountPage() {
                 onClick={async () => {
                   setBusy(true); setMessage(null);
                   try {
-                    const updated = await put<UserProfile>("/api/auth/profile", { fullName: fullName || user.fullName });
+                    const updated = await put<UserProfile>("/api/auth/profile", { fullName: fullName || user.fullName, gender: user.gender ? undefined : gender ?? undefined });
                     auth.patchUser(updated);
                     setMessage({ tone: "ok", text: t("account.saved") });
                   } catch (err) { fail(err, t("account.saveFailed", "Could not save.")); }
@@ -325,9 +332,14 @@ export default function AccountPage() {
         ) : (
           <form className="space-y-4" noValidate onSubmit={(e) => { e.preventDefault(); if (!busy) void (mode === "register" ? register : signIn)(); }}>
             {mode === "register" ? (
-              <Field label={t("account.fullName")} hint={fieldErrors.FullName?.[0]}>
-                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
-              </Field>
+              <>
+                <Field label={t("account.fullName")} hint={fieldErrors.FullName?.[0]}>
+                  <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                </Field>
+                <Field label={t("account.gender")} hint={fieldErrors.Gender?.[0]}>
+                  <GenderPicker value={gender} onChange={setGender} />
+                </Field>
+              </>
             ) : null}
 
             <Field label={t("account.email")} hint={fieldErrors.Email?.[0]}>
@@ -463,5 +475,18 @@ function ProGate() {
         />
       ) : null}
     </Section>
+  );
+}
+
+function GenderPicker({ value, onChange }: { value: "female" | "male" | null; onChange: (g: "female" | "male") => void }) {
+  return (
+    <div className="flex gap-2" role="radiogroup" aria-label={t("account.gender")}>
+      {(["female", "male"] as const).map((g) => (
+        <button key={g} type="button" role="radio" aria-checked={value === g} onClick={() => onChange(g)}
+          className={`flex-1 rounded-lg border px-3 py-2 text-sm transition ${value === g ? "border-accent bg-accent/15 text-ink" : "border-line text-ink-mute hover:text-ink"}`}>
+          {t(g === "female" ? "account.female" : "account.male")}
+        </button>
+      ))}
+    </div>
   );
 }

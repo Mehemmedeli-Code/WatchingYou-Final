@@ -147,7 +147,14 @@ try {
     await sleep(1200); log("seats", await b.evaluate("document.querySelectorAll('button[aria-pressed=true]').length"));
   }
 
-  // 4. Messages from the header: open the newest, answer it.
+  // 4. SearchingYou from the menu: someone wants company for a film, join them.
+  await scroll(-(await b.evaluate("scrollY")), 900); await sleep(300);
+  await b.evaluate(`document.querySelector(".rr-nav a[href='/searching']")?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" })`);
+  await sleep(700);
+  if (await tapOn(".rr-nav a[href='/searching']", "", 0, 0.08)) { await sleep(2600); log("searching"); }
+  if (await tapOn("button", "Qoşul", 0, 0.6)) { await sleep(2200); log("joined"); }
+
+  // 5. Messages from the header: open the newest, answer it.
   await scroll(-(await b.evaluate("scrollY")), 900); await sleep(300);
   if (await tapOn("button.rr-inbox", "", 0, 0.05)) { await sleep(1500); log("inbox"); }
   if (await tapOn("[role=dialog] button", "Aç", 0, 0.4)) { await sleep(1800); log("chat"); }

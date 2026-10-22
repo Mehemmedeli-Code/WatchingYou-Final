@@ -21,6 +21,7 @@ interface AdminUser {
   createdAtUtc: string;
   lastLoginAtUtc?: string | null;
   hasStaffPin: boolean;
+  gender?: "female" | "male" | null;
 }
 
 const GRANTABLE = ["Admin", "Security", "Cashier", "Moderator"] as const;
@@ -85,6 +86,13 @@ export function UserAdmin() {
     );
   }
 
+  // People choose it once and cannot change it; a wrong choice is put right here.
+  function setGender(user: AdminUser, gender: "female" | "male") {
+    if (user.gender === gender) return;
+    return run(user.id, () => put(`/api/admin/users/${user.id}/gender`, { gender }),
+      `${user.email} — ${t("account.gender")}: ${t(gender === "female" ? "account.female" : "account.male")}`);
+  }
+
   async function setPin(user: AdminUser) {
     const pin = await askText(t("admin.pinPrompt", "New PIN (4–12 digits). Leave empty to remove the PIN."));
     if (pin === null) return;      // cancelled the prompt
@@ -125,6 +133,16 @@ export function UserAdmin() {
               {user.suspensionReason ? (
                 <p className="mt-2 text-xs text-bad">{user.suspensionReason}</p>
               ) : null}
+
+              <div className="mt-2 flex items-center gap-1.5 text-xs text-ink-mute" role="group" aria-label={t("account.gender")}>
+                {t("account.gender")}:
+                {(["female", "male"] as const).map((g) => (
+                  <Button key={g} size="sm" variant={user.gender === g ? "solid" : "outline"} disabled={busyId === user.id}
+                    aria-pressed={user.gender === g} onClick={() => setGender(user, g)}>
+                    {t(g === "female" ? "account.female" : "account.male")}
+                  </Button>
+                ))}
+              </div>
 
               <p className="mt-2 text-xs text-ink-mute">
                 {user.lastLoginAtUtc
