@@ -16,7 +16,7 @@ using MovieRental.SharedKernel.Security;
 namespace MovieRental.Modules.Identity.Features;
 
 // Feature 1 — registration. One file holds the whole slice: contract, rules, handler, route.
-public sealed record RegisterCommand(string FullName, string Email, string Password)
+public sealed record RegisterCommand(string FullName, string Email, string Password, string? Gender = null)
     : ICommand<Result<RegistrationResponse>>;
 
 internal sealed class RegisterValidator : AbstractValidator<RegisterCommand>
@@ -25,6 +25,7 @@ internal sealed class RegisterValidator : AbstractValidator<RegisterCommand>
     {
         RuleFor(x => x.FullName).NotEmpty().MaximumLength(150);
         RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+        RuleFor(x => x.Gender).Must(Genders.IsValid).WithMessage("Choose whether you are a man or a woman.");
         RuleFor(x => x.Password).NotEmpty().MinimumLength(8).MaximumLength(128)
             .Matches("[A-Z]").WithMessage("Password needs at least one capital letter.")
             .Matches("[0-9]").WithMessage("Password needs at least one digit.");
@@ -55,6 +56,7 @@ internal sealed class RegisterHandler(
             Email = normalizedEmail,
             FullName = command.FullName.Trim(),
             Username = handle,
+            Gender = command.Gender,
             PasswordHash = hasher.Hash(command.Password),
             Roles = AppRoles.Customer
         };
@@ -111,7 +113,7 @@ public static class RegisterEndpoint
         .WithTags("Auth")
         .WithSummary("Create an account; a six-digit code is e-mailed to confirm it")
         .WithDescription("Sign-in works once the code is confirmed (POST /api/auth/verification/confirm). " +
-                         "Password: 8+ characters with a capital letter and a digit. 409: the e-mail is already registered.")
+                         "Password: 8+ characters with a capital letter and a digit. gender: \"female\" or \"male\". 409: the e-mail is already registered.")
         .AllowAnonymous()
         .RequireRateLimiting(AppPolicies.AuthRateLimit);
 }
@@ -121,5 +123,10 @@ internal static class UserProfileMapper
     public static UserProfileResponse ToProfile(this AppUser user) => new(
         user.Id, user.FullName, user.Email,
         user.IsEmailConfirmed, user.RoleList,
-        user.ShareOnGlobe, user.City, user.AvatarUrl, user.Username, user.IsPrivate, user.Bio);
+        user.ShareOnGlobe, user.City, user.AvatarUrl, user.Username, user.IsPrivate, user.Bio, user.Gender);
+}
+
+public static class Genders
+{
+    public static bool IsValid(string? gender) => gender is "female" or "male";
 }

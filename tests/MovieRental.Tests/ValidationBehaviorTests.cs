@@ -25,7 +25,7 @@ public class ValidationBehaviorTests
     public async Task A_valid_message_reaches_the_handler()
     {
         var behaviour = new ValidationBehavior<Command, string>([new CommandValidator()]);
-        var result = await behaviour.Handle(new Command("a@b.com", 2), () => Task.FromResult("handled"), default);
+        var result = await behaviour.Handle(new Command("a@b.com", 2), () => Task.FromResult("handled"), TestContext.Current.CancellationToken);
         Assert.Equal("handled", result);
     }
 
@@ -40,7 +40,7 @@ public class ValidationBehaviorTests
             {
                 reached = true;
                 return Task.FromResult("handled");
-            }, default));
+            }, TestContext.Current.CancellationToken));
 
         Assert.False(reached, "the handler must not run when validation fails");
     }
@@ -52,7 +52,7 @@ public class ValidationBehaviorTests
         var behaviour = new ValidationBehavior<Command, string>([new CommandValidator()]);
 
         var exception = await Assert.ThrowsAsync<ValidationException>(() =>
-            behaviour.Handle(new Command("", 0), () => Task.FromResult("handled"), default));
+            behaviour.Handle(new Command("", 0), () => Task.FromResult("handled"), TestContext.Current.CancellationToken));
 
         Assert.True(exception.Errors.Count() >= 2);
     }
@@ -63,6 +63,6 @@ public class ValidationBehaviorTests
         // Most queries have no rules. They must not pay for a validation pass that has
         // nothing to check.
         var behaviour = new ValidationBehavior<Command, string>([]);
-        Assert.Equal("handled", await behaviour.Handle(new Command("", -5), () => Task.FromResult("handled"), default));
+        Assert.Equal("handled", await behaviour.Handle(new Command("", -5), () => Task.FromResult("handled"), TestContext.Current.CancellationToken));
     }
 }

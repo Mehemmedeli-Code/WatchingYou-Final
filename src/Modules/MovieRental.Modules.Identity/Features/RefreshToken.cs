@@ -167,20 +167,10 @@ public static class RefreshTokenEndpoints
         // request (AuthCookie.ValidateAsync); SameSite=Lax keeps it off cross-site POSTs and
         // CORS keeps other sites from reading the answer.
         app.MapPost("/api/auth/session",
-            async Task<Results<Ok<AuthResponse>, UnauthorizedHttpResult>> (
-                HttpContext http, IdentityDbContext db, ITokenService tokens, ICurrentUser currentUser, CancellationToken ct) =>
-            {
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.RequireId() && !u.IsSuspended, ct);
-                if (user is null) return TypedResults.Unauthorized();
-
-                var (refresh, refreshValue) = tokens.CreateRefreshToken(user.Id, http.Connection.RemoteIpAddress?.ToString());
-                db.RefreshTokens.Add(refresh);
-                await db.SaveChangesAsync(ct);
-
-                var access = tokens.CreateAccessToken(user);
-                var handedOut = RefreshCookie.Issue(http, user.Id, refreshValue, refresh.ExpiresAtUtc);
-                return TypedResults.Ok(new AuthResponse(access.Value, access.ExpiresAtUtc, handedOut, user.ToProfile()));
-            })
+            async Task<Results<Ok<AuthResponse>, UnauthorizedHttpResult>> (IDispatcher dispatcher, CancellationToken ct) =>
+                await dispatcher.Send(new SessionFromCookieCommand(), ct) is { IsSuccess: true } result
+                    ? TypedResults.Ok(result.Value)
+                    : TypedResults.Unauthorized())
         .WithName("SessionFromCookie").WithTags("Auth")
         .WithSummary("Get a token pair from the website's session cookie")
         .WithDescription("For the website, which signs in with a cookie. 401 without that cookie.")
@@ -203,5 +193,26 @@ public static class RefreshTokenEndpoints
         .WithSummary("Sign out")
         .WithDescription("Revokes the refresh token in the body (optional) and clears the session cookies. " +
                          "Always 204: an unknown or missing token still means signed out.");
+    }
+}
+
+/// <summary>A token pair for the website, whose pages are signed in with the session cookie.</summary>
+public sealed record SessionFromCookieCommand : ICommand<Result<AuthResponse>>;
+
+internal sealed class SessionFromCookieHandler(IdentityDbContext db, ITokenService tokens, ICurrentUser currentUser, IHttpContextAccessor http)
+    : ICommandHandler<SessionFromCookieCommand, Result<AuthResponse>>
+{
+    public async Task<Result<AuthResponse>> Handle(SessionFromCookieCommand command, CancellationToken ct)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.RequireId() && !u.IsSuspended, ct);
+        if (user is null) return Result.Failure<AuthResponse>(Error.Unauthorized("This session was ended. Sign in again."));
+
+        var (refresh, refreshValue) = tokens.CreateRefreshToken(user.Id, http.HttpContext?.Connection.RemoteIpAddress?.ToString());
+        db.RefreshTokens.Add(refresh);
+        await db.SaveChangesAsync(ct);
+
+        var access = tokens.CreateAccessToken(user);
+        var handedOut = RefreshCookie.Issue(http.HttpContext, user.Id, refreshValue, refresh.ExpiresAtUtc);
+        return new AuthResponse(access.Value, access.ExpiresAtUtc, handedOut, user.ToProfile());
     }
 }

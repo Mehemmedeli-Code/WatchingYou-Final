@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MovieRental.Host.Infrastructure.Localization;
 
@@ -9,6 +10,7 @@ namespace MovieRental.Host.Pages;
 /// engines see them. Each is written per language; the facts in them (prices, refund rules,
 /// rate limits) are taken from the code and have to change with it.
 /// </summary>
+[AllowAnonymous]   // the page itself decides who may see what (see AppPageModel)
 public sealed class InfoModel(IPageShellFactory shell, ILanguageContext language, IConfiguration configuration) : AppPageModel
 {
     public InfoPage Text { get; private set; } = InfoPages.For("about", "en");
@@ -64,7 +66,7 @@ public static partial class InfoPages
 
     private static string[] MemberEndpoints =>
     [
-        "POST   /api/auth/register      { fullName, email, password }",
+        "POST   /api/auth/register      { fullName, email, password, gender }",
         "POST   /api/auth/login         { email, password }  ->  { accessToken, refreshToken, user }",
         "POST   /api/auth/refresh       { refreshToken }     ->  a new pair (the old one stops working)",
         "GET    /api/auth/me            your profile",

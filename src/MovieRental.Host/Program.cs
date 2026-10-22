@@ -43,6 +43,9 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 builder.Services.AddSingleton<Translations>();
+// The real site only (tools\run-site.ps1 sets it): throwaway copies read the same reports but
+// must not mail the owner, nor mark a report as mailed before the real site has.
+if (builder.Configuration.GetValue("Health:MailOwner", false)) builder.Services.AddHostedService<HealthMailer>();
 builder.Services.AddScoped<ILanguageContext, LanguageContext>();
 builder.Services.AddScoped<IPageShellFactory, PageShellFactory>();
 
@@ -180,7 +183,10 @@ builder.Services
 StaffPaths.Configure(builder.Configuration);
 builder.Services.AddSingleton<IAuthorizationHandler, StaffUnlockedHandler>();
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationMiddlewareResultHandler, ApiAuthorizationResultHandler>();
+// Signed in unless said otherwise: an endpoint or page that forgets to state who may use it is
+// closed, not open. Everything public says so with AllowAnonymous.
 builder.Services.AddAuthorizationBuilder()
+    .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
     .AddPolicy(AppRoles.SuperAdmin, policy => policy.RequireRole(AppRoles.SuperAdmin).AddRequirements(new StaffUnlockedRequirement()))
     .AddPolicy(AppRoles.Admin, policy => policy.RequireRole(AppRoles.Admin).AddRequirements(new StaffUnlockedRequirement()))
     .AddPolicy(AppPolicies.SecurityDesk, policy => policy.RequireRole(AppRoles.Security, AppRoles.Admin).AddRequirements(new StaffUnlockedRequirement()))
@@ -518,6 +524,7 @@ ApiReference.Map(app);
 app.MapRazorPages();
 app.MapModules();
 AnalyticsEndpoints.Map(app);
+HealthReports.Map(app);
 LanguageEndpoints.Map(app);
 
 app.MapGet("/api/health", () => TypedResults.Ok(new HealthStatus("ok", DateTime.UtcNow)))

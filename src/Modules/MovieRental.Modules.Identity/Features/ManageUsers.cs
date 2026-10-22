@@ -20,7 +20,7 @@ public sealed record AdminUserItem(
     Guid Id, string FullName, string Email,
     string[] Roles, bool IsEmailConfirmed,
     bool IsSuspended, string? SuspensionReason, DateTime CreatedAtUtc, DateTime? LastLoginAtUtc,
-    bool HasStaffPin);
+    bool HasStaffPin, string? Gender = null);
 
 public sealed record GetUsersQuery(string? Search) : IQuery<IReadOnlyList<AdminUserItem>>;
 
@@ -50,7 +50,7 @@ internal sealed class GetUsersHandler(IdentityDbContext db)
         return [.. rows.Select(u => new AdminUserItem(
             u.Id, u.FullName, u.Email, u.RoleList,
             u.IsEmailConfirmed, u.IsSuspended, u.SuspensionReason,
-            u.CreatedAtUtc, u.LastLoginAtUtc, u.StaffPinHash != null))];
+            u.CreatedAtUtc, u.LastLoginAtUtc, u.StaffPinHash != null, u.Gender))];
     }
 }
 
@@ -186,6 +186,33 @@ internal sealed class SetUserSuspensionHandler(IdentityDbContext db, ICurrentUse
     }
 }
 
+/// <summary>An admin corrects someone's gender: the person chooses it once and cannot change it
+/// themselves, so a wrong choice is put right here. Recorded in the audit log.</summary>
+/// <param name="UserId">From the address; not read from the body.</param>
+public sealed record SetUserGenderCommand([property: JsonIgnore] Guid UserId, string? Gender) : ICommand<Result>;
+
+internal sealed class SetUserGenderValidator : AbstractValidator<SetUserGenderCommand>
+{
+    public SetUserGenderValidator() =>
+        RuleFor(x => x.Gender).Must(Genders.IsValid).WithMessage("Choose whether you are a man or a woman.");
+}
+
+internal sealed class SetUserGenderHandler(IdentityDbContext db, IAuditLog audit) : ICommandHandler<SetUserGenderCommand, Result>
+{
+    public async Task<Result> Handle(SetUserGenderCommand command, CancellationToken ct)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
+        if (user is null) return Result.Failure(Error.NotFound("User"));
+        if (user.Gender == command.Gender) return Result.Success();
+
+        var before = user.Gender ?? "none";
+        user.Gender = command.Gender;
+        await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(new AuditEntry("user.gender", user.Email, $"{before} → {command.Gender}", user.Id), ct);
+        return Result.Success();
+    }
+}
+
 public static class ManageUsersEndpoints
 {
     public static void Map(IEndpointRouteBuilder app)
@@ -228,6 +255,18 @@ public static class ManageUsersEndpoints
             .WithSummary("Suspend an account, or lift the suspension")
             .WithDescription("Suspending ends every session of the account; `reason` is shown to them at sign-in. " +
                              "409: yourself, the owner, an admin (unless you are the owner), or the last active admin.");
+
+        admin.MapPut("/{id:guid}/gender",
+            async Task<Results<NoContent, BadRequest<Error>, NotFound<Error>>> (
+                Guid id, SetUserGenderCommand body, IDispatcher dispatcher, CancellationToken ct) =>
+            {
+                var result = await dispatcher.Send(body with { UserId = id }, ct);
+                if (result.IsSuccess) return TypedResults.NoContent();
+                return result.Error.Code == "not_found" ? TypedResults.NotFound(result.Error) : TypedResults.BadRequest(result.Error);
+            }).WithName("SetUserGenderWithId")
+            .WithSummary("Correct an account's gender")
+            .WithDescription("`gender`: female or male. People choose it once and cannot change it themselves; this puts a wrong " +
+                             "choice right, and the audit log records it. 400: anything else.");
     }
 }
 

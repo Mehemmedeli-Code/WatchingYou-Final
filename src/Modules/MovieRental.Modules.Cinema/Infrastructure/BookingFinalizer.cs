@@ -66,6 +66,10 @@ internal sealed class BookingFinalizer(
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
+        // A SearchingYou group whose owner now holds a seat for everyone reads "bought" at once,
+        // not at the next sweep.
+        await Searches.MarkBoughtAsync(db, now, ct);
+
         if (!string.IsNullOrEmpty(payment.PromoCode))
         {
             // Conditional, so two bookings racing for the last use of a capped code cannot

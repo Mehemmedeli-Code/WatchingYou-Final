@@ -407,7 +407,7 @@ const closes = await Promise.all([1, 2, 3].map(() => call("POST", "/api/backoffi
 expect("three closes of one shift at once: one Z report, the others 404",
   closes.filter(ok).length === 1 && closes.filter((x) => x.status === 404).length === 2, closes.map((x) => x.status).join(","));
 const twice = `api-check-twice-${Date.now().toString(36)}@example.test`;
-const signUps = await Promise.all([1, 2, 3].map(() => call("POST", "/api/auth/register", { headers: elsewhere(), body: { fullName: "Api Check", email: twice, password: "Passw0rdTest" } })));
+const signUps = await Promise.all([1, 2, 3].map(() => call("POST", "/api/auth/register", { headers: elsewhere(), body: { fullName: "Api Check", email: twice, password: "Passw0rdTest", gender: "male" } })));
 expect("one e-mail registered three times at once: one account, the others 409 saying so",
   signUps.filter(ok).length === 1 && signUps.filter((x) => x.status === 409 && x.json?.message === "That e-mail is already registered.").length === 2,
   signUps.map((x) => `${x.status} ${x.json?.message ?? ""}`).join(" | "));

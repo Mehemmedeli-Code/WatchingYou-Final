@@ -127,20 +127,67 @@ internal sealed class SaveFilmDealHandler(CinemaDbContext db, ICatalogApi catalo
     }
 }
 
+/// <param name="All">Also the switched-off ones; honoured for admins only.</param>
+public sealed record GetTicketTypesQuery(bool All) : IQuery<List<TicketTypeDto>>;
+
+internal sealed class GetTicketTypesHandler(CinemaDbContext db, ICurrentUser user) : IQueryHandler<GetTicketTypesQuery, List<TicketTypeDto>>
+{
+    public Task<List<TicketTypeDto>> Handle(GetTicketTypesQuery query, CancellationToken ct)
+    {
+        var includeInactive = query.All && user.IsInRole(AppRoles.Admin);
+        return db.TicketTypes.AsNoTracking()
+            .Where(t => includeInactive || t.IsActive)
+            .OrderBy(t => t.SortOrder).ThenBy(t => t.Name)
+            .Select(t => new TicketTypeDto(t.Id, t.Name, t.PercentOfBase, t.SortOrder, t.IsActive, t.NameAz, t.NameRu, t.NameTr))
+            .ToListAsync(ct);
+    }
+}
+
+public sealed record DeleteTicketTypeCommand(Guid Id) : ICommand<Result>;
+
+internal sealed class DeleteTicketTypeHandler(CinemaDbContext db) : ICommandHandler<DeleteTicketTypeCommand, Result>
+{
+    public async Task<Result> Handle(DeleteTicketTypeCommand command, CancellationToken ct)
+    {
+        var type = await db.TicketTypes.FirstOrDefaultAsync(t => t.Id == command.Id, ct);
+        if (type is null) return Result.Failure(Error.NotFound("Ticket type"));
+        db.TicketTypes.Remove(type);
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+}
+
+public sealed record GetFilmDealsQuery : IQuery<List<FilmDealDto>>;
+
+internal sealed class GetFilmDealsHandler(CinemaDbContext db) : IQueryHandler<GetFilmDealsQuery, List<FilmDealDto>>
+{
+    public Task<List<FilmDealDto>> Handle(GetFilmDealsQuery query, CancellationToken ct) =>
+        db.FilmDeals.AsNoTracking().OrderBy(d => d.MovieTitle)
+            .Select(d => new FilmDealDto(d.Id, d.MovieId, d.MovieTitle, d.Distributor, d.SharePercent, d.Note))
+            .ToListAsync(ct);
+}
+
+public sealed record DeleteFilmDealCommand(Guid Id) : ICommand<Result>;
+
+internal sealed class DeleteFilmDealHandler(CinemaDbContext db) : ICommandHandler<DeleteFilmDealCommand, Result>
+{
+    public async Task<Result> Handle(DeleteFilmDealCommand command, CancellationToken ct)
+    {
+        var deal = await db.FilmDeals.FirstOrDefaultAsync(d => d.Id == command.Id, ct);
+        if (deal is null) return Result.Failure(Error.NotFound("Film deal"));
+        db.FilmDeals.Remove(deal);
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+}
+
 public static class BackOfficeSetupEndpoints
 {
     public static void Map(IEndpointRouteBuilder app)
     {
         // The till reads the active types; everything else is the manager's.
-        app.MapGet("/api/backoffice/ticket-types", async (bool? all, CinemaDbContext db, ICurrentUser user, CancellationToken ct) =>
-            {
-                var includeInactive = all == true && user.IsInRole(AppRoles.Admin);
-                return TypedResults.Ok(await db.TicketTypes.AsNoTracking()
-                    .Where(t => includeInactive || t.IsActive)
-                    .OrderBy(t => t.SortOrder).ThenBy(t => t.Name)
-                    .Select(t => new TicketTypeDto(t.Id, t.Name, t.PercentOfBase, t.SortOrder, t.IsActive, t.NameAz, t.NameRu, t.NameTr))
-                    .ToListAsync(ct));
-            })
+        app.MapGet("/api/backoffice/ticket-types", async (bool? all, IDispatcher dispatcher, CancellationToken ct) =>
+                TypedResults.Ok(await dispatcher.Ask(new GetTicketTypesQuery(all == true), ct)))
             .WithTags("Back office").RequireAuthorization(AppPolicies.BackOffice).WithName("GetTicketTypes")
             .WithSummary("Ticket types (adult, child, …) and their share of the seat price")
             .WithDescription("Active ones; `all=true` adds the switched-off ones, for admins.");
@@ -160,23 +207,17 @@ public static class BackOfficeSetupEndpoints
             .WithName("UpdateTicketType")
             .WithSummary("Change a ticket type");
 
-        types.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>>> (Guid id, CinemaDbContext db, CancellationToken ct) =>
-            {
-                var type = await db.TicketTypes.FirstOrDefaultAsync(t => t.Id == id, ct);
-                if (type is null) return TypedResults.NotFound(Error.NotFound("Ticket type"));
-                db.TicketTypes.Remove(type);
-                await db.SaveChangesAsync(ct);
-                return TypedResults.NoContent();
-            })
+        types.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>>> (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
+                await dispatcher.Send(new DeleteTicketTypeCommand(id), ct) is { IsSuccess: false } failed
+                    ? TypedResults.NotFound(failed.Error)
+                    : TypedResults.NoContent())
             .WithName("DeleteTicketType")
             .WithSummary("Delete a ticket type (sold tickets keep it)");
 
         var deals = app.MapGroup("/api/backoffice/deals").WithTags("Back office").RequireAuthorization(AppRoles.Admin);
 
-        deals.MapGet("", async (CinemaDbContext db, CancellationToken ct) =>
-                TypedResults.Ok(await db.FilmDeals.AsNoTracking().OrderBy(d => d.MovieTitle)
-                    .Select(d => new FilmDealDto(d.Id, d.MovieId, d.MovieTitle, d.Distributor, d.SharePercent, d.Note))
-                    .ToListAsync(ct)))
+        deals.MapGet("", async (IDispatcher dispatcher, CancellationToken ct) =>
+                TypedResults.Ok(await dispatcher.Ask(new GetFilmDealsQuery(), ct)))
             .WithName("GetFilmDeals")
             .WithSummary("The distributors' share of each film's takings");
 
@@ -191,14 +232,10 @@ public static class BackOfficeSetupEndpoints
             .WithSummary("Set a film's distributor and their share")
             .WithDescription("One deal per film: saving again replaces it. `sharePercent` 0-100.");
 
-        deals.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>>> (Guid id, CinemaDbContext db, CancellationToken ct) =>
-            {
-                var deal = await db.FilmDeals.FirstOrDefaultAsync(d => d.Id == id, ct);
-                if (deal is null) return TypedResults.NotFound(Error.NotFound("Film deal"));
-                db.FilmDeals.Remove(deal);
-                await db.SaveChangesAsync(ct);
-                return TypedResults.NoContent();
-            })
+        deals.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>>> (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
+                await dispatcher.Send(new DeleteFilmDealCommand(id), ct) is { IsSuccess: false } failed
+                    ? TypedResults.NotFound(failed.Error)
+                    : TypedResults.NoContent())
             .WithName("DeleteFilmDeal")
             .WithSummary("Remove a film's distributor deal");
     }

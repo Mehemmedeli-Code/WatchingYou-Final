@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { motion } from "motion/react";
 import { Film } from "lucide-react";
 import { Section, Panel, Notice, Spinner, Empty } from "@/components/Shell";
@@ -126,6 +126,19 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
   const [pending, setPending] = useState<PendingCheckout[]>([]);
   const [resuming, setResuming] = useState<PendingCheckout | null>(null);
   const [preview, setPreview] = useState<PreviewSeat[] | null>(null);
+  // Came from SearchingYou's "Buy for the group": that screening takes exactly one seat per person
+  // in the group (the seats already bought count), and only there.
+  const [group, setGroup] = useState<{ screeningId: string; seats: number } | null>(null);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("group");
+    if (!id || !isSignedIn) return;
+    get<{ id: string; mine: boolean; hasTickets: boolean; peopleWanted: number; screeningId: string }[]>("/api/searching")
+      .then((all) => {
+        const mine = all.find((s) => s.id === id && s.mine && !s.hasTickets);
+        if (mine) setGroup({ screeningId: mine.screeningId, seats: mine.peopleWanted + 1 });
+      })
+      .catch(() => {});
+  }, [isSignedIn]);
   const activeRef = useRef<HTMLButtonElement>(null);
   // Read once; consumed by the first seat map of the same show, so later changes of show
   // start empty as before.
@@ -315,10 +328,20 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
     if (activeId) void loadMap(activeId);
   }, [activeId, loadMap]);
 
+  const [wide, setWide] = useState(() => window.matchMedia?.("(min-width: 1024px)").matches ?? true);
+  useEffect(() => {
+    const query = window.matchMedia?.("(min-width: 1024px)");
+    if (!query) return;
+    const change = () => setWide(query.matches);
+    query.addEventListener("change", change);
+    return () => query.removeEventListener("change", change);
+  }, []);
+
   useEffect(() => {
     if (!activeId) return;
-    activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [activeId]);
+    // On a phone the tapped card goes to the top, with its seat map opening right under it.
+    activeRef.current?.scrollIntoView({ block: wide ? "nearest" : "start", behavior: "smooth" });
+  }, [activeId, wide]);
 
   // On a wide screen the page itself stays put: the list scrolls in its own column and the
   // seat map stays in view beside it, just under the sticky site header (measured, since its
@@ -337,19 +360,24 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
   // at payment means nobody picks seats and types a card number only to be refused.
   const hasStarted = (iso: string) => new Date(iso).getTime() <= Date.now();
   const mapStarted = map ? hasStarted(map.startsAtUtc) : false;
+  // Seats still to buy for the SearchingYou group, on its own screening only; null anywhere else.
+  const groupNeed = map && group && map.screeningId === group.screeningId
+    ? Math.max(0, group.seats - map.seats.filter((s) => s.isMine).length) : null;
+  const groupShort = groupNeed !== null && picked.size !== groupNeed;
 
   function toggleSeat(seat: SeatState) {
     if (seat.isTaken || mapStarted) return;
     setPicked((current) => {
       const next = new Set(current);
       const key = seatKey(seat.row, seat.number);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) next.delete(key);
+      else if (groupNeed === null || next.size < groupNeed) next.add(key);
       return next;
     });
   }
 
   function startCheckout() {
-    if (!map || picked.size === 0 || mapStarted) return;
+    if (!map || picked.size === 0 || mapStarted || groupShort) return;
 
     // No account, no checkout. Sent straight to sign-in, carrying the way back so the
     // chosen performance is still on screen afterwards.
@@ -367,6 +395,155 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
   }
 
   const total = map ? map.seatPrice * picked.size : 0;
+
+  // The seat map: in its own column beside the list on a wide screen; on a phone it opens right
+  // under the card that was tapped, so nobody scrolls past every other showing to pick seats.
+  const seatPanel = (
+          <Panel className="rr-scroll lg:sticky lg:top-[var(--pane-top)] lg:max-h-[var(--pane-height)] lg:self-start lg:overflow-y-auto lg:overscroll-contain">
+            {!map ? (
+              <Spinner label={t("cinema.drawing")} />
+            ) : (
+              <>
+                <div className="mb-6">
+                  <h3 className="font-display text-2xl text-ink">{map.movieTitle}</h3>
+                  <p className="text-sm text-ink-mute">
+                    {map.venueName} · {map.hall} · {formatDateTime(map.startsAtUtc, screenings.find((s) => s.id === map.screeningId)?.city)} · {formatMoney(map.seatPrice)} {t("cinema.perSeat", "a seat")}
+                  </p>
+                  <p className="mt-1 text-sm text-accent">
+                    {languageName(map.audioLanguage)}
+                    {map.subtitleLanguage
+                      ? ` · ${t("onDisplay.subtitles")}: ${languageName(map.subtitleLanguage)}`
+                      : ""}
+                  </p>
+                </div>
+
+                {groupNeed !== null ? (
+                  <div className="mb-4">
+                    <Notice tone={groupNeed === 0 ? "ok" : "info"}>
+                      {groupNeed === 0
+                        ? t("cinema.groupDone", "Every ticket for the group is bought.")
+                        : t("cinema.groupNeed", "For your SearchingYou group: pick exactly {n} seats here. Only tickets for this screening count.").replace("{n}", String(groupNeed))}
+                    </Notice>
+                  </div>
+                ) : null}
+                {mapStarted ? (
+                  <div className="mb-4"><Notice tone="info">{t("cinema.startedLong", "This show has already started, so its seats are no longer on sale. Pick a later one.")}</Notice></div>
+                ) : null}
+                <div className="mb-6 overflow-hidden rounded-t-[999px] border-b-2 border-accent-dim bg-gradient-to-b from-accent/20 to-transparent py-2 text-center text-xs tracking-[0.3em] text-accent-dim">
+                  {t("cinema.screen", "screen")}
+                </div>
+
+                <div className="-mx-1 space-y-2 overflow-x-auto px-1 pb-2">
+                  {Array.from({ length: map.rows }, (_, r) => r + 1).map((row) => (
+                    <div key={row} className="flex w-max items-center gap-2">
+                      <span className="w-5 shrink-0 text-xs text-ink-mute">{String.fromCharCode(64 + row)}</span>
+                      <div className="flex gap-1.5">
+                        {map.seats
+                          .filter((seat) => seat.row === row)
+                          .map((seat) => {
+                            const selected = picked.has(seatKey(seat.row, seat.number));
+                            return (
+                              <motion.button
+                                key={seat.number}
+                                type="button"
+                                onClick={() => toggleSeat(seat)}
+                                disabled={seat.isTaken || mapStarted}
+                                whileTap={seat.isTaken ? undefined : { scale: 0.88 }}
+                                animate={{ scale: selected ? 1.08 : 1 }}
+                                transition={{ type: "spring", stiffness: 420, damping: 22 }}
+                                aria-label={`${t("seat.aria", "Row {0} seat {1}").replace("{0}", String.fromCharCode(64 + seat.row)).replace("{1}", String(seat.number))}, ${
+                                  seat.isTaken ? t("seat.taken", "taken") : selected ? t("seat.selected", "selected") : t("seat.free", "free")
+                                }`}
+                                aria-pressed={selected}
+                                className={`h-8 w-8 shrink-0 rounded-t-md border text-[11px] transition-colors sm:h-7 sm:w-7 sm:text-[10px] ${
+                                  seat.isHeld
+                                    ? "cursor-not-allowed border-warn/50 bg-warn-bg text-warn/70"
+                                    : seat.isTaken
+                                      ? seat.isMine
+                                        ? "cursor-not-allowed border-accent bg-accent-dim text-surface"
+                                        : "cursor-not-allowed border-line bg-line text-ink-mute/50"
+                                      : selected
+                                        ? "border-accent bg-accent text-surface"
+                                        : "border-accent-dim/60 text-ink-mute hover:border-accent"
+                                }`}
+                              >
+                                {seat.number}
+                              </motion.button>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 flex flex-wrap items-center gap-4 text-xs text-ink-mute">
+                  <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm border border-accent-dim/60" />{t("cinema.free")}</span>
+                  <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm bg-accent" />{t("cinema.selected")}</span>
+                  <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm bg-line" />{t("cinema.taken")}</span>
+                  <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm bg-accent-dim" />{t("cinema.yours")}</span>
+                  <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm bg-warn-bg" />{t("cinema.held")}</span>
+                </div>
+
+                {message ? <div className="mt-4"><Notice tone={message.tone}>{message.text}</Notice></div> : null}
+
+                <div className="mt-6 border-t border-line pt-4">
+                  {checkoutSeats || resuming ? (
+                    <BookingFlow
+                      key={map.screeningId}
+                      screeningId={map.screeningId}
+                      seats={resuming ? resuming.seats : checkoutSeats!}
+                      seatPrice={map.seatPrice}
+                      resume={resuming ? toCheckoutStarted(resuming) : null}
+                      onCancel={() => {
+                        setCheckoutSeats(null);
+                        setResuming(null);
+                        void loadMap(map.screeningId);
+                        void loadTickets();
+                      }}
+                      onBooked={() => {
+                        setPicked(new Set());
+                        setCheckoutSeats(null);
+                        setResuming(null);
+                        void loadMap(map.screeningId);
+                        void loadTickets();
+                      }}
+                    />
+                  ) : (
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                      <p className="text-sm text-ink-mute">
+                        {picked.size === 0
+                          ? t("cinema.noSeats")
+                          : `${picked.size}${groupNeed ? ` / ${groupNeed}` : ""} · ${formatMoney(total)}`}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          disabled={picked.size === 0}
+                          onClick={() => {
+                            // Every seat picked, in reading order, so the arrows step through
+                            // them the way they sit in the row.
+                            const chosen = [...picked]
+                              .map((key) => {
+                                const [row, seat] = key.split(":").map(Number);
+                                return { row, seat };
+                              })
+                              .sort((a, b) => a.row - b.row || a.seat - b.seat);
+                            if (chosen.length > 0) setPreview(chosen);
+                          }}
+                        >
+                          {t("view.seeFromHere")}
+                        </Button>
+                        <Button disabled={picked.size === 0 || groupShort} onClick={startCheckout}>
+                          {isSignedIn ? t("book.confirmSeats") : t("cinema.signInToBook")}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </Panel>
+  );
 
   return (
     <Section title={t("cinema.title")} lede={t("cinema.lede")}>
@@ -457,9 +634,10 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
             {screenings.map((screening) => {
               const isActive = screening.id === activeId;
               return (
+                <Fragment key={screening.id}>
                 <button
-                  key={screening.id}
                   ref={isActive ? activeRef : undefined}
+                  style={{ scrollMarginTop: headerHeight + 12 }}
                   onClick={() => setActiveId(screening.id)}
                   aria-pressed={isActive}
                   aria-current={isActive ? "true" : undefined}
@@ -507,145 +685,13 @@ export default function CinemaPage({ hideTickets = false }: { hideTickets?: bool
                     )}
                   </div>
                 </button>
+                {isActive && !wide ? seatPanel : null}
+                </Fragment>
               );
             })}
           </div>
 
-          <Panel className="rr-scroll lg:sticky lg:top-[var(--pane-top)] lg:max-h-[var(--pane-height)] lg:self-start lg:overflow-y-auto lg:overscroll-contain">
-            {!map ? (
-              <Spinner label={t("cinema.drawing")} />
-            ) : (
-              <>
-                <div className="mb-6">
-                  <h3 className="font-display text-2xl text-ink">{map.movieTitle}</h3>
-                  <p className="text-sm text-ink-mute">
-                    {map.venueName} · {map.hall} · {formatDateTime(map.startsAtUtc, screenings.find((s) => s.id === map.screeningId)?.city)} · {formatMoney(map.seatPrice)} {t("cinema.perSeat", "a seat")}
-                  </p>
-                  <p className="mt-1 text-sm text-accent">
-                    {languageName(map.audioLanguage)}
-                    {map.subtitleLanguage
-                      ? ` · ${t("onDisplay.subtitles")}: ${languageName(map.subtitleLanguage)}`
-                      : ""}
-                  </p>
-                </div>
-
-                {mapStarted ? (
-                  <div className="mb-4"><Notice tone="info">{t("cinema.startedLong", "This show has already started, so its seats are no longer on sale. Pick a later one.")}</Notice></div>
-                ) : null}
-                <div className="mb-6 overflow-hidden rounded-t-[999px] border-b-2 border-accent-dim bg-gradient-to-b from-accent/20 to-transparent py-2 text-center text-xs tracking-[0.3em] text-accent-dim">
-                  {t("cinema.screen", "screen")}
-                </div>
-
-                <div className="-mx-1 space-y-2 overflow-x-auto px-1 pb-2">
-                  {Array.from({ length: map.rows }, (_, r) => r + 1).map((row) => (
-                    <div key={row} className="flex w-max items-center gap-2">
-                      <span className="w-5 shrink-0 text-xs text-ink-mute">{String.fromCharCode(64 + row)}</span>
-                      <div className="flex gap-1.5">
-                        {map.seats
-                          .filter((seat) => seat.row === row)
-                          .map((seat) => {
-                            const selected = picked.has(seatKey(seat.row, seat.number));
-                            return (
-                              <motion.button
-                                key={seat.number}
-                                type="button"
-                                onClick={() => toggleSeat(seat)}
-                                disabled={seat.isTaken || mapStarted}
-                                whileTap={seat.isTaken ? undefined : { scale: 0.88 }}
-                                animate={{ scale: selected ? 1.08 : 1 }}
-                                transition={{ type: "spring", stiffness: 420, damping: 22 }}
-                                aria-label={`${t("seat.aria", "Row {0} seat {1}").replace("{0}", String.fromCharCode(64 + seat.row)).replace("{1}", String(seat.number))}, ${
-                                  seat.isTaken ? t("seat.taken", "taken") : selected ? t("seat.selected", "selected") : t("seat.free", "free")
-                                }`}
-                                aria-pressed={selected}
-                                className={`h-8 w-8 shrink-0 rounded-t-md border text-[11px] transition-colors sm:h-7 sm:w-7 sm:text-[10px] ${
-                                  seat.isHeld
-                                    ? "cursor-not-allowed border-warn/50 bg-warn-bg text-warn/70"
-                                    : seat.isTaken
-                                      ? seat.isMine
-                                        ? "cursor-not-allowed border-accent bg-accent-dim text-surface"
-                                        : "cursor-not-allowed border-line bg-line text-ink-mute/50"
-                                      : selected
-                                        ? "border-accent bg-accent text-surface"
-                                        : "border-accent-dim/60 text-ink-mute hover:border-accent"
-                                }`}
-                              >
-                                {seat.number}
-                              </motion.button>
-                            );
-                          })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 flex flex-wrap items-center gap-4 text-xs text-ink-mute">
-                  <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm border border-accent-dim/60" />{t("cinema.free")}</span>
-                  <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm bg-accent" />{t("cinema.selected")}</span>
-                  <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm bg-line" />{t("cinema.taken")}</span>
-                  <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm bg-accent-dim" />{t("cinema.yours")}</span>
-                  <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm bg-warn-bg" />{t("cinema.held")}</span>
-                </div>
-
-                {message ? <div className="mt-4"><Notice tone={message.tone}>{message.text}</Notice></div> : null}
-
-                <div className="mt-6 border-t border-line pt-4">
-                  {checkoutSeats || resuming ? (
-                    <BookingFlow
-                      key={map.screeningId}
-                      screeningId={map.screeningId}
-                      seats={resuming ? resuming.seats : checkoutSeats!}
-                      seatPrice={map.seatPrice}
-                      resume={resuming ? toCheckoutStarted(resuming) : null}
-                      onCancel={() => {
-                        setCheckoutSeats(null);
-                        setResuming(null);
-                        void loadMap(map.screeningId);
-                        void loadTickets();
-                      }}
-                      onBooked={() => {
-                        setPicked(new Set());
-                        setCheckoutSeats(null);
-                        setResuming(null);
-                        void loadMap(map.screeningId);
-                        void loadTickets();
-                      }}
-                    />
-                  ) : (
-                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                      <p className="text-sm text-ink-mute">
-                        {picked.size === 0
-                          ? t("cinema.noSeats")
-                          : `${picked.size} · ${formatMoney(total)}`}
-                      </p>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          disabled={picked.size === 0}
-                          onClick={() => {
-                            // Every seat picked, in reading order, so the arrows step through
-                            // them the way they sit in the row.
-                            const chosen = [...picked]
-                              .map((key) => {
-                                const [row, seat] = key.split(":").map(Number);
-                                return { row, seat };
-                              })
-                              .sort((a, b) => a.row - b.row || a.seat - b.seat);
-                            if (chosen.length > 0) setPreview(chosen);
-                          }}
-                        >
-                          {t("view.seeFromHere")}
-                        </Button>
-                        <Button disabled={picked.size === 0} onClick={startCheckout}>
-                          {isSignedIn ? t("book.confirmSeats") : t("cinema.signInToBook")}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </Panel>
+          {wide ? seatPanel : null}
         </div>
       ) : null}
 

@@ -51,7 +51,7 @@ async function login(email, password) {
   return { token: r.json.accessToken, user: r.json.user };
 }
 async function registerAndConfirm(email, password = "Passw0rdTest") {
-  let r = await call("POST", "/api/auth/register", { body: { fullName: "Contract Check", email, password }, headers: X() });
+  let r = await call("POST", "/api/auth/register", { body: { fullName: "Contract Check", email, password, gender: "female" }, headers: X() });
   if (r.status !== 200) throw new Error(`register ${r.status} ${r.text}`);
   await sleep(300);
   const log = readFileSync(LOG, "utf8");

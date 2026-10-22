@@ -1235,5 +1235,21 @@
   "movie.rating": "Reytinq",
   "movie.copies": "Boş nüsxə",
   "movie.showtimes": "Kinoda seanslar",
-  "movie.similar": "Oxşar filmlər"
+  "movie.similar": "Oxşar filmlər",
+  "cinema.groupNeed": "SearchingYou qrupun üçün burada düz {n} yer seç. Yalnız bu seansın biletləri sayılır.",
+  "cinema.groupDone": "Qrupun bütün biletləri alınıb.",
+  "account.gender": "Cins",
+  "account.female": "Qadın",
+  "account.male": "Kişi",
+  "account.genderOnce": "Bir dəfə seçilir, sonra dəyişmir.",
+  "searching.setGender": "Profildə cinsini seç",
+  "searching.womenOnly": "Yalnız qadınlar üçün",
+  "searching.menOnly": "Yalnız kişilər üçün",
+  "health.title": "Sağlamlıq",
+  "health.lede": "Gündəlik baza yoxlaması və gecə API yoxlaması. Biri problem tapanda sahibinə e-poçt gedir.",
+  "health.db": "Baza yoxlaması",
+  "health.api": "API yoxlaması",
+  "health.ok": "Hər şey qaydasındadır",
+  "health.problems": "Problemlər",
+  "health.stale": "Son vaxtlar işləməyib"
 }

@@ -133,6 +133,20 @@ internal sealed class DecideShortFilmHandler(
     }
 }
 
+public sealed record TakeDownShortFilmCommand(Guid Id) : ICommand<Result>;
+
+internal sealed class TakeDownShortFilmHandler(MediaDbContext db) : ICommandHandler<TakeDownShortFilmCommand, Result>
+{
+    public async Task<Result> Handle(TakeDownShortFilmCommand command, CancellationToken ct)
+    {
+        var film = await db.ShortFilms.FirstOrDefaultAsync(f => f.Id == command.Id, ct);
+        if (film is null) return Result.Failure(Error.NotFound("Submission"));
+        db.ShortFilms.Remove(film);   // soft delete — the file stays for any appeal
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+}
+
 public static class ReviewShortFilmEndpoints
 {
     public static void Map(IEndpointRouteBuilder app)
@@ -162,15 +176,10 @@ public static class ReviewShortFilmEndpoints
                              "when it was filed under the wrong gallery. 409: already decided, or Security has not reported yet.");
 
         admin.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>>> (
-            Guid id, MediaDbContext db, CancellationToken ct) =>
-        {
-            var film = await db.ShortFilms.FirstOrDefaultAsync(f => f.Id == id, ct);
-            if (film is null) return TypedResults.NotFound(Error.NotFound("Submission"));
-
-            db.ShortFilms.Remove(film);   // soft delete — the file stays for any appeal
-            await db.SaveChangesAsync(ct);
-            return TypedResults.NoContent();
-        }).WithName("SoftDeleteShortFilmWithId")
+            Guid id, IDispatcher dispatcher, CancellationToken ct) =>
+            await dispatcher.Send(new TakeDownShortFilmCommand(id), ct) is { IsSuccess: false } failed
+                ? TypedResults.NotFound(failed.Error)
+                : TypedResults.NoContent()).WithName("SoftDeleteShortFilmWithId")
         .WithSummary("Take a film down (the file is kept for an appeal)");
     }
 }

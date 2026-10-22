@@ -96,6 +96,26 @@ internal sealed class AddSubmissionCommentHandler(
     }
 }
 
+public sealed record WithdrawShortFilmCommand(Guid Id) : ICommand<Result>;
+
+internal sealed class WithdrawShortFilmHandler(MediaDbContext db, ICurrentUser currentUser, IHostEnvironment environment)
+    : ICommandHandler<WithdrawShortFilmCommand, Result>
+{
+    public async Task<Result> Handle(WithdrawShortFilmCommand command, CancellationToken ct)
+    {
+        var film = await db.ShortFilms.FirstOrDefaultAsync(f => f.Id == command.Id && f.UserId == currentUser.RequireId(), ct);
+        if (film is null) return Result.Failure(Error.NotFound("Submission"));
+        if (film.Status == SubmissionStatus.Approved)
+            return Result.Failure(Error.Validation("An approved film cannot be withdrawn here."));
+
+        db.ShortFilms.Remove(film);
+        await db.SaveChangesAsync(ct);
+        var path = ShortFilmStorage.PathFor(environment, film.StoredFileName);
+        if (File.Exists(path)) File.Delete(path);
+        return Result.Success();
+    }
+}
+
 public static class StudioEndpoints
 {
     public static void Map(IEndpointRouteBuilder app)
@@ -128,18 +148,11 @@ public static class StudioEndpoints
         // change of mind. The record is soft-deleted like an admin removal, but the file goes:
         // nobody should keep a video its owner withdrew by mistake.
         mine.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>, BadRequest<Error>>> (
-            Guid id, MediaDbContext db, ICurrentUser currentUser, IHostEnvironment environment, CancellationToken ct) =>
+            Guid id, IDispatcher dispatcher, CancellationToken ct) =>
         {
-            var film = await db.ShortFilms.FirstOrDefaultAsync(f => f.Id == id && f.UserId == currentUser.RequireId(), ct);
-            if (film is null) return TypedResults.NotFound(Error.NotFound("Submission"));
-            if (film.Status == SubmissionStatus.Approved)
-                return TypedResults.BadRequest(Error.Validation("An approved film cannot be withdrawn here."));
-
-            db.ShortFilms.Remove(film);
-            await db.SaveChangesAsync(ct);
-            var path = ShortFilmStorage.PathFor(environment, film.StoredFileName);
-            if (File.Exists(path)) File.Delete(path);
-            return TypedResults.NoContent();
+            var result = await dispatcher.Send(new WithdrawShortFilmCommand(id), ct);
+            if (result.IsSuccess) return TypedResults.NoContent();
+            return result.Error.Code == "not_found" ? TypedResults.NotFound(result.Error) : TypedResults.BadRequest(result.Error);
         }).WithName("WithdrawShortFilm")
         .WithSummary("Withdraw my film before it is approved")
         .WithDescription("Deletes it and its file. 400: an approved film stays. 404: not yours, or no such film.");

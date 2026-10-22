@@ -206,6 +206,26 @@ internal sealed class GetScreeningsForAdminHandler(CinemaDbContext db)
             .ToListAsync(ct);
 }
 
+public sealed record DeleteScreeningCommand(Guid Id) : ICommand<Result>;
+
+internal sealed class DeleteScreeningHandler(CinemaDbContext db) : ICommandHandler<DeleteScreeningCommand, Result>
+{
+    public async Task<Result> Handle(DeleteScreeningCommand command, CancellationToken ct)
+    {
+        var screening = await db.Screenings.FirstOrDefaultAsync(s => s.Id == command.Id, ct);
+        if (screening is null) return Result.Failure(Error.NotFound("Screening"));
+
+        // Payments are filtered out with their screening, so deleting one with seats held or
+        // sold made those tickets vanish with no way to refund them. Cancel refunds them.
+        if (await db.SeatBookings.AnyAsync(b => b.ScreeningId == command.Id, ct))
+            return Result.Failure(Error.Conflict("Seats are held or sold for this screening. Cancel it instead, which refunds them."));
+
+        db.Screenings.Remove(screening);   // soft delete, so sold seats keep their context
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+}
+
 public static class ManageScreeningsEndpoints
 {
     public static void Map(IEndpointRouteBuilder app)
@@ -252,19 +272,11 @@ public static class ManageScreeningsEndpoints
             .WithDescription("`reason` is shown to the customers (1-300 characters). 409: already cancelled.");
 
         admin.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>, Conflict<Error>>> (
-            Guid id, CinemaDbContext db, CancellationToken ct) =>
+            Guid id, IDispatcher dispatcher, CancellationToken ct) =>
         {
-            var screening = await db.Screenings.FirstOrDefaultAsync(s => s.Id == id, ct);
-            if (screening is null) return TypedResults.NotFound(Error.NotFound("Screening"));
-
-            // Payments are filtered out with their screening, so deleting one with seats held or
-            // sold made those tickets vanish with no way to refund them. Cancel refunds them.
-            if (await db.SeatBookings.AnyAsync(b => b.ScreeningId == id, ct))
-                return TypedResults.Conflict(Error.Conflict("Seats are held or sold for this screening. Cancel it instead, which refunds them."));
-
-            db.Screenings.Remove(screening);   // soft delete, so sold seats keep their context
-            await db.SaveChangesAsync(ct);
-            return TypedResults.NoContent();
+            var result = await dispatcher.Send(new DeleteScreeningCommand(id), ct);
+            if (result.IsSuccess) return TypedResults.NoContent();
+            return result.Error.Code == "not_found" ? TypedResults.NotFound(result.Error) : TypedResults.Conflict(result.Error);
         }).WithName("SoftDeleteScreeningWithId")
         .WithSummary("Delete a screening nobody has booked")
         .WithDescription("409 once seats are held or sold: cancel it instead, which makes them refundable.");

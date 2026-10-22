@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,7 @@ namespace MovieRental.Host.Pages;
 /// line on what this is, an e-mail box that leads to sign-up, and the questions people ask
 /// first. Signed-in visitors never see it — they go straight on to the site.
 /// </summary>
+[AllowAnonymous]   // the page itself decides who may see what (see AppPageModel)
 public sealed class WelcomeModel(CatalogDbContext catalog, ICurrentUser currentUser, ILanguageContext language) : PageModel
 {
     /// <summary>One tile per film: its poster when it has one, otherwise its title and genre

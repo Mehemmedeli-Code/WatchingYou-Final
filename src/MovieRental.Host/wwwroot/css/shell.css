@@ -94,17 +94,31 @@ html.rr { background: var(--surface); }
   text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
+/* Never more than two rows: the narrower the window, the smaller the words (and the space
+   between them, which is in em). The rows keep their usual distance apart. */
 .rr-nav {
   display: flex;
-  gap: 1.4rem;
+  gap: 1.4rem 1.1em;
   margin-inline-end: auto;
   flex-wrap: wrap;
+  font-size: clamp(0.65rem, calc((100vw - 800px) / 46), 0.92rem);
+}
+/* A narrow desktop: a little less space around the menu, so the words need not shrink as far. */
+@media (min-width: 901px) and (max-width: 1600px) {
+  .rr-header { gap: 1rem; }
+}
+/* Narrower still, beside the eye and the tools there is no room for two readable rows: the menu
+   moves to a row of its own under them, where it fits in two at its usual look. */
+@media (min-width: 901px) and (max-width: 1250px) {
+  .rr-header { flex-wrap: wrap; row-gap: 0.6rem; }
+  .rr-tools { margin-inline-start: auto; }
+  .rr-nav { order: 3; flex: 0 0 100%; font-size: 0.85rem; row-gap: 0.9rem; }
 }
 
 .rr-nav a {
   color: var(--ink-mute);
   text-decoration: none;
-  font-size: 0.92rem;
+  white-space: nowrap;
   padding-bottom: 2px;
   border-bottom: 1px solid transparent;
   transition: color 160ms ease, border-color 160ms ease;
@@ -293,6 +307,7 @@ html.rr { background: var(--surface); }
     padding-bottom: 0.25rem;
   }
   .rr-nav::-webkit-scrollbar { display: none; }
+  .rr-nav { font-size: 0.92rem; }   /* one scrolling row here, so the words keep their size */
   .rr-nav a { white-space: nowrap; }
 
   .rr-tools { gap: 0.5rem; }

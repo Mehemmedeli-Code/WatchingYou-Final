@@ -92,6 +92,10 @@ public static class DevelopmentDatabaseBootstrapper
             IF COL_LENGTH('cinema.TicketTypes', 'NameTr') IS NULL ALTER TABLE cinema.TicketTypes ADD NameTr nvarchar(40) NULL;
             """, ct);
 
+        var identity = services.GetRequiredService<IdentityDbContext>();
+        await identity.Database.ExecuteSqlRawAsync(
+            "IF COL_LENGTH('identity.Users', 'Gender') IS NULL ALTER TABLE [identity].Users ADD Gender nvarchar(10) NULL;", ct);
+
         // A whole new table in an existing schema is additive too: the schema already has tables,
         // so the create-tables step above skips it. Same shape EF would make.
         var rentals = services.GetRequiredService<RentalsDbContext>();

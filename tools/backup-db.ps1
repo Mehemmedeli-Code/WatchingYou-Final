@@ -7,15 +7,18 @@
 #
 # Where: %USERPROFILE%\WatchingYouBackups (outside the project, so git and the zips never carry
 # it). The database goes to MovieRentalDB_<date>.bak, the newest 14 are kept; uploads\ is
-# mirrored to uploads\ beside them. Copy that folder to another disk or to OneDrive to survive
-# a broken disk: -OffsiteFolder does it on every backup.
+# mirrored to uploads\ beside them. The whole folder is then mirrored to OneDrive\WatchingYouBackups
+# (-OffsiteFolder, on every backup), so a broken disk does not take the backups with it.
 #
 # Restoring (the site stopped first: powershell -File tools\stop-site.ps1):
 #   sqlcmd -S "(localdb)\MSSQLLocalDB" -Q "RESTORE DATABASE [MovieRentalDB] FROM DISK = N'<file>.bak' WITH REPLACE"
 param(
     [switch]$Force,
     [string]$BackupFolder = (Join-Path $env:USERPROFILE "WatchingYouBackups"),
-    [string]$OffsiteFolder = ""
+    # A second copy off this disk: OneDrive (synced to the cloud) when there is one. "" turns it off.
+    [string]$OffsiteFolder = $(
+        $oneDrive = if ($env:OneDrive) { $env:OneDrive } else { Join-Path $env:USERPROFILE "OneDrive" }
+        if (Test-Path $oneDrive) { Join-Path $oneDrive "WatchingYouBackups" } else { "" })
 )
 
 $ErrorActionPreference = "Stop"
@@ -53,4 +56,8 @@ if ($OffsiteFolder) {
 }
 
 "Backed up $database to $file" + $(if ($OffsiteFolder) { " and copied it to $OffsiteFolder" } else { "" })
+
+# The daily health check rides along: broken business rules and links between modules that
+# point at nothing (see tools\db-check.ps1). Reported, never a reason to fail the backup.
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "db-check.ps1") 2>&1 | ForEach-Object { "$_" }
 exit 0

@@ -45,6 +45,16 @@ internal static class Searches
         requests.Live(now).Where(r => r.CancelledAtUtc == null && r.FilledAtUtc == null && r.Members.Count < r.PeopleWanted);
 
     /// <summary>
+    /// Marks the tickets bought once the owner holds a paid (confirmed, not just held) seat on that screening for each person
+    /// in the group (themself plus everyone wanted). Seats for any other screening never count.
+    /// </summary>
+    public static Task<int> MarkBoughtAsync(CinemaDbContext db, DateTime now, CancellationToken ct) =>
+        db.PartnerRequests.Live(now)
+            .Where(r => !r.HasTickets && r.CancelledAtUtc == null
+                     && r.Screening!.Bookings.Count(b => b.UserId == r.UserId && b.ConfirmedAtUtc != null) >= r.PeopleWanted + 1)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.HasTickets, true), ct);
+
+    /// <summary>
     /// Calls off every search whose tickets are still to be bought when the screening no longer has
     /// a seat for each person in the group still without one: three going, two seats left — off.
     /// The owner buys for the group, so the seats the owner has bought are the group's, and buying
@@ -58,7 +68,7 @@ internal static class Searches
             {
                 r.Id, r.PeopleWanted,
                 Free = r.Screening!.Rows * r.Screening.SeatsPerRow - r.Screening.Bookings.Count(),
-                Bought = r.Screening.Bookings.Count(b => b.UserId == r.UserId),
+                Bought = r.Screening.Bookings.Count(b => b.UserId == r.UserId && b.ConfirmedAtUtc != null),
             })
             .ToListAsync(ct);
         var off = watched.Where(r => r.Free < r.PeopleWanted + 1 - r.Bought).Select(r => r.Id).ToList();
@@ -85,7 +95,10 @@ internal sealed class GetSearchesHandler(CinemaDbContext db, ICurrentUser curren
             .Take(100)
             .Select(r => new
             {
-                r.Id, r.UserId, r.Partner, r.PeopleWanted, r.HasTickets, Joined = r.Members.Count, Mine = r.Members.Any(m => m.UserId == me),
+                r.Id, r.UserId, r.Partner, r.PeopleWanted,
+                // Bought already, though the sweep has not written it down yet.
+                HasTickets = r.HasTickets || r.Screening!.Bookings.Count(b => b.UserId == r.UserId && b.ConfirmedAtUtc != null) >= r.PeopleWanted + 1,
+                Joined = r.Members.Count, Mine = r.Members.Any(m => m.UserId == me),
                 Found = r.FilledAtUtc != null, Cancelled = r.CancelledAtUtc != null,
                 MemberIds = r.Members.OrderBy(m => m.CreatedAtUtc).Select(m => m.UserId).ToList(),
                 SeatsLeft = r.Screening!.Rows * r.Screening.SeatsPerRow - r.Screening.Bookings.Count(),
@@ -194,7 +207,7 @@ internal sealed class StartSearchHandler(CinemaDbContext db, ICurrentUser curren
 
 public sealed record JoinSearchCommand(Guid RequestId) : ICommand<Result>;
 
-internal sealed class JoinSearchHandler(CinemaDbContext db, ICurrentUser currentUser) : ICommandHandler<JoinSearchCommand, Result>
+internal sealed class JoinSearchHandler(CinemaDbContext db, ICurrentUser currentUser, IUserDirectory users) : ICommandHandler<JoinSearchCommand, Result>
 {
     public async Task<Result> Handle(JoinSearchCommand command, CancellationToken ct)
     {
@@ -210,6 +223,14 @@ internal sealed class JoinSearchHandler(CinemaDbContext db, ICurrentUser current
         if (request is null) return Result.Failure(Error.NotFound("Search"));
         if (request.UserId == me) return Result.Failure(Error.Conflict("This is your own search."));
         if (request.Members.Any(m => m.UserId == me)) return Result.Failure(Error.Conflict("You have already joined."));
+        // Women only for a search for women, men only for one for men; anyone for a mixed one.
+        if (request.Partner != PartnerKind.Mixed)
+        {
+            var gender = (await users.GetContactAsync(me, ct))?.Gender;
+            if (gender is null) return Result.Failure(Error.Validation("Say on your profile whether you are a man or a woman first."));
+            if (gender != (request.Partner == PartnerKind.Female ? "female" : "male"))
+                return Result.Failure(Error.Validation(request.Partner == PartnerKind.Female ? "This search is for women only." : "This search is for men only."));
+        }
 
         // Counted before the add: EF puts the new row into request.Members as soon as it is added.
         if (request.Members.Count + 1 >= request.PeopleWanted) request.FilledAtUtc = DateTime.UtcNow;   // found
@@ -290,14 +311,19 @@ public static class SearchingYouEndpoints
                              "400: none of that holds, or the film has started. 409: already searching for it.")
             .RequireRateLimiting(AppPolicies.WriteRateLimit);
 
-        group.MapPost("/{id:guid}/join", async Task<Results<NoContent, NotFound<Error>, Conflict<Error>>> (Guid id, IDispatcher d, CancellationToken ct) =>
+        group.MapPost("/{id:guid}/join", async Task<Results<NoContent, BadRequest<Error>, NotFound<Error>, Conflict<Error>>> (Guid id, IDispatcher d, CancellationToken ct) =>
             {
                 var result = await d.Send(new JoinSearchCommand(id), ct);
                 if (result.IsSuccess) return TypedResults.NoContent();
-                return result.Error.Code == "not_found" ? TypedResults.NotFound(result.Error) : TypedResults.Conflict(result.Error);
+                return result.Error.Code switch
+                {
+                    "not_found" => TypedResults.NotFound(result.Error),
+                    "validation" => TypedResults.BadRequest(result.Error),
+                    _ => TypedResults.Conflict(result.Error),
+                };
             })
             .WithName("JoinSearch").WithSummary("Join someone's search")
-            .WithDescription("404: closed, full, called off, or the film has started. 409: your own, or already joined.")
+            .WithDescription("400: a search for women joined by a man or the other way round, or no gender on the profile. 404: closed, full, called off, or the film has started. 409: your own, or already joined.")
             .RequireRateLimiting(AppPolicies.WriteRateLimit);
 
         group.MapDelete("/{id:guid}/join", async Task<Results<NoContent, NotFound<Error>>> (Guid id, IDispatcher d, CancellationToken ct) =>

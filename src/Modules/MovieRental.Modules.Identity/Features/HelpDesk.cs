@@ -138,19 +138,28 @@ internal sealed class GetInboxHandler(IdentityDbContext db, ICurrentUser current
     }
 }
 
+/// <summary>The desk opening a conversation clears its unread mark; sent before the read.</summary>
+public sealed record MarkChatReadCommand(Guid ConversationId) : ICommand<Result>;
+
+internal sealed class MarkChatReadHandler(IdentityDbContext db) : ICommandHandler<MarkChatReadCommand, Result>
+{
+    public async Task<Result> Handle(MarkChatReadCommand command, CancellationToken ct)
+    {
+        // One set-based UPDATE rather than loading rows, changing them and saving: nothing is
+        // tracked, so two agents opening the same thread at the same moment cannot collide.
+        await db.SupportChatMessages
+            .Where(m => m.ConversationId == command.ConversationId && !m.FromDesk && m.SeenAtUtc == null)
+            .ExecuteUpdateAsync(set => set.SetProperty(m => m.SeenAtUtc, DateTime.UtcNow), ct);
+        return Result.Success();
+    }
+}
+
 public sealed record GetChatQuery(Guid ConversationId) : IQuery<ChatThread?>;
 
 internal sealed class GetChatHandler(IdentityDbContext db) : IQueryHandler<GetChatQuery, ChatThread?>
 {
     public async Task<ChatThread?> Handle(GetChatQuery query, CancellationToken ct)
     {
-        // Opening a conversation clears its unread mark. One set-based UPDATE rather than
-        // loading rows, changing them and saving: nothing is tracked, so two agents opening
-        // the same thread at the same moment cannot collide.
-        await db.SupportChatMessages
-            .Where(m => m.ConversationId == query.ConversationId && !m.FromDesk && m.SeenAtUtc == null)
-            .ExecuteUpdateAsync(set => set.SetProperty(m => m.SeenAtUtc, DateTime.UtcNow), ct);
-
         var conversation = await db.SupportConversations.AsNoTracking()
             .Include(c => c.Messages)
             .FirstOrDefaultAsync(c => c.Id == query.ConversationId, ct);
@@ -283,6 +292,7 @@ public static class HelpDeskEndpoints
 
         desk.MapGet("/{id:guid}", async (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
             {
+                await dispatcher.Send(new MarkChatReadCommand(id), ct);
                 var thread = await dispatcher.Ask(new GetChatQuery(id), ct);
                 return thread is null
                     ? (Results<Ok<ChatThread>, NotFound<Error>>)TypedResults.NotFound(Error.NotFound("Conversation"))

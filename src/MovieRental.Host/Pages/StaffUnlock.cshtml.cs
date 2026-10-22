@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using MovieRental.Host.Infrastructure;
@@ -14,6 +15,7 @@ namespace MovieRental.Host.Pages;
 /// </summary>
 // No per-address limit: it would share the sign-in budget with everyone behind the same office
 // address. Guessing is stopped per account instead (StaffPin: 5 tries, then 15 minutes).
+[AllowAnonymous]   // the page itself decides who may see what (see AppPageModel)
 public sealed class StaffUnlockModel(IDispatcher dispatcher, ILanguageContext language) : PageModel
 {
     public string? Problem { get; private set; }

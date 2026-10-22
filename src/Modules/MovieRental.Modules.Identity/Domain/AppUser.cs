@@ -14,6 +14,10 @@ public sealed class AppUser : BaseEntity, ISoftDeletable
     /// follower lists are shown only to people it has accepted.</summary>
     public bool IsPrivate { get; set; }
 
+    /// <summary>"female" or "male", asked at registration. SearchingYou lets only women join a
+    /// search for women and only men one for men. Older accounts choose it once on the profile.</summary>
+    public string? Gender { get; set; }
+
     /// <summary>A few lines under the name on the profile, up to 150 characters.</summary>
     public string? Bio { get; set; }
     public required string PasswordHash { get; set; }
@@ -69,6 +73,7 @@ public sealed class AppUser : BaseEntity, ISoftDeletable
         FullName = "Deleted user";
         Username = null;
         Bio = null;
+        Gender = null;
         PasswordHash = unusablePasswordHash;
         ShareOnGlobe = false;
         City = null;

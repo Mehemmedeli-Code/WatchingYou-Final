@@ -13,4 +13,5 @@ public sealed record RegistrationResponse(string Email, bool VerificationSent, s
 public sealed record UserProfileResponse(
     Guid Id, string FullName, string Email,
     bool IsEmailConfirmed, string[] Roles,
-    bool ShareOnGlobe, string? City, string? AvatarUrl, string? Username = null, bool IsPrivate = false, string? Bio = null);
+    bool ShareOnGlobe, string? City, string? AvatarUrl, string? Username = null, bool IsPrivate = false, string? Bio = null,
+    string? Gender = null);

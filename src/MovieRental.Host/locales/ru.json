@@ -1235,5 +1235,21 @@
   "movie.rating": "Рейтинг",
   "movie.copies": "Свободно копий",
   "movie.showtimes": "Сеансы в кинотеатрах",
-  "movie.similar": "Похожие фильмы"
+  "movie.similar": "Похожие фильмы",
+  "cinema.groupNeed": "Для вашей группы SearchingYou выберите здесь ровно {n} мест. Считаются только билеты на этот сеанс.",
+  "cinema.groupDone": "Все билеты для группы куплены.",
+  "account.gender": "Пол",
+  "account.female": "Женщина",
+  "account.male": "Мужчина",
+  "account.genderOnce": "Выбирается один раз и потом не меняется.",
+  "searching.setGender": "Укажите пол в профиле",
+  "searching.womenOnly": "Только для женщин",
+  "searching.menOnly": "Только для мужчин",
+  "health.title": "Состояние",
+  "health.lede": "Ежедневная проверка базы и ночная проверка API. Если найдена проблема, владельцу приходит письмо.",
+  "health.db": "Проверка базы",
+  "health.api": "Проверка API",
+  "health.ok": "Всё в порядке",
+  "health.problems": "Проблемы",
+  "health.stale": "Давно не запускалась"
 }

@@ -206,35 +206,53 @@ public static class GlobeEndpoints
         // only the number travels until somebody asks for the list.
         // ponytail: filters the in-memory online set against the table; keep per-country
         // counters in the presence store once millions are online at the same time.
-        app.MapGet("/api/globe/online", async (string country, IdentityDbContext db, Presence presence, CancellationToken ct) =>
-            {
-                var code = country.Trim().ToUpperInvariant();
-                var online = presence.OnlineIds();
-                var count = await db.Users.AsNoTracking()
-                    .CountAsync(u => u.ShareOnGlobe && !u.IsSuspended && u.CountryCode == code && online.Contains(u.Id), ct);
-                return TypedResults.Ok(new GlobeOnlineCount(code, count));
-            })
+        app.MapGet("/api/globe/online", async (string country, IDispatcher d, CancellationToken ct) =>
+                TypedResults.Ok(await d.Ask(new GlobeOnlineQuery(country), ct)))
             .WithName("GetGlobeOnline").WithTags("Globe").RequireAuthorization()
             .WithSummary("How many members are online now in a country")
             .WithDescription("`country`: two-letter code (AZ, TR, ...). Counts only members who appear on the globe.");
 
-        app.MapGet("/api/globe/online/members", async (string country, int? page, IdentityDbContext db, Presence presence, CancellationToken ct) =>
-            {
-                var code = country.Trim().ToUpperInvariant();
-                var pageNo = Math.Clamp(page ?? 1, 1, 10_000);
-                const int size = 30;
-                var online = presence.OnlineIds();
-                var people = db.Users.AsNoTracking()
-                    .Where(u => u.ShareOnGlobe && !u.IsSuspended && u.CountryCode == code && online.Contains(u.Id));
-                var total = await people.CountAsync(ct);
-                var items = await people.OrderBy(u => u.Username).ThenBy(u => u.FullName)
-                    .Skip((pageNo - 1) * size).Take(size)
-                    .Select(u => new GlobeOnlineMember(u.Id, u.FullName, u.Username, u.AvatarUrl, u.City))
-                    .ToListAsync(ct);
-                return TypedResults.Ok(new GlobeOnlinePage(code, total, pageNo, size, items));
-            })
+        app.MapGet("/api/globe/online/members", async (string country, int? page, IDispatcher d, CancellationToken ct) =>
+                TypedResults.Ok(await d.Ask(new GlobeOnlineMembersQuery(country, page), ct)))
             .WithName("GetGlobeOnlineMembers").WithTags("Globe").RequireAuthorization()
             .WithSummary("Who is online now in a country, 30 a page")
             .WithDescription("`country`: two-letter code. Only members who appear on the globe.");
+    }
+}
+
+/// <summary>How many globe members are online now in a country (two-letter code).</summary>
+public sealed record GlobeOnlineQuery(string Country) : IQuery<GlobeOnlineCount>;
+
+internal sealed class GlobeOnlineHandler(IdentityDbContext db, Presence presence) : IQueryHandler<GlobeOnlineQuery, GlobeOnlineCount>
+{
+    public async Task<GlobeOnlineCount> Handle(GlobeOnlineQuery query, CancellationToken ct)
+    {
+        var code = query.Country.Trim().ToUpperInvariant();
+        var online = presence.OnlineIds();
+        var count = await db.Users.AsNoTracking()
+            .CountAsync(u => u.ShareOnGlobe && !u.IsSuspended && u.CountryCode == code && online.Contains(u.Id), ct);
+        return new GlobeOnlineCount(code, count);
+    }
+}
+
+/// <summary>Who of them it is, 30 a page.</summary>
+public sealed record GlobeOnlineMembersQuery(string Country, int? Page) : IQuery<GlobeOnlinePage>;
+
+internal sealed class GlobeOnlineMembersHandler(IdentityDbContext db, Presence presence) : IQueryHandler<GlobeOnlineMembersQuery, GlobeOnlinePage>
+{
+    public async Task<GlobeOnlinePage> Handle(GlobeOnlineMembersQuery query, CancellationToken ct)
+    {
+        var code = query.Country.Trim().ToUpperInvariant();
+        var pageNo = Math.Clamp(query.Page ?? 1, 1, 10_000);
+        const int size = 30;
+        var online = presence.OnlineIds();
+        var people = db.Users.AsNoTracking()
+            .Where(u => u.ShareOnGlobe && !u.IsSuspended && u.CountryCode == code && online.Contains(u.Id));
+        var total = await people.CountAsync(ct);
+        var items = await people.OrderBy(u => u.Username).ThenBy(u => u.FullName)
+            .Skip((pageNo - 1) * size).Take(size)
+            .Select(u => new GlobeOnlineMember(u.Id, u.FullName, u.Username, u.AvatarUrl, u.City))
+            .ToListAsync(ct);
+        return new GlobeOnlinePage(code, total, pageNo, size, items);
     }
 }

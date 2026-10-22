@@ -23,6 +23,9 @@ public static class DemoPeople
     public const string Password = "Demo12345";
     private const string Marker = ".wydemo@gmail.com";
 
+    private static readonly HashSet<string> Women =
+        ["aysel", "nigar", "leyla", "sabina", "zeynep", "elif", "aliya", "aigerim", "nino", "anna", "lena", "sophia", "olena"];
+
     private sealed record Person(string Username, string FullName, string Bio, string City, string Country,
         double Lat, double Lon, bool IsPrivate = false);
 
@@ -103,6 +106,7 @@ public static class DemoPeople
             Username = p.Username,
             Bio = p.Bio,
             IsPrivate = p.IsPrivate,
+            Gender = Women.Contains(p.Username.Split('.')[0]) ? "female" : "male",
             PasswordHash = hash,
             IsEmailConfirmed = true,
             ShareOnGlobe = true,

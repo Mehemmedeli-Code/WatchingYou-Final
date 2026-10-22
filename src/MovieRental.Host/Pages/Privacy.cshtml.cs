@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using MovieRental.Host.Infrastructure.Localization;
 
 namespace MovieRental.Host.Pages;
@@ -11,6 +12,7 @@ namespace MovieRental.Host.Pages;
 /// any script. The operator's name and contact address come from configuration (Legal:*),
 /// because only the business running the cinema can say what they are.
 /// </summary>
+[AllowAnonymous]   // the page itself decides who may see what (see AppPageModel)
 public sealed class PrivacyModel(IPageShellFactory shell, ILanguageContext language, IConfiguration configuration) : AppPageModel
 {
     public PrivacyText Text { get; private set; } = PrivacyText.For("en");

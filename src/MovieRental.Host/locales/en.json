@@ -1235,5 +1235,21 @@
   "movie.rating": "Rating",
   "movie.copies": "Copies free",
   "movie.showtimes": "Showtimes in cinemas",
-  "movie.similar": "Similar films"
+  "movie.similar": "Similar films",
+  "cinema.groupNeed": "For your SearchingYou group: pick exactly {n} seats here. Only tickets for this screening count.",
+  "cinema.groupDone": "Every ticket for the group is bought.",
+  "account.gender": "Gender",
+  "account.female": "Woman",
+  "account.male": "Man",
+  "account.genderOnce": "Chosen once; it cannot be changed later.",
+  "searching.setGender": "Choose your gender on the profile",
+  "searching.womenOnly": "Women only",
+  "searching.menOnly": "Men only",
+  "health.title": "Health",
+  "health.lede": "The daily database check and the nightly API check. The owner is e-mailed when one finds a problem.",
+  "health.db": "Database check",
+  "health.api": "API check",
+  "health.ok": "All clear",
+  "health.problems": "Problems",
+  "health.stale": "Not run lately"
 }

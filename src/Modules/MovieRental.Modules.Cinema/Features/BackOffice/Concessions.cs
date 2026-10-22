@@ -198,6 +198,29 @@ internal sealed class BarSaleHandler(CinemaDbContext db, ICurrentUser currentUse
     }
 }
 
+public sealed record GetBarItemsQuery : IQuery<List<ConcessionItemDto>>;
+
+internal sealed class GetBarItemsHandler(CinemaDbContext db) : IQueryHandler<GetBarItemsQuery, List<ConcessionItemDto>>
+{
+    public async Task<List<ConcessionItemDto>> Handle(GetBarItemsQuery query, CancellationToken ct) =>
+        (await db.ConcessionItems.AsNoTracking().OrderBy(i => i.Category).ThenBy(i => i.Name).ToListAsync(ct))
+            .Select(i => i.ToDto()).ToList();
+}
+
+public sealed record DeleteBarItemCommand(Guid Id) : ICommand<Result>;
+
+internal sealed class DeleteBarItemHandler(CinemaDbContext db) : ICommandHandler<DeleteBarItemCommand, Result>
+{
+    public async Task<Result> Handle(DeleteBarItemCommand command, CancellationToken ct)
+    {
+        var item = await db.ConcessionItems.FirstOrDefaultAsync(i => i.Id == command.Id, ct);
+        if (item is null) return Result.Failure(Error.NotFound("Item"));
+        db.ConcessionItems.Remove(item);   // soft delete; old receipts keep their snapshot
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+}
+
 public static class ConcessionEndpoints
 {
     public static void Map(IEndpointRouteBuilder app)
@@ -205,9 +228,8 @@ public static class ConcessionEndpoints
         var bar = app.MapGroup("/api/backoffice/bar").WithTags("Back office");
 
         // The till needs the menu; only the manager changes it.
-        bar.MapGet("/items", async (CinemaDbContext db, CancellationToken ct) =>
-                TypedResults.Ok((await db.ConcessionItems.AsNoTracking()
-                    .OrderBy(i => i.Category).ThenBy(i => i.Name).ToListAsync(ct)).Select(i => i.ToDto()).ToList()))
+        bar.MapGet("/items", async (IDispatcher dispatcher, CancellationToken ct) =>
+                TypedResults.Ok(await dispatcher.Ask(new GetBarItemsQuery(), ct)))
             .RequireAuthorization(AppPolicies.BackOffice).WithName("GetBarItems")
             .WithSummary("The bar menu, with stock and the items running low");
 
@@ -256,14 +278,10 @@ public static class ConcessionEndpoints
             .WithSummary("Add delivered stock to a bar item")
             .WithDescription("`quantity` 1 to 100 000, added to what is there.");
 
-        menu.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>>> (Guid id, CinemaDbContext db, CancellationToken ct) =>
-            {
-                var item = await db.ConcessionItems.FirstOrDefaultAsync(i => i.Id == id, ct);
-                if (item is null) return TypedResults.NotFound(Error.NotFound("Item"));
-                db.ConcessionItems.Remove(item);   // soft delete; old receipts keep their snapshot
-                await db.SaveChangesAsync(ct);
-                return TypedResults.NoContent();
-            })
+        menu.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound<Error>>> (Guid id, IDispatcher dispatcher, CancellationToken ct) =>
+                await dispatcher.Send(new DeleteBarItemCommand(id), ct) is { IsSuccess: false } failed
+                    ? TypedResults.NotFound(failed.Error)
+                    : TypedResults.NoContent())
             .WithName("DeleteBarItem")
             .WithSummary("Take an item off the bar menu (old receipts keep it)");
     }

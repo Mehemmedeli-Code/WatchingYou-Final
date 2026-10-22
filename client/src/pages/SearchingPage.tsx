@@ -8,6 +8,7 @@ import { CITIES, formatDateTime } from "@/lib/format";
 import { lang, languageName, t } from "@/lib/i18n";
 import { flagUrl } from "@/lib/worldCities";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/useAuth";
 
 type Partner = "female" | "male" | "mixed";
 
@@ -66,6 +67,7 @@ export default function SearchingPage() {
   const [query, setQuery] = useState("");
   const [searches, setSearches] = useState<Search[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const { user } = useAuth();
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
 
   const load = useCallback(async () => {
@@ -299,7 +301,7 @@ export default function SearchingPage() {
               {search.cancelled ? (search.joined ? <Button size="sm" variant="outline" disabled={busy} onClick={() => act(search, "leave")}>{t("searching.leave")}</Button> : null) : search.mine ? (
                 <>
                   {/* The owner buys the tickets for the whole group. */}
-                  {search.hasTickets ? null : <a href={`/cinema?screening=${search.screeningId}`}><Button size="sm" variant="outline">{t("searching.buyGroup")}</Button></a>}
+                  {search.hasTickets ? null : <a href={`/cinema?screening=${search.screeningId}&group=${search.id}`}><Button size="sm" variant="outline">{t("searching.buyGroup")}</Button></a>}
                   {search.found ? null : <Button size="sm" variant="danger" disabled={busy} onClick={() => act(search, "close")}>{t("searching.close")}</Button>}
                 </>
               ) : search.joined ? (
@@ -308,6 +310,10 @@ export default function SearchingPage() {
                   <Badge tone="good">{t("searching.joined")}</Badge>
                   <Button size="sm" variant="outline" disabled={busy} onClick={() => act(search, "leave")}>{t("searching.leave")}</Button>
                 </>
+              ) : search.partner !== "mixed" && !user?.gender ? (
+                <a href="/account"><Button size="sm" variant="outline">{t("searching.setGender")}</Button></a>
+              ) : search.partner !== "mixed" && user?.gender !== search.partner ? (
+                <Badge>{t(search.partner === "female" ? "searching.womenOnly" : "searching.menOnly")}</Badge>
               ) : (
                 <Button size="sm" disabled={busy} onClick={() => act(search, "join")}>{t("searching.join")}</Button>
               )}
