@@ -33,7 +33,7 @@ finally { Pop-Location }
 if (-not $SkipChecks) {
     Step "Debug build and the full API check (a few minutes)"
     Run "the Debug build" { dotnet build $hostProject -c Debug -p:SkipClientBuild=true --nologo -v q | Out-Null }
-    Run "the API check" { powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "api-check.ps1") | Select-String "checks passed|operations,|/\d+ ok|FAIL" | ForEach-Object { Write-Host "  $_" } }
+    Run "the API check" { powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "api-check.ps1") | Select-String "checks passed|operations,|/\d+ ok|pages, \d+ problem|FAIL" | ForEach-Object { Write-Host "  $_" } }
 }
 
 Step "backup"

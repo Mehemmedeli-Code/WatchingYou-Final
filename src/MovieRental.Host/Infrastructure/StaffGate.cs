@@ -10,16 +10,17 @@ using MovieRental.SharedKernel.Security;
 namespace MovieRental.Host.Infrastructure;
 
 /// <summary>
-/// Where the staff screens live. Not /admin: they sit under a long secret segment
-/// (Staff:PathKey), so somebody typing /admin or /security finds nothing at all. The path is
-/// only a first fence — the roles and the staff PIN are what actually guard the screens.
+/// Where the staff screens live. Not /admin: each one has an address of its own, drawn from the
+/// secret Staff:PathKey with an HMAC, so somebody typing /admin finds nothing, and knowing one
+/// screen's address (the cashier's, say) tells nothing about the admin's. The path is only a
+/// first fence — the roles and the staff PIN are what actually guard the screens.
 /// </summary>
 public static partial class StaffPaths
 {
     [GeneratedRegex("^[A-Za-z0-9-]{24,128}$")]
     private static partial Regex KeyPattern();
 
-    public static string Base { get; private set; } = "/staff-not-configured";
+    private static byte[] key = [];
 
     public static void Configure(IConfiguration configuration)
     {
@@ -27,13 +28,24 @@ public static partial class StaffPaths
         if (key is null || !KeyPattern().IsMatch(key))
             throw new InvalidOperationException(
                 "Staff:PathKey must be 24+ letters, digits or dashes. Set it in user secrets, never in appsettings.json.");
-        Base = "/" + key;
+        StaffPaths.key = System.Text.Encoding.UTF8.GetBytes(key);
+        Admin = For("admin"); Security = For("security"); BackOffice = For("backoffice"); Unlock = For("unlock");
     }
 
-    public static string Admin => Base + "/admin";
-    public static string Security => Base + "/security";
-    public static string BackOffice => Base + "/backoffice";
-    public static string Unlock => Base + "/unlock";
+    /// <summary>"/wy-" and 40 hex characters of HMAC-SHA256(PathKey, screen). tools/staff-paths.mjs
+    /// works out the same addresses for the checks.</summary>
+    private static string For(string screen) =>
+        "/wy-" + Convert.ToHexStringLower(System.Security.Cryptography.HMACSHA256.HashData(key,
+            System.Text.Encoding.UTF8.GetBytes("watchingyou.staff." + screen)))[..40];
+
+    public static string Admin { get; private set; } = "/staff-not-configured/admin";
+    public static string Security { get; private set; } = "/staff-not-configured/security";
+    public static string BackOffice { get; private set; } = "/staff-not-configured/backoffice";
+    public static string Unlock { get; private set; } = "/staff-not-configured/unlock";
+
+    /// <summary>One of the staff screens (an address under it, or with a query).</summary>
+    public static bool IsStaffScreen(string url) =>
+        new[] { Admin, Security, BackOffice }.Any(p => url == p || url.StartsWith(p + "/", StringComparison.Ordinal) || url.StartsWith(p + "?", StringComparison.Ordinal));
 }
 
 /// <summary>

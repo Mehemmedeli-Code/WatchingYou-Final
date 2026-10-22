@@ -3,4 +3,5 @@
 @{
     Layout = "_BackOfficeLayout";
 }
-<div class="bo-root" data-page="@Model.View.ReactMount" id="root"></div>
+@* The admin screen has an address of its own (StaffPaths); only an admin is told it. *@
+<div class="bo-root" data-page="@Model.View.ReactMount" data-admin="@(User.IsInRole(MovieRental.SharedKernel.Security.AppRoles.Admin) ? MovieRental.Host.Infrastructure.StaffPaths.Admin : null)" id="root"></div>

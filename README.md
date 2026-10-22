@@ -51,15 +51,16 @@ The first run creates the database and the schemas, and no accounts: register wi
 `Staff:OwnerEmail` (user secrets) and that account becomes the owner (SuperAdmin) on the next start.
 
 Test databases (`tools/api-check.ps1`, or `Seed:TestAccounts=true`) also get these logins. Their
-passwords are public, so anywhere else they are never created, and a database that has them
-closes them at start-up:
+passwords, the staff PIN and the demo people's password are drawn at random once per machine into
+`%LOCALAPPDATA%\WatchingYou\test-logins.json` (never into the repository). They are still test
+accounts: anywhere else they are never created, and a database that has them closes them at start-up.
 
-| Role | E-mail | Password |
-|---|---|---|
-| Admin | `admin@reelandrow.test` | `Admin1234` |
-| Security | `security@reelandrow.test` | `Security1234` |
-| Customer | `customer@reelandrow.test` | `Customer1234` |
-| Cashier | `kassa@reelandrow.test` | `Kassa1234` |
+| Role | E-mail |
+|---|---|
+| Admin | `admin@reelandrow.test` |
+| Security | `security@reelandrow.test` |
+| Customer | `customer@reelandrow.test` |
+| Cashier | `kassa@reelandrow.test` |
 
 Admin and Cashier land in the **back office** (`/backoffice`) after signing in, not on the
 public catalogue — see **Back office** below.

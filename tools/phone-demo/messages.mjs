@@ -4,9 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 const BASE = "https://localhost:7142";
 const repo = path.resolve(import.meta.dirname, "../..");
-const demoPassword = /Password = "([^"]+)"/.exec(fs.readFileSync(`${repo}/src/MovieRental.Host/Infrastructure/DemoPeople.cs`, "utf8"))[1];
-const customerPassword = fs.readFileSync(`${repo}/tools/test-accounts.md`, "utf8").split("\n")
-  .find((l) => l.includes("customer@reelandrow.test")).split("|").map((c) => c.trim()).filter(Boolean).pop();
+const { demo: demoPassword, customer: customerPassword } = (await import("../test-logins.mjs")).logins;
 
 async function login(email, password) {
   const r = await fetch(`${BASE}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json", "X-Forwarded-For": `10.9.${Math.random() * 250 | 0}.${Math.random() * 250 | 0}` }, body: JSON.stringify({ email, password }) });

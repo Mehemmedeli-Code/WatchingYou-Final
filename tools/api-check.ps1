@@ -27,7 +27,7 @@ $server = if ($pipe) { 'np:' + $pipe } else { '(localdb)\MSSQLLocalDB' }
 $env:ASPNETCORE_ENVIRONMENT = 'Development'
 $env:ASPNETCORE_URLS = 'https://localhost:7140'
 $env:Notifications__Email__Provider = 'Console'   # codes go to the log, where the check reads them
-$env:Seed__TestAccounts = 'true'   # the logins in tools/test-accounts.md; a throwaway database only
+$env:Seed__TestAccounts = 'true'   # the test logins (passwords in %LOCALAPPDATA%\WatchingYou\test-logins.json); a throwaway database only
 $env:ConnectionStrings__Default = "Server=$server;Database=$database;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
 
 $site = Start-Process -FilePath $exe -WorkingDirectory $hostDir -WindowStyle Hidden -PassThru `
@@ -61,6 +61,10 @@ try {
     node (Join-Path $PSScriptRoot 'searching-check.mjs') https://localhost:7140 "$log.3" $database | Keep
     if ($LASTEXITCODE -ne 0) { $result = $LASTEXITCODE }
 
+    # Every link each role can reach, in a real (headless) Edge: errors, "nothing here", script errors.
+    node (Join-Path $PSScriptRoot 'link-check.mjs') https://localhost:7140 | Keep
+    if ($LASTEXITCODE -ne 0) { $result = $LASTEXITCODE }
+
     # The same database started the way the real site starts, without Seed:TestAccounts: the
     # test logins, whose passwords are public, must come out closed.
     Stop-Process -Id $site.Id -Force
@@ -85,6 +89,6 @@ finally {
 # The report for the admin panel and the owner's e-mail: the totals, and every FAIL line.
 $failed = @($lines | Where-Object { $_ -match '^\s*FAIL' } | ForEach-Object { $_.Trim() })
 if ($result -ne 0 -and $failed.Count -eq 0) { $failed = @("The check stopped with exit code $result before it finished.") }
-$totals = ($lines | Where-Object { $_ -match 'checks passed|operations,|/\d+ ok' } | ForEach-Object { $_.Trim() }) -join ' | '
+$totals = ($lines | Where-Object { $_ -match 'checks passed|operations,|/\d+ ok|pages, \d+ problem' } | ForEach-Object { $_.Trim() }) -join ' | '
 Write-CheckReport "api" $totals $failed
 exit $result

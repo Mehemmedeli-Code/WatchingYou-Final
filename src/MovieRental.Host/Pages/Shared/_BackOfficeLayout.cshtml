@@ -33,7 +33,10 @@
         body { background: var(--color-surface, #0A0C0A); }
     </style>
 </head>
-<body class="bo-body">
+@* Signed in or not, as on the rest of the site: the island exchanges the session cookie for a token
+   when it has none of its own (client/src/lib/api.ts, sessionFromCookie). Without it a cashier who
+   opened the back office first was shown "staff only". *@
+<body class="bo-body" data-signed-in="@(view.IsSignedIn ? "true" : null)">
     @RenderBody()
 
     <script id="rr-i18n" type="application/json">@Html.Raw(view.TranslationsJson)</script>

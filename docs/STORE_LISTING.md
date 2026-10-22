@@ -122,8 +122,8 @@ Diqqət: aşağıdakı iki hesab yalnız test bazalarında var (əsl saytda bağ
 canlı serverdə yoxlayıcı üçün ayrıca hesab aç və burada onu yaz.
 
 ```
-Demo account (customer): customer@reelandrow.test / Customer1234
-Door scanning (staff role): security@reelandrow.test / Security1234
+Demo account (customer): <the reviewer's account on the live server> / <its password>
+Door scanning (staff role): <a staff account on the live server> / <its password>
 
 The app sells cinema tickets — a service used in person at the cinema — paid by card
 through Stripe. No digital content is sold or unlocked in the app.

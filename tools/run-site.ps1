@@ -39,7 +39,7 @@ function Start-Database {
 # The same settings the project's launch profile uses.
 $env:ASPNETCORE_ENVIRONMENT = "Development"
 # Every address of this machine, not only localhost, so a phone on the same Wi-Fi can reach it
-# (Windows Firewall still decides whether it may; see tools\test-accounts.md).
+# (Windows Firewall still decides whether it may; see README.md).
 $env:ASPNETCORE_URLS = "https://*:7139;http://*:5139"
 # The owner is e-mailed when a nightly check finds a problem (see HealthReports.cs).
 $env:Health__MailOwner = "true"

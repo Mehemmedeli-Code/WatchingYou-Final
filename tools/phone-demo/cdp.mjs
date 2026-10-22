@@ -70,11 +70,9 @@ export async function launch({ width = 390, height = 844, scale = 1.2, mobile = 
     fs.writeFileSync(file, Buffer.from(data, "base64"));
   };
 
-  // Signs the test customer in with the password from tools/test-accounts.md (never printed).
+  // Signs the test customer in with this machine's test password (tools/test-logins.mjs; never printed).
   const signIn = async () => {
-    const table = fs.readFileSync(path.resolve(import.meta.dirname, "../test-accounts.md"), "utf8");
-    const row = table.split("\n").find((l) => l.includes("customer@reelandrow.test"));
-    const password = row.split("|").map((c) => c.trim()).filter(Boolean).pop();
+    const { customer: password } = (await import("../test-logins.mjs")).logins;
     await goto("/lang/az?returnUrl=%2Faccount", 1500);
     const status = await evaluate(`fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: "customer@reelandrow.test", password: ${JSON.stringify(password)} }) }).then((r) => r.status)`);

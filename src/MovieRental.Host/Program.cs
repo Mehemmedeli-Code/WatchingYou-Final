@@ -525,6 +525,12 @@ app.MapRazorPages();
 app.MapModules();
 AnalyticsEndpoints.Map(app);
 HealthReports.Map(app);
+
+// Nothing else matched: the site's own 404, for everyone. Without an endpoint here the fallback
+// policy sent anonymous visitors to sign in for any made-up address, which also told a staff
+// screen (404 to non-staff) apart from an address that does not exist.
+app.MapFallback(context => { context.Response.StatusCode = StatusCodes.Status404NotFound; return Task.CompletedTask; })
+   .AllowAnonymous().ExcludeFromDescription();
 LanguageEndpoints.Map(app);
 
 app.MapGet("/api/health", () => TypedResults.Ok(new HealthStatus("ok", DateTime.UtcNow)))

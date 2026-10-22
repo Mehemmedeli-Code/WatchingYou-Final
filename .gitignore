@@ -15,3 +15,7 @@ logs/
 
 # graphify knowledge graph (local, rebuilt on demand)
 graphify-out/
+
+# Test logins and the real accounts: local only, the repository is public. Passwords live in
+# %LOCALAPPDATA%\WatchingYou\test-logins.json (src/MovieRental.Host/Infrastructure/TestLogins.cs).
+tools/test-accounts.md

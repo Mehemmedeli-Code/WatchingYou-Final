@@ -19,6 +19,7 @@ const MESSAGES: Record<string, Row> = {
   "This is your own search.": ["Bu, sənin öz axtarışındır.", "Это ваш собственный поиск.", "Bu senin kendi araman."],
   "You have already joined.": ["Artıq qoşulmusan.", "Вы уже присоединились.", "Zaten katıldın."],
   "Choose whether you are a man or a woman.": ["Kişi və ya qadın olduğunu seç.", "Укажите, мужчина вы или женщина.", "Erkek mi kadın mı olduğunu seç."],
+  "There is no flag for that country.": ["Bu ölkənin bayrağı yoxdur.", "Для этой страны нет флага.", "Bu ülkenin bayrağı yok."],
   "Gender cannot be changed once chosen.": ["Cins bir dəfə seçildikdən sonra dəyişmir.", "Пол нельзя изменить после выбора.", "Cinsiyet bir kez seçildikten sonra değiştirilemez."],
   "Say on your profile whether you are a man or a woman first.": ["Əvvəlcə profildə kişi və ya qadın olduğunu seç.", "Сначала укажите в профиле, мужчина вы или женщина.", "Önce profilinde erkek mi kadın mı olduğunu seç."],
   "This search is for women only.": ["Bu axtarış yalnız qadınlar üçündür.", "Этот поиск только для женщин.", "Bu arama yalnızca kadınlar için."],

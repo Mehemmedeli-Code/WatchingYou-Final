@@ -44,7 +44,30 @@ internal sealed class RemoveAvatarHandler(IdentityDbContext db, ICurrentUser cur
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.RequireId(), ct);
         if (user is null) return Result.Failure<UserProfileResponse>(Error.NotFound("Account"));
         AvatarEndpoints.DeleteOwnFile(environment, user.Id, user.AvatarUrl);
-        user.AvatarUrl = null;
+        // Removing leaves the plain grey figure, not the eye: the eye is what a new account
+        // starts with, and once taken away it does not come back by itself.
+        user.AvatarUrl = AvatarEndpoints.BlankAvatar;
+        await db.SaveChangesAsync(ct);
+        return user.ToProfile();
+    }
+}
+
+/// <summary>A country's flag as the picture; the code is checked against the flags the site has.</summary>
+public sealed record SetFlagAvatarCommand(string Country) : ICommand<Result<UserProfileResponse>>;
+
+internal sealed class SetFlagAvatarHandler(IdentityDbContext db, ICurrentUser currentUser, IHostEnvironment environment)
+    : ICommandHandler<SetFlagAvatarCommand, Result<UserProfileResponse>>
+{
+    public async Task<Result<UserProfileResponse>> Handle(SetFlagAvatarCommand command, CancellationToken ct)
+    {
+        var code = command.Country.ToLowerInvariant();
+        if (!System.Text.RegularExpressions.Regex.IsMatch(code, "^[a-z]{2}$")
+            || !File.Exists(Path.Combine(environment.ContentRootPath, "wwwroot", "app", "flags", code + ".svg")))
+            return Result.Failure<UserProfileResponse>(Error.Validation("There is no flag for that country."));
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == currentUser.RequireId(), ct);
+        if (user is null) return Result.Failure<UserProfileResponse>(Error.NotFound("Account"));
+        AvatarEndpoints.DeleteOwnFile(environment, user.Id, user.AvatarUrl);
+        user.AvatarUrl = $"/app/flags/{code}.svg";
         await db.SaveChangesAsync(ct);
         return user.ToProfile();
     }
@@ -69,6 +92,7 @@ public static class AvatarEndpoints
 {
     private const long MaxBytes = 2 * 1024 * 1024;
     private const string DefaultAvatar = "/icons/avatar.svg";   // the eye, close up
+    internal const string BlankAvatar = "/icons/avatar-blank.svg";   // after "remove": a grey figure
 
     public static void Map(IEndpointRouteBuilder app)
     {
@@ -102,8 +126,17 @@ public static class AvatarEndpoints
         app.MapDelete("/api/auth/avatar", async (IDispatcher dispatcher, CancellationToken ct) =>
                 (await dispatcher.Send(new RemoveAvatarCommand(), ct)).ToHttp())
             .WithName("RemoveAvatar").WithTags("Auth").RequireAuthorization()
-            .WithSummary("Remove my profile picture (back to the default eye)")
+            .WithSummary("Remove my profile picture (a plain grey figure from then on)")
             .Produces<UserProfileResponse>()
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status404NotFound);
+
+        app.MapPut("/api/auth/avatar/flag/{country}", async (string country, IDispatcher dispatcher, CancellationToken ct) =>
+                (await dispatcher.Send(new SetFlagAvatarCommand(country), ct)).ToHttp())
+            .WithName("SetFlagAvatar").WithTags("Auth").RequireAuthorization()
+            .WithSummary("Use a country's flag as my profile picture")
+            .WithDescription("`country` is a two-letter code (az, tr, de…). Answers with the updated profile.")
+            .Produces<UserProfileResponse>()
+            .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status400BadRequest)
             .Produces<MovieRental.SharedKernel.Results.Error>(StatusCodes.Status404NotFound);
 
         // The header's round picture. One stable URL for the page to use, whoever is signed in:

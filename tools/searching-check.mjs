@@ -36,9 +36,7 @@ async function call(method, url, { token, body } = {}) {
 let fails = 0, n = 0;
 const expect = (label, ok, detail = "") => { n++; if (!ok) fails++; console.log(`${ok ? "ok  " : "FAIL"} ${label}${ok ? "" : "  " + detail}`); };
 
-const pw = readFileSync(path.join(repo, "tools/test-accounts.md"), "utf8").split("\n")
-  .find((l) => l.includes("customer@reelandrow.test")).split("|").map((c) => c.trim()).filter(Boolean).pop();
-const demoPw = /Password = "([^"]+)"/.exec(readFileSync(path.join(repo, "src/MovieRental.Host/Infrastructure/DemoPeople.cs"), "utf8"))[1];
+const { customer: pw, demo: demoPw } = (await import("./test-logins.mjs")).logins;
 const login = async (email, password) => (await call("POST", "/api/auth/login", { body: { email, password } })).json;
 const demo = (u) => login(`${u}.wydemo@gmail.com`, demoPw);
 

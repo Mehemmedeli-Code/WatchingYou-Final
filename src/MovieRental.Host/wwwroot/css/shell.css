@@ -104,15 +104,52 @@ html.rr { background: var(--surface); }
   font-size: clamp(0.65rem, calc((100vw - 800px) / 46), 0.92rem);
 }
 /* A narrow desktop: a little less space around the menu, so the words need not shrink as far. */
-@media (min-width: 901px) and (max-width: 1600px) {
+@media (min-width: 1281px) and (max-width: 1600px) {
   .rr-header { gap: 1rem; }
 }
-/* Narrower still, beside the eye and the tools there is no room for two readable rows: the menu
-   moves to a row of its own under them, where it fits in two at its usual look. */
-@media (min-width: 901px) and (max-width: 1250px) {
-  .rr-header { flex-wrap: wrap; row-gap: 0.6rem; }
+
+/* The burger. Hidden while the menu fits beside the eye; from 1280px down (a phone, a tablet,
+   or a desktop zoomed to 150% and more) the menu folds behind it and opens as a panel under
+   the header. Signed out there is only the one link, which stays as it is. */
+.rr-burger { display: none; }
+@media (max-width: 1280px) {
+  .rr-header { flex-wrap: wrap; row-gap: 0; gap: 0.75rem; }
   .rr-tools { margin-inline-start: auto; }
-  .rr-nav { order: 3; flex: 0 0 100%; font-size: 0.85rem; row-gap: 0.9rem; }
+  .rr-burger {
+    display: grid;
+    place-content: center;
+    gap: 4px;
+    width: 40px;
+    height: 40px;
+    flex: none;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .rr-burger:hover { border-color: var(--accent); color: var(--accent); }
+  .rr-burger span { display: block; width: 18px; height: 2px; border-radius: 2px; background: currentColor; transition: transform 180ms ease, opacity 180ms ease; }
+  .rr-header.is-open .rr-burger span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .rr-header.is-open .rr-burger span:nth-child(2) { opacity: 0; }
+  .rr-header.is-open .rr-burger span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+  .rr-nav--menu { display: none; }
+  .rr-header.is-open .rr-nav--menu {
+    order: 3;
+    flex: 0 0 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: 0 1.25rem;
+    margin: 0.75rem 0 0;
+    padding: 0.5rem 0 0.25rem;
+    border-top: 1px solid var(--line);
+    font-size: 1rem;
+    max-height: calc(100dvh - 6rem);
+    overflow-y: auto;
+  }
+  .rr-header.is-open .rr-nav--menu a { padding: 0.7rem 0.25rem; border-bottom: 1px solid var(--line); }
+  .rr-header.is-open .rr-nav--menu a.is-current { border-bottom-color: var(--accent); }
 }
 
 .rr-nav a {
@@ -291,24 +328,8 @@ html.rr { background: var(--surface); }
   /* Two rows: the eye and the tools on top, the nav beneath. The header has to be allowed to
      wrap for the nav's `width: 100%` to put it on a row of its own — without this the nav
      was squeezed beside the eye and stacked its links into a column half a screen tall. */
-  .rr-header { gap: 0.75rem; padding-inline: 1rem; flex-wrap: wrap; row-gap: 0.5rem; }
-  .rr-tools { margin-inline-start: auto; }
-
-  /* Ten nav items will not wrap into anything readable on a phone, so the row scrolls
-     sideways instead of stacking into a wall of links. */
-  .rr-nav {
-    order: 3;
-    width: 100%;
-    flex-wrap: nowrap;
-    gap: 1rem;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 0.25rem;
-  }
-  .rr-nav::-webkit-scrollbar { display: none; }
-  .rr-nav { font-size: 0.92rem; }   /* one scrolling row here, so the words keep their size */
-  .rr-nav a { white-space: nowrap; }
+  .rr-header { gap: 0.6rem; padding-inline: 1rem; }
+  .rr-nav:not(.rr-nav--menu) { order: 3; width: 100%; padding-bottom: 0.25rem; }   /* signed out: "← Watching PRO" */
 
   .rr-tools { gap: 0.5rem; }
   .rr-lang a { padding: 0.24rem 0.38rem; font-size: 0.68rem; }
