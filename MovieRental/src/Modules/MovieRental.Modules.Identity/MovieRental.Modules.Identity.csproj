@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+    <PackageReference Include="BCrypt.Net-Next" />
+    <PackageReference Include="FluentValidation" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\MovieRental.SharedKernel\MovieRental.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

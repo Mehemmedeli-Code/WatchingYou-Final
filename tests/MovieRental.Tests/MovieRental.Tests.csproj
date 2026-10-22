@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- Assert.Equal(expected, actual) on a decimal is not an async call; the analyser's
+         nullable noise here would drown the real failures. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MovieRental.SharedKernel\MovieRental.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\Modules\MovieRental.Modules.Rentals\MovieRental.Modules.Rentals.csproj" />
+    <ProjectReference Include="..\..\src\Modules\MovieRental.Modules.Catalog\MovieRental.Modules.Catalog.csproj" />
+    <ProjectReference Include="..\..\src\Modules\MovieRental.Modules.Cinema\MovieRental.Modules.Cinema.csproj" />
+    <ProjectReference Include="..\..\src\Modules\MovieRental.Modules.Identity\MovieRental.Modules.Identity.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

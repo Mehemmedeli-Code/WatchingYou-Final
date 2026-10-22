@@ -1,0 +1,476 @@
+import { PromoBanners } from "@/components/PromoBoard";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import StackSpread from "@/components/ui/stack-spread";
+import { HeroEye } from "@/components/ui/hero-eye";
+import { MovieCarousel } from "@/components/ui/movie-carousel";
+import { PhoneDemo } from "@/components/PhoneDemo";
+import { MovieCard, type MovieListItem } from "@/components/MovieCard";
+import { SearchField } from "@/components/SearchField";
+import { Section, Notice, Empty, Spinner } from "@/components/Shell";
+import { Pagination } from "@/components/Pagination";
+import { useWatchlist } from "@/lib/watchlist";
+import { Toaster, type ToastMessage } from "@/components/Toast";
+import { MovieDialog } from "@/components/MovieDialog";
+import { TrailerPlayer } from "@/components/TrailerPlayer";
+import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/input";
+import { useAuth } from "@/components/useAuth";
+import { get, post, query, ApiError, type Paged } from "@/lib/api";
+import { t, genreName } from "@/lib/i18n";
+import { isApp } from "@/lib/platform";
+import { PaymentSheet } from "@/components/CardPayment";
+import { formatUsd, RENTAL_PRICE } from "@/lib/format";
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, Clapperboard as RentIcon, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const SORTS = [
+  { value: "newest", label: t("sort.newest") },
+  { value: "title", label: t("sort.title") },
+  { value: "year", label: t("sort.year") },
+  { value: "rating", label: t("sort.rating") },
+  { value: "price", label: t("sort.price") },
+];
+
+interface Recommendation {
+  movie: MovieListItem;
+  score: number;
+  becauseGenre?: string | null;
+}
+
+interface RecommendationList {
+  personal: boolean;
+  items: Recommendation[];
+}
+
+const RATINGS = [0, 3, 3.5, 4, 4.5];
+const PAGE_SIZE = 12;
+
+/** Filters live in the address bar, so a filtered catalogue can be bookmarked, shared and
+ *  survives the reload every Razor navigation causes. */
+function readFilters() {
+  const q = new URLSearchParams(window.location.search);
+  const num = (key: string) => {
+    const value = Number(q.get(key));
+    return Number.isFinite(value) && value > 0 ? value : undefined;
+  };
+  return {
+    search: q.get("q") ?? "",
+    genre: q.get("genre") ?? "all",
+    sortBy: q.get("sort") ?? "newest",
+    sortDir: q.get("dir") === "asc" ? "asc" : "desc",
+    onlyAvailable: q.get("stock") === "1",
+    yearFrom: num("from"),
+    yearTo: num("to"),
+    minRating: num("rating"),
+    page: num("page") ?? 1,
+  };
+}
+
+export default function HomePage() {
+  // The phone app lists the films but sells none: the stores require their own billing for
+  // digital content, so there is no rent button there (see MobileApp).
+  const inApp = isApp();
+  const { isSignedIn, isSecurity: isStaff } = useAuth();
+  // What this account may watch: PRO and staff everything, a free account only what it has
+  // rented. Each film then offers one action: Watch when it may, Rent when it may not.
+  const [access, setAccess] = useState<{ pro: boolean; rented: Set<string> }>({ pro: false, rented: new Set() });
+  const loadAccess = useCallback(async () => {
+    if (!isSignedIn) return;
+    const [pro, mine] = await Promise.all([
+      get<{ active: boolean }>("/api/pro").catch(() => null),
+      get<Paged<{ movieId: string }>>("/api/rentals/mine" + query({ status: "active", pageSize: 50 })).catch(() => null),
+    ]);
+    setAccess({ pro: !!pro?.active, rented: new Set(mine?.items.map((r) => r.movieId) ?? []) });
+  }, [isSignedIn]);
+  useEffect(() => { void loadAccess(); }, [loadAccess]);
+  const canWatch = useCallback((movie: MovieListItem) => isStaff || access.pro || access.rented.has(movie.id), [isStaff, access]);
+  const watchlist = useWatchlist();
+  const initial = useMemo(readFilters, []);
+  const [genres, setGenres] = useState<string[]>([]);
+  const [page, setPage] = useState(initial.page);
+  const [search, setSearch] = useState(initial.search);
+  const [debounced, setDebounced] = useState(initial.search);
+  const [genre, setGenre] = useState(initial.genre);
+  const [sortBy, setSortBy] = useState(initial.sortBy);
+  const [sortDir, setSortDir] = useState(initial.sortDir);
+  const [onlyAvailable, setOnlyAvailable] = useState(initial.onlyAvailable);
+  const [yearFrom, setYearFrom] = useState<number | undefined>(initial.yearFrom);
+  const [yearTo, setYearTo] = useState<number | undefined>(initial.yearTo);
+  const [minRating, setMinRating] = useState<number | undefined>(initial.minRating);
+  const [recommended, setRecommended] = useState<RecommendationList | null>(null);
+
+  const [data, setData] = useState<Paged<MovieListItem> | null>(null);
+  // Fetched once and independent of the filters below: the front shelf should not
+  // empty out the moment someone types in the search box.
+  const [featured, setFeatured] = useState<MovieListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const [dialog, setDialog] = useState<{ id: string; mode: "details" | "watch" } | null>(null);
+  const [rentingId] = useState<string | null>(null);
+  // The film being paid for: the payment sheet is open while this is set.
+  const [payFor, setPayFor] = useState<MovieListItem | null>(null);
+  const [trailer, setTrailer] = useState<MovieListItem | null>(null);
+
+  // Watch plays the film when the site has it, and otherwise its trailer, full screen over the
+  // catalogue — but only once the server says this account may watch (a rental, PRO or staff).
+  // It used to open the trailer straight away, so a free account "watched" without renting.
+  // When the answer is no, the dialog explains and offers the rental. Details always opens it.
+  const openMovie = useCallback(async (movie: MovieListItem, mode: "details" | "watch") => {
+    if (mode === "watch" && !movie.hasVideo && movie.trailerUrl) {
+      const answer = await get<{ allowed: boolean }>(`/api/movies/${movie.id}/watch`).catch(() => null);
+      if (answer?.allowed) { setTrailer(movie); return; }
+    }
+    setDialog({ id: movie.id, mode });
+  }, []);
+
+  const refreshFeatured = useCallback(async () => {
+    // Only films that can be played here: no Originals, nothing without a video or trailer.
+    const real = await get<Paged<MovieListItem>>("/api/movies" + query({ sortBy: "rating", sortDir: "desc", pageSize: 40, originals: false })).catch(() => null);
+    if (real) setFeatured(real.items.filter((m) => m.hasVideo || m.trailerUrl).slice(0, 16));
+  }, []);
+
+  useEffect(() => { void refreshFeatured(); }, [refreshFeatured]);
+
+  // The catalogue always opens at the top, with the word gathered round the eye. Left to the
+  // browser, a reload came back half-way down, frozen mid-scatter. A #link still lands where
+  // it points.
+  useEffect(() => {
+    if (inApp || window.location.hash) return;
+    window.history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+  }, [inApp]);
+
+  const refreshRecommended = useCallback(async () => {
+    const list = await get<RecommendationList>("/api/recommendations" + query({ take: 4 })).catch(() => null);
+    setRecommended(list && Array.isArray(list.items) ? list : null);
+  }, []);
+
+  useEffect(() => { void refreshRecommended(); }, [refreshRecommended, isSignedIn]);
+
+  async function toggleSave(movie: MovieListItem) {
+    try {
+      const added = await watchlist.toggle(movie.id);
+      setToast({
+        id: Date.now(),
+        tone: "ok",
+        text: `${movie.title} — ${added ? t("watchlist.added", "added to your watchlist") : t("watchlist.removed", "removed from your watchlist")}`,
+      });
+      void refreshRecommended();
+    } catch (err) {
+      setToast({ id: Date.now(), tone: "error", text: err instanceof ApiError ? err.message : t("watchlist.failed", "Could not update your watchlist.") });
+    }
+  }
+
+  // Debounce keeps the catalogue responsive without a request per keystroke.
+  useEffect(() => {
+    if (search === debounced) return;
+    const handle = setTimeout(() => {
+      setDebounced(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [search, debounced]);
+
+  useEffect(() => {
+    get<string[]>("/api/movies/genres").then(setGenres).catch(() => setGenres([]));
+  }, []);
+
+  const url = useMemo(
+    () =>
+      "/api/movies" +
+      query({ search: debounced, genre, sortBy, sortDir, onlyAvailable, yearFrom, yearTo, minRating, page, pageSize: PAGE_SIZE }),
+    [debounced, genre, sortBy, sortDir, onlyAvailable, yearFrom, yearTo, minRating, page],
+  );
+
+  // Mirror the filters into the address bar without adding a history entry per keystroke.
+  useEffect(() => {
+    const q = new URLSearchParams();
+    if (debounced) q.set("q", debounced);
+    if (genre !== "all") q.set("genre", genre);
+    if (sortBy !== "newest") q.set("sort", sortBy);
+    if (sortDir !== "desc") q.set("dir", sortDir);
+    if (onlyAvailable) q.set("stock", "1");
+    if (yearFrom) q.set("from", String(yearFrom));
+    if (yearTo) q.set("to", String(yearTo));
+    if (minRating) q.set("rating", String(minRating));
+    if (page > 1) q.set("page", String(page));
+    const text = q.toString();
+    const next = window.location.pathname + (text ? `?${text}` : "") + window.location.hash;
+    if (next !== window.location.pathname + window.location.search + window.location.hash) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [debounced, genre, sortBy, sortDir, onlyAvailable, yearFrom, yearTo, minRating, page]);
+
+  function clearFilters() {
+    setSearch(""); setDebounced(""); setGenre("all"); setOnlyAvailable(false);
+    setYearFrom(undefined); setYearTo(undefined); setMinRating(undefined); setPage(1);
+  }
+
+  function goToPage(next: number) {
+    setPage(next);
+    document.getElementById("catalogue")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  const yearNow = new Date().getFullYear();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setData(await get<Paged<MovieListItem>>(url));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("error.catalogue"));
+    } finally {
+      setLoading(false);
+    }
+  }, [url]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  // A bookmarked page number can outlive the catalogue it pointed into.
+  useEffect(() => {
+    if (data && data.items.length === 0 && data.totalCount > 0 && page > 1) setPage(1);
+  }, [data, page]);
+
+  async function rent(movie: MovieListItem) {
+    if (!isSignedIn) {
+      window.location.href = "/account";
+      return;
+    }
+
+    setPayFor(movie);
+  }
+
+  // After the receipt: copies, shelves and recommendations have all changed.
+  async function rented(movie: MovieListItem) {
+    setToast({ id: Date.now(), tone: "ok", text: `${movie.title} — ${t("movie.rented")}` });
+    await Promise.all([load(), refreshFeatured(), refreshRecommended(), loadAccess()]);
+  }
+
+  return (
+    <>
+      <Toaster toast={toast} onDismiss={() => setToast(null)} />
+      {payFor ? (
+        <PaymentSheet
+          item={{ title: payFor.title, detail: t("pay.rentalDetail", "Rental · 3 days"), amount: formatUsd(RENTAL_PRICE), icon: <RentIcon size={18} aria-hidden /> }}
+          pay={(card) => post("/api/rentals", { movieId: payFor.id, days: 3, card })}
+          onClose={() => setPayFor(null)}
+          onPaid={() => void rented(payFor)}
+        />
+      ) : null}
+
+      {trailer?.trailerUrl ? (
+        <TrailerPlayer film={{ ...trailer, trailerUrl: trailer.trailerUrl }} onClose={() => setTrailer(null)} />
+      ) : null}
+
+      {dialog ? (
+        <MovieDialog
+          movieId={dialog.id}
+          mode={dialog.mode}
+          onClose={() => setDialog(null)}
+          onRent={inApp ? undefined : (id) => {
+            const movie = [...featured, ...(data?.items ?? [])].find((m) => m.id === id);
+            if (movie) { setDialog(null); void rent(movie); }
+          }}
+        />
+      ) : null}
+
+      {/* Search first, right under the header: many come in for one film. A small pill, not a
+          second search box (two boxes for one query typed into one and showed the other) —
+          it glides down to the catalogue's own search and puts the cursor in it. */}
+      {inApp ? null : (
+        <div className="flex justify-center px-4 pt-5">
+          <button
+            type="button"
+            onClick={() => {
+              // Lands with the search just under the sticky header, not tucked beneath it.
+              const box = document.getElementById("catalogue-search");
+              const header = document.querySelector("header")?.getBoundingClientRect().height ?? 0;
+              if (box) window.scrollTo({ top: box.getBoundingClientRect().top + window.scrollY - header - 24, behavior: "smooth" });
+              box?.querySelector("input")?.focus({ preventScroll: true });
+            }}
+            className="group inline-flex items-center gap-2 rounded-full border border-accent/40 bg-surface/70 px-5 py-2 text-sm font-medium text-ink shadow-[0_0_24px_-8px] shadow-accent/60 backdrop-blur transition hover:border-accent hover:text-accent"
+          >
+            <Search size={16} aria-hidden className="text-accent transition-transform group-hover:scale-110" />
+            {t("home.searchJump", "Search")}
+          </button>
+        </div>
+      )}
+
+      {/* The eye, not a headline: the posters used to scatter across the words and leave
+          half a sentence showing. The eye says the name without text to cover. */}
+      {inApp ? null : <StackSpread centerpiece={<HeroEye label={t("home.hero.cta")} />} />}
+      <h1 className="sr-only">WatchingYou</h1>
+
+      {/* The season's offers, set on the admin page. Nothing shows when no board is on. */}
+      {inApp ? null : <div className="mx-auto w-full max-w-6xl px-4 pt-8 sm:px-6"><PromoBanners /></div>}
+
+      {featured.length > 0 ? (
+        <Section title={t("featured.title")} lede={t("featured.lede")}>
+          {/* On a computer, a phone playing the site in use stands to the ribbon's left. */}
+          <div className="lg:flex lg:items-start lg:gap-10">
+            {inApp ? null : <PhoneDemo />}
+            <div className="min-w-0 flex-1">
+              <MovieCarousel
+                movies={featured}
+                onRent={inApp ? undefined : rent}
+                onOpen={openMovie}
+                canWatch={inApp ? undefined : canWatch}
+                busyId={rentingId}
+              />
+            </div>
+          </div>
+        </Section>
+      ) : null}
+
+      {recommended && recommended.items.length > 0 ? (
+        <Section
+          title={recommended.personal ? t("recommend.title", "Picked for you") : t("recommend.popular", "Popular right now")}
+          lede={recommended.personal
+            ? t("recommend.lede", "Chosen from the films you rented, saved and reviewed.")
+            : t("recommend.ledeAnon", "Rent or save a few films and this shelf starts learning your taste.")}
+        >
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {recommended.items.map((item, i) => (
+              <MovieCard
+                key={item.movie.id}
+                movie={item.movie}
+                index={i}
+                note={item.becauseGenre ? `${t("recommend.because", "Because you like")} ${item.becauseGenre}` : null}
+                onRent={inApp ? undefined : rent}
+                onOpen={openMovie}
+                canWatch={inApp ? undefined : canWatch}
+                busy={rentingId === item.movie.id}
+                saved={watchlist.has(item.movie.id)}
+                onToggleSave={isSignedIn ? toggleSave : undefined}
+              />
+            ))}
+          </div>
+        </Section>
+      ) : null}
+
+      <Section
+        title={t("home.title")}
+        lede={t("home.lede")}
+        className="scroll-mt-20"
+      >
+        {/* The search on its own line, wide and in the middle: where to type a film's name
+            should be the first thing anyone sees here. The filters sit under it. */}
+        <div id="catalogue-search" className="mx-auto mb-5 w-full max-w-3xl [&_input]:h-14 [&_input]:text-base">
+          <SearchField value={search} onChange={setSearch} placeholder={t("home.searchPlaceholder")} />
+        </div>
+
+        <div id="catalogue" className="mb-3 grid scroll-mt-24 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+
+          <Select value={genre} onChange={(e) => { setGenre(e.target.value); setPage(1); }} aria-label={t("home.genre")}>
+            <option value="all">{t("home.everyGenre")}</option>
+            {genres.map((g) => (
+              <option key={g} value={g}>{genreName(g)}</option>
+            ))}
+          </Select>
+
+          <Select value={sortBy} onChange={(e) => { setSortBy(e.target.value); setPage(1); }} aria-label={t("home.sortBy")}>
+            {SORTS.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </Select>
+
+          {/* Shaped like the selects beside them, so they read as part of the same filter row:
+              an arrow that shows the direction, and a switch that is plainly on or off. */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))}
+              className="flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-line bg-surface-raised px-3 text-sm text-ink transition hover:border-accent focus-visible:border-accent focus-visible:outline-none"
+            >
+              {sortDir === "desc"
+                ? <ArrowDownWideNarrow size={16} aria-hidden className="text-accent" />
+                : <ArrowUpNarrowWide size={16} aria-hidden className="text-accent" />}
+              {sortDir === "desc" ? t("common.descending") : t("common.ascending")}
+            </button>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={onlyAvailable}
+              onClick={() => { setOnlyAvailable((v) => !v); setPage(1); }}
+              className={cn(
+                "flex h-10 flex-1 items-center justify-center gap-2 rounded-md border px-3 text-sm transition focus-visible:outline-none",
+                onlyAvailable ? "border-accent bg-accent/15 text-accent" : "border-line bg-surface-raised text-ink hover:border-accent",
+              )}
+            >
+              <span aria-hidden className={cn("relative h-4 w-7 shrink-0 rounded-full transition-colors", onlyAvailable ? "bg-accent" : "bg-line")}>
+                <span className={cn("absolute top-0.5 h-3 w-3 rounded-full bg-surface transition-[left]", onlyAvailable ? "left-[14px]" : "left-0.5")} />
+              </span>
+              {t("home.inStock")}
+            </button>
+          </div>
+        </div>
+
+        <div className="mb-6 grid gap-3 sm:grid-cols-3">
+          <Select
+            value={yearFrom ?? ""}
+            onChange={(e) => { setYearFrom(e.target.value ? Number(e.target.value) : undefined); setPage(1); }}
+            aria-label={t("filter.yearFrom", "From year")}
+          >
+            <option value="">{t("filter.yearFrom", "From year")}</option>
+            {[1950, 1970, 1980, 1990, 2000, 2010, 2015, 2020].map((y) => <option key={y} value={y}>{y}+</option>)}
+          </Select>
+          <Select
+            value={yearTo ?? ""}
+            onChange={(e) => { setYearTo(e.target.value ? Number(e.target.value) : undefined); setPage(1); }}
+            aria-label={t("filter.yearTo", "Up to year")}
+          >
+            <option value="">{t("filter.yearTo", "Up to year")}</option>
+            {[1980, 1990, 2000, 2010, 2015, 2020, yearNow].map((y) => <option key={y} value={y}>≤ {y}</option>)}
+          </Select>
+          <Select
+            value={minRating ?? 0}
+            onChange={(e) => { const v = Number(e.target.value); setMinRating(v > 0 ? v : undefined); setPage(1); }}
+            aria-label={t("filter.minRating", "Minimum rating")}
+          >
+            {RATINGS.map((r) => (
+              <option key={r} value={r}>{r === 0 ? t("filter.anyRating", "Any rating") : `★ ${r}+`}</option>
+            ))}
+          </Select>
+        </div>
+
+        {error ? <Notice tone="error">{error}</Notice> : null}
+
+        {loading && !data ? <Spinner label={t("home.loading")} /> : null}
+
+        {data && data.items.length === 0 ? (
+          <Empty
+            title={t("home.emptyTitle")}
+            hint={t("home.emptyHint")}
+            action={<Button variant="outline" onClick={clearFilters}>{t("common.clearFilters")}</Button>}
+          />
+        ) : null}
+
+        {data && data.items.length > 0 ? (
+          <>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+              {data.items.map((movie, i) => (
+                <MovieCard
+                  key={movie.id}
+                  movie={movie}
+                  index={i}
+                  onRent={inApp ? undefined : rent}
+                  onOpen={openMovie}
+                  canWatch={inApp ? undefined : canWatch}
+                  busy={rentingId === movie.id}
+                  saved={watchlist.has(movie.id)}
+                  onToggleSave={isSignedIn ? toggleSave : undefined}
+                />
+              ))}
+            </div>
+
+            <Pagination page={data.page} totalPages={data.totalPages} totalCount={data.totalCount} onChange={goToPage} />
+          </>
+        ) : null}
+      </Section>
+    </>
+  );
+}

@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["build", "${workspaceFolder}/MovieRental.sln", "/consoleloggerparameters:NoSummary"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "client: install",
+      "type": "shell",
+      "command": "npm",
+      "args": ["install"],
+      "options": { "cwd": "${workspaceFolder}/client" },
+      "problemMatcher": []
+    },
+    {
+      "label": "client: build",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "build"],
+      "options": { "cwd": "${workspaceFolder}/client" },
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "client: dev server",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev"],
+      "options": { "cwd": "${workspaceFolder}/client" },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "^$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "vite",
+          "endsPattern": "ready in"
+        }
+      }
+    },
+    {
+      "label": "client: watch build",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "watch"],
+      "options": { "cwd": "${workspaceFolder}/client" },
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

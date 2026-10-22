@@ -1,0 +1,8 @@
+bin/
+obj/
+.vs/
+.vscode/*.log
+node_modules/
+dist/
+src/MovieRental.Host/uploads/
+*.user

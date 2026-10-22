@@ -1,0 +1,237 @@
+@import "tailwindcss";
+
+/* Tailwind v4 keeps theme tokens in CSS. These mirror wwwroot/css/shell.css so the
+   Razor chrome and the React island share one palette. */
+@theme {
+  /* ---- PALETTE -------------------------------------------------------------
+     Names describe the ROLE, not the colour, so a repaint only touches values
+     here. Keep in step with wwwroot/css/shell.css, which paints the Razor chrome.
+     ------------------------------------------------------------------------ */
+  --color-surface: #0A0C0A;         /* qara - sehife fonu */
+  --color-surface-raised: #121612;  /* kartlar, panellar */
+  --color-line: #1F271F;            /* serhedler */
+  --color-accent: #00E676;          /* neon yasil - dugmeler, vurgu */
+  --color-accent-bright: #5BFFAB;   /* hover */
+  --color-accent-dim: #00A85A;      /* ikinci derece vurgu */
+  --color-ink: #FFFFFF;             /* ag - esas metn */
+  --color-ink-mute: #9AA69A;        /* ikinci derece metn */
+
+  /* Status. Warn and bad sit off the green axis so they still read as signals. */
+  --color-good: #5BFFAB;
+  --color-good-bg: #0E3A24;
+  --color-warn: #F0C868;
+  --color-warn-bg: #3A3014;
+  --color-bad: #FF8A80;
+  --color-bad-bg: #3F1A16;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 10px;
+
+  /* Two-series chart hues for the back office (box office vs bar). Validated for CVD and
+     contrast against surface-raised in both themes; the light values sit in the light block. */
+  --color-series-1: #1FA463;
+  --color-series-2: #6A84F5;
+}
+
+/* ---- Light theme ------------------------------------------------------------------
+   The same roles, lighter values. Because every component names a role rather than a colour,
+   this block is the whole light theme — nothing else in the codebase had to change for it.
+
+   The green is darker here than in the dark theme: #00E676 on white is too faint to read as
+   text. #007A42 clears 4.5:1 both as text on a white page and under white button text.
+   ------------------------------------------------------------------------------------ */
+:root[data-theme="light"] {
+  --color-surface: #F5F7F5;
+  --color-surface-raised: #FFFFFF;
+  --color-line: #DCE3DD;
+  --color-accent: #007A42;
+  --color-accent-bright: #00A85A;
+  --color-accent-dim: #16804B;
+  --color-ink: #0B120D;
+  --color-ink-mute: #56645A;
+
+  --color-good: #0A7A43;
+  --color-good-bg: #DDF5E7;
+  --color-warn: #8A6100;
+  --color-warn-bg: #FBEFCF;
+  --color-bad: #B42318;
+  --color-bad-bg: #FDE3E0;
+
+  --color-series-1: #007A42;
+  --color-series-2: #3B5BDB;
+}
+
+/* The crowd on the globe page is drawn black on white. Dark theme turns it into pale lines
+   on the dark ground; light theme shows it as drawn. */
+:root[data-theme="dark"] .rr-crowd-art { filter: invert(1); }
+
+@layer base {
+  #root {
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-surface);
+  }
+}
+
+/* Reduced motion is respected inside the components too (useReducedMotion); this is the
+   belt-and-braces pass for anything driven by plain CSS. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+/* ---- Search beam ---------------------------------------------------------------------
+   A green glow travelling along the bottom edge of a search field. Two layers: a sharp
+   one-pixel line and a blurred copy beneath it, which is what reads as light rather than
+   as a moving stripe.
+   ------------------------------------------------------------------------------------ */
+.rr-beam {
+  position: relative;
+  isolation: isolate;
+  /* The beam travels from -42% to 142% of the width, which is what makes it enter and leave
+     rather than appear and vanish. Without clipping, that overshoot showed as a green line
+     sticking out past the rounded corners on both sides. */
+  overflow: hidden;
+}
+
+.rr-beam-line,
+.rr-beam-glow {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 1px;
+  width: 42%;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-accent-dim) 25%,
+    var(--color-accent-bright) 50%,
+    var(--color-accent-dim) 75%,
+    transparent 100%
+  );
+  animation: rr-beam-travel 3.1s linear infinite;
+}
+
+.rr-beam-glow {
+  height: 3px;
+  filter: blur(6px);
+  opacity: 0.75;
+}
+
+/* Brighter while the field has focus — the beam doubles as a focus cue rather than
+   competing with one. */
+.rr-beam:focus-within .rr-beam-line { height: 2px; }
+.rr-beam:focus-within .rr-beam-glow { opacity: 1; filter: blur(8px); }
+
+.rr-beam[data-active="0"] .rr-beam-line,
+.rr-beam[data-active="0"] .rr-beam-glow { animation-play-state: paused; opacity: 0.25; }
+
+@keyframes rr-beam-travel {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(238%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The affordance survives; the movement does not. */
+  .rr-beam-line,
+  .rr-beam-glow {
+    animation: none;
+    width: 100%;
+    transform: none;
+    opacity: 0.45;
+  }
+}
+
+
+/* ---- Globe page crowd band --------------------------------------------------------- */
+.rr-crowd-marquee {
+  /* Moves exactly one copy's width, then repeats from where the second copy stood. */
+  animation: rr-crowd-slide 38s linear infinite;
+}
+
+@keyframes rr-crowd-slide {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rr-crowd-marquee { animation: none; }
+}
+
+/* ---- Always-dark surfaces --------------------------------------------------------------
+   Some overlays sit on a dark backdrop whatever the page theme is — the 3D hall preview draws
+   over black. In the light theme their text took the light theme's dark ink and vanished into
+   that backdrop. Inside [data-force-dark] the tokens are the dark theme's, always.
+   ------------------------------------------------------------------------------------ */
+[data-force-dark] {
+  color-scheme: dark;
+  --color-surface: #0A0C0A;
+  --color-surface-raised: #121612;
+  --color-line: #1F271F;
+  --color-accent: #00E676;
+  --color-accent-bright: #5BFFAB;
+  --color-accent-dim: #00A85A;
+  --color-ink: #FFFFFF;
+  --color-ink-mute: #9AA69A;
+  --color-good: #5BFFAB;
+  --color-good-bg: #0E3A24;
+  --color-warn: #F0C868;
+  --color-warn-bg: #3A3014;
+  --color-bad: #FF8A80;
+  --color-bad-bg: #3F1A16;
+  --color-series-1: #1FA463;
+  --color-series-2: #6A84F5;
+}
+
+/* A scroll column in the site's colours: a thin accent thumb, no track, brighter on hover.
+   The standard properties for Firefox and current Chrome, the -webkit ones for Safari. */
+.rr-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-accent) 40%, transparent) transparent;
+}
+.rr-scroll:hover { scrollbar-color: color-mix(in srgb, var(--color-accent) 75%, transparent) transparent; }
+.rr-scroll::-webkit-scrollbar { width: 6px; }
+.rr-scroll::-webkit-scrollbar-track { background: transparent; }
+.rr-scroll::-webkit-scrollbar-thumb { border-radius: 999px; background: color-mix(in srgb, var(--color-accent) 40%, transparent); }
+.rr-scroll:hover::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--color-accent) 75%, transparent); }
+
+/* The ends of a scrolling list fade out, so it reads as "there is more" rather than a cut. */
+@media (min-width: 1024px) {
+  .rr-scroll-fade {
+    mask-image: linear-gradient(to bottom, transparent 0, #000 14px, #000 calc(100% - 28px), transparent 100%);
+  }
+}
+
+/* Soft transitions. Between pages: the browser's own cross-document view transition, a short
+   cross-fade instead of the page blinking white and redrawing. Inside a page: panels, lists,
+   notices and empty states fade up as they appear, so switching a filter or a tab eases in
+   (the rentals list showed the feel people liked). Reduced motion turns both off above. */
+@view-transition { navigation: auto; }
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: 0.28s; animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1); }
+
+@keyframes rr-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.rr-enter { animation: rr-enter 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+@keyframes rr-fade { from { opacity: 0; } to { opacity: 1; } }
+.rr-fade { animation: rr-fade 0.2s ease-out both; }

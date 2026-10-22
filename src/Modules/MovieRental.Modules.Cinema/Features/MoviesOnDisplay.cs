@@ -1,0 +1,110 @@
+using FluentValidation;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
+using MovieRental.Modules.Cinema.Persistence;
+using MovieRental.SharedKernel.Cqrs;
+using MovieRental.SharedKernel.Security;
+
+namespace MovieRental.Modules.Cinema.Features;
+
+// What is showing right now, grouped by film. Distinct from the rental catalogue: the same
+// film can be on display in three languages and none of that belongs on the rental page.
+
+public sealed record ShowtimeItem(
+    Guid ScreeningId, DateTime StartsAtUtc, string Hall, string AudioLanguage,
+    string? SubtitleLanguage, decimal SeatPrice, int SeatsLeft,
+    Guid VenueId, string VenueName, string City);
+
+public sealed record OnDisplayItem(
+    Guid MovieId, string MovieTitle, IReadOnlyList<string> Languages, IReadOnlyList<ShowtimeItem> Showtimes);
+
+public readonly record struct OnDisplayFilter(
+    string? Language, DateTime? From, DateTime? To, string? Search, Guid? VenueId, string? City);
+
+public sealed record GetOnDisplayQuery(OnDisplayFilter Filter) : IQuery<IReadOnlyList<OnDisplayItem>>;
+
+internal sealed class GetOnDisplayValidator : AbstractValidator<GetOnDisplayQuery>
+{
+    // ?From=9999-12-31 used to be a 500: the default end is fourteen days later.
+    public GetOnDisplayValidator()
+    {
+        RuleFor(x => x.Filter.From).Must(InRange).WithMessage("Dates run from 2000 to 2100.").OverridePropertyName("From");
+        RuleFor(x => x.Filter.To).Must(InRange).WithMessage("Dates run from 2000 to 2100.").OverridePropertyName("To");
+        RuleFor(x => x.Filter).Must(f => f.From is null || f.To is null || f.From <= f.To)
+            .WithMessage("`From` is after `To`.").OverridePropertyName("To");
+    }
+
+    private static bool InRange(DateTime? day) => day is null || day.Value.Year is >= 2000 and <= 2100;
+}
+
+internal sealed class GetOnDisplayHandler(CinemaDbContext db)
+    : IQueryHandler<GetOnDisplayQuery, IReadOnlyList<OnDisplayItem>>
+{
+    public async Task<IReadOnlyList<OnDisplayItem>> Handle(GetOnDisplayQuery query, CancellationToken ct)
+    {
+        var filter = query.Filter;
+        var from = filter.From ?? DateTime.UtcNow;
+        var to = filter.To ?? from.AddDays(14);
+
+        var screenings = db.Screenings.AsNoTracking()
+            .Include(s => s.HallRoom!).ThenInclude(h => h.Venue)
+            .Where(s => s.StartsAtUtc >= from && s.StartsAtUtc <= to);
+
+        if (filter.VenueId is { } venueId)
+            screenings = screenings.Where(s => s.HallRoom!.VenueId == venueId);
+
+        if (!string.IsNullOrWhiteSpace(filter.City))
+            screenings = screenings.Where(s => s.HallRoom!.Venue!.City == filter.City);
+
+        if (!string.IsNullOrWhiteSpace(filter.Language))
+            screenings = screenings.Where(s => s.AudioLanguage == filter.Language);
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            // Contains escapes % and _; a LIKE pattern built from the text did not.
+            var term = filter.Search.Trim();
+            if (term.Length > 100) term = term[..100];
+            screenings = screenings.Where(s => s.MovieTitle.Contains(term));
+        }
+
+        // Seats left comes from the same filtered booking set the seat map uses, so the two
+        // screens can never disagree about how full a hall is.
+        var rows = await screenings
+            .OrderBy(s => s.StartsAtUtc)
+            .Select(s => new
+            {
+                s.Id, s.MovieId, s.MovieTitle, s.StartsAtUtc, s.Hall,
+                s.AudioLanguage, s.SubtitleLanguage, s.SeatPrice,
+                VenueId = s.HallRoom!.VenueId, VenueName = s.HallRoom!.Venue!.Name, s.HallRoom!.Venue!.City,
+                Capacity = s.Rows * s.SeatsPerRow,
+                Taken = s.Bookings.Count
+            })
+            .ToListAsync(ct);
+
+        return [.. rows
+            .GroupBy(r => new { r.MovieId, r.MovieTitle })
+            .Select(g => new OnDisplayItem(
+                g.Key.MovieId,
+                g.Key.MovieTitle,
+                [.. g.Select(x => x.AudioLanguage).Distinct().Order()],
+                [.. g.Select(x => new ShowtimeItem(
+                    x.Id, x.StartsAtUtc, x.Hall, x.AudioLanguage, x.SubtitleLanguage,
+                    x.SeatPrice, Math.Max(0, x.Capacity - x.Taken), x.VenueId, x.VenueName, x.City))]))
+            .OrderBy(x => x.MovieTitle)];
+    }
+}
+
+public static class MoviesOnDisplayEndpoint
+{
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapGet("/api/on-display",
+            async ([AsParameters] OnDisplayFilter filter, IDispatcher dispatcher, CancellationToken ct) =>
+                TypedResults.Ok(await dispatcher.Ask(new GetOnDisplayQuery(filter), ct)))
+        .WithName("GetMoviesOnDisplay").WithTags("Cinema").AllowAnonymous().CacheOutput(AppPolicies.CinemaCache)
+        .WithSummary("Films showing in the cinemas, each with its showtimes")
+        .WithDescription("Filters, all optional: `Language` (az, en, ru, tr), `From`/`To` (dates from 2000 to 2100; by default " +
+                         "now to fourteen days on), `Search` (title), `VenueId`, `City`.");
+}

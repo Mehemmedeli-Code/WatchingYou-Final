@@ -1,0 +1,1 @@
+import{u as e}from"./app.js";import{Gallery as t}from"./GalleryPage-c9VWZ_C2.js";var n=e();function r(){return(0,n.jsx)(t,{origin:`HandCrafted`})}export{r as default};

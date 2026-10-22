@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>MovieRental.Host</RootNamespace>
+    <UserSecretsId>movierental-host-2026</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Seed payload copied next to the binary so the dev bootstrapper can find it. -->
+    <Content Update="seed\movies.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Update="locales\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MovieRental.SharedKernel\MovieRental.SharedKernel.csproj" />
+    <ProjectReference Include="..\Modules\MovieRental.Modules.Identity\MovieRental.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Modules\MovieRental.Modules.Catalog\MovieRental.Modules.Catalog.csproj" />
+    <ProjectReference Include="..\Modules\MovieRental.Modules.Rentals\MovieRental.Modules.Rentals.csproj" />
+    <ProjectReference Include="..\Modules\MovieRental.Modules.Cinema\MovieRental.Modules.Cinema.csproj" />
+    <ProjectReference Include="..\Modules\MovieRental.Modules.Media\MovieRental.Modules.Media.csproj" />
+  </ItemGroup>
+  <!--
+    Builds the React bundle as part of the .NET build, so Visual Studio's F5 and
+    `dotnet build` both produce a current wwwroot/app/{app.js,app.css}.
+
+    It stays silent unless client/node_modules exists, so a machine without Node
+    still builds fine against the committed bundle. Pass /p:SkipClientBuild=true
+    to opt out, or delete this target if you would rather drive npm by hand.
+  -->
+  <Target Name="BuildReactClient"
+          BeforeTargets="Build"
+          Condition="'$(SkipClientBuild)' != 'true' AND Exists('$(MSBuildProjectDirectory)\..\..\client\node_modules')">
+    <Exec Command="npm run build"
+          WorkingDirectory="$(MSBuildProjectDirectory)\..\..\client"
+          StandardOutputImportance="low" />
+  </Target>
+
+</Project>

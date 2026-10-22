@@ -1,0 +1,58 @@
+name: build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  dotnet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore WatchingYou.sln
+
+      - name: Build
+        run: dotnet build WatchingYou.sln --no-restore --configuration Release
+
+      # Integration tests need SQL Server; the unit tests deliberately need nothing, which
+      # is what makes them worth running on every push.
+      - name: Test
+        run: dotnet test WatchingYou.sln --no-build --configuration Release --filter "Category!=Integration"
+
+  client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # No test runner on the front end yet, so the type checker is the gate. It catches the
+      # class of bug that actually happens here: a contract changing on the server and the
+      # client still reading the old shape.
+      - name: Type-check
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Build
+        run: npm run build
+
+      # Mounts every island in a fake DOM. tsc and vite both pass on a component that throws
+      # the moment it runs, and that is what leaves a page blank.
+      - name: Smoke-test the islands
+        run: npm run smoke

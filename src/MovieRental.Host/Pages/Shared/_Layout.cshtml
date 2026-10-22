@@ -1,0 +1,210 @@
+@inject MovieRental.Host.Infrastructure.Localization.ILanguageContext T
+@{
+    // The layout reads the page's own strongly-typed model — no ViewData round trip.
+    var view = ((AppPageModel)Model).View;
+    var returnUrl = Context.Request.Path + Context.Request.QueryString;
+}
+<!DOCTYPE html>
+<html lang="@view.Language" class="rr" data-theme="dark" style="color-scheme: dark">
+<head>
+    @* Runs before the first paint. Reading the saved theme here, rather than once React has
+       loaded, is what stops a light-theme page from flashing dark on every load. *@
+    <script nonce="@Context.Items["csp-nonce"]">
+        (function () {
+            try {
+                var saved = localStorage.getItem("wy.theme");
+                var theme = saved === "light" ? "light" : "dark";
+                document.documentElement.dataset.theme = theme;
+                document.documentElement.style.colorScheme = theme;
+            } catch (e) { /* storage blocked: stay dark */ }
+        })();
+    </script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@view.Title · WatchingYou</title>
+    <meta name="description" content="@view.Tagline" />
+    <meta name="color-scheme" content="dark" />
+
+    @* Installable as an app: manifest, icons, and the colour of the phone's status bar. The
+       service worker itself is registered from main.tsx. *@
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0A0C0A" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/icons/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="WatchingYou" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+    @if (view.Assets.StyleUrl is { } styleUrl)
+    {
+        <link rel="stylesheet" href="@styleUrl" asp-append-version="true" />
+    }
+    <link rel="stylesheet" href="~/css/shell.css" asp-append-version="true" />
+</head>
+<body class="rr-body @(view.UseShaderBackground ? "has-shader" : null)" data-signed-in="@(view.IsSignedIn ? "true" : null)">
+    @* Its own React root, mounted from main.tsx. Keeping it outside #root means the field
+       survives whichever island the page happens to render, and costs one canvas total. *@
+    @if (view.UseShaderBackground)
+    {
+        <div id="rr-shader" class="rr-shader" aria-hidden="true"></div>
+    }
+
+    <a class="rr-skip" href="#main">@T["nav.skip"]</a>
+
+    <header class="rr-header">
+        <a class="rr-wordmark" href="/" aria-label="@T["nav.home"]">
+            <svg width="30" height="30" viewBox="0 0 64 44" aria-hidden="true" class="rr-eye">
+                <defs>
+                    <radialGradient id="rr-iris" cx="42%" cy="38%" r="62%">
+                        <stop offset="0%" stop-color="#9BFFC6" />
+                        <stop offset="55%" stop-color="currentColor" />
+                        <stop offset="100%" stop-color="#0B7A3F" />
+                    </radialGradient>
+                    <filter id="rr-glow" x="-40%" y="-60%" width="180%" height="220%">
+                        <feGaussianBlur stdDeviation="1.8" result="blur" />
+                        <feMerge>
+                            <feMergeNode in="blur" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
+                    <clipPath id="rr-lid">
+                        <path d="M2 22C2 22 14 4 32 4s30 18 30 18-12 18-30 18S2 22 2 22Z" />
+                    </clipPath>
+                </defs>
+
+                <g filter="url(#rr-glow)">
+                    <path d="M2 22C2 22 14 4 32 4s30 18 30 18-12 18-30 18S2 22 2 22Z"
+                          fill="#050A07" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" />
+                    <g clip-path="url(#rr-lid)">
+                        <circle cx="32" cy="22" r="15" fill="url(#rr-iris)" />
+                        <circle cx="34" cy="23" r="7.4" fill="#04120A" />
+                        <circle cx="27.5" cy="16.5" r="2.9" fill="#EAFFF2" />
+                    </g>
+                </g>
+            </svg>
+            <span>WatchingYou</span>
+        </a>
+
+        @* Items the signed-in user may not see were never added to the model, so there is
+           nothing here to hide, grey out or forget to guard. *@
+        @* Signed out, the site is one door: the menu appears once you are in. Until then the
+           only way on is back to the welcome page, where Watching PRO is explained. *@
+        @if (view.IsSignedIn)
+        {
+            <nav class="rr-nav" aria-label="@(T["nav.catalogue"])">
+                @foreach (var item in view.Nav)
+                {
+                    <a href="@item.Href" class="@(item.IsCurrent ? "is-current" : null)">@item.Label</a>
+                }
+            </nav>
+        }
+        else
+        {
+            <nav class="rr-nav" aria-label="Watching PRO">
+                <a href="/welcome" class="rr-back">← Watching PRO</a>
+            </nav>
+        }
+
+        <div class="rr-tools">
+            <div id="rr-theme" class="rr-theme"></div>
+            <div class="rr-lang">
+                @foreach (var option in view.Languages)
+                {
+                    <a href="/lang/@option.Code?returnUrl=@(Uri.EscapeDataString(returnUrl))"
+                       class="@(option.IsCurrent ? "is-current" : null)"
+                       hreflang="@option.Code" title="@option.Name">@option.Code.ToUpperInvariant()</a>
+                }
+            </div>
+            @if (view.IsSignedIn || view.ActiveNav != "account")
+            {
+                <a class="rr-account" href="/account">@(view.IsSignedIn ? T["nav.account"] : T["nav.signIn"])</a>
+            }
+            @if (view.IsSignedIn)
+            {
+                @* The message button and its box: React, mounted here by main.tsx. *@
+                <div id="rr-inbox" class="rr-inbox-slot"></div>
+                @* /api/avatars/me redirects to the picture, or to the eye logo when there is none. *@
+                <a class="rr-avatar" href="/profile" title="@T["nav.profile"]" aria-label="@T["nav.profile"]">
+                    <img src="/api/avatars/me" alt="" width="36" height="36" />
+                </a>
+            }
+        </div>
+    </header>
+
+    <main id="main">
+        @RenderBody()
+    </main>
+
+    @* Laid out like Instagram's: one centred row of links, then the language and the year. *@
+    <footer class="rr-footer">
+        <nav class="rr-footer-links" aria-label="WatchingYou">
+            <a href="/about">@T["footer.about"]</a>
+            <a href="/blog">@T["footer.blog"]</a>
+            <a href="/careers">@T["footer.careers"]</a>
+            <a href="/help">@T["footer.help"]</a>
+            <a href="/developers">@T["footer.developers"]</a>
+            <a href="/privacy">@T["privacy.title"]</a>
+            <a href="/terms">@T["footer.terms"]</a>
+            <a href="/locations">@T["footer.locations"]</a>
+            <a href="/mobile-app">@T["footer.mobile-app"]</a>
+            <a href="/non-users">@T["footer.non-users"]</a>
+        </nav>
+        <div class="rr-footer-meta">
+            @* A language menu, as Instagram has; each option is a plain link target, so the
+               choice still works through /lang without any script of its own. *@
+            <label class="rr-footer-lang">
+                <span class="sr-only">@T["common.language"]</span>
+                <select data-nav-select aria-label="@T["common.language"]">
+                    @foreach (var option in view.Languages)
+                    {
+                        <option value="/lang/@option.Code?returnUrl=@(Uri.EscapeDataString(returnUrl))" selected="@option.IsCurrent">@option.Name</option>
+                    }
+                </select>
+            </label>
+            <span>© @DateTime.UtcNow.Year WatchingYou</span>
+        </div>
+    </footer>
+
+    @* Translations travel with the document so React renders in the right language on the
+       first paint rather than flashing keys while a fetch completes. *@
+    <script id="rr-i18n" type="application/json">@Html.Raw(view.TranslationsJson)</script>
+    <script nonce="@Context.Items["csp-nonce"]">
+        window.__RR__ = {
+            lang: "@view.Language",
+            t: JSON.parse(document.getElementById("rr-i18n").textContent || "{}")
+        };
+        // The footer's language menu goes to the option's link. A listener rather than
+        // onchange="": the Content-Security-Policy runs no inline handlers.
+        document.querySelectorAll("select[data-nav-select]").forEach(function (select) {
+            select.addEventListener("change", function () { location.href = select.value; });
+        });
+        // On a phone the footer-page tabs are one sideways row: bring the current one into view.
+        var currentTab = document.querySelector(".rr-info-tabs .is-current");
+        if (currentTab) {
+            var tabs = currentTab.parentElement;
+            tabs.scrollLeft += currentTab.getBoundingClientRect().left - tabs.getBoundingClientRect().left - (tabs.clientWidth - currentTab.clientWidth) / 2;
+        }
+    </script>
+
+    @if (view.Assets.ViteClientUrl is { } viteClient)
+    {
+        <script type="module" src="@viteClient"></script>
+    }
+    @if (view.Assets.UseDevServer)
+    {
+        <script type="module" src="@view.Assets.ScriptUrl"></script>
+    }
+    else
+    {
+        @* No asp-append-version here. It adds ?v=hash to this URL, but the lazily loaded chunks
+           import "./app.js" with no query — and to the browser those are two different modules.
+           The entry ran twice, a second React appeared, and every lazy page (the map, the crowd)
+           crashed on its first hook. Freshness comes from Cache-Control on /app instead. *@
+        <script type="module" src="@view.Assets.ScriptUrl"></script>
+    }
+</body>
+</html>

@@ -1,0 +1,135 @@
+﻿using FluentValidation;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
+using MovieRental.Modules.Rentals.Domain;
+using MovieRental.Modules.Rentals.Persistence;
+using MovieRental.SharedKernel.Contracts;
+using MovieRental.SharedKernel.Cqrs;
+using MovieRental.SharedKernel.Results;
+using MovieRental.SharedKernel.Security;
+
+namespace MovieRental.Modules.Rentals.Features;
+
+// Feature 3 — rental, paid by card. Always three days for $0.50 (RentalPricing); Days is kept in
+// the request for older clients and ignored.
+public sealed record RentMovieCommand(Guid MovieId, int Days = RentalPricing.PeriodDays, ProCard? Card = null) : ICommand<Result<RentalResponse>>;
+
+internal sealed class RentMovieValidator : AbstractValidator<RentMovieCommand>
+{
+    public RentMovieValidator()
+    {
+        RuleFor(x => x.MovieId).NotEmpty();
+    }
+}
+
+internal sealed class RentMovieHandler(
+    RentalsDbContext db, ICatalogApi catalog, ICurrentUser currentUser, IEmailSender email, IUserDirectory users,
+    Microsoft.Extensions.Configuration.IConfiguration configuration)
+    : ICommandHandler<RentMovieCommand, Result<RentalResponse>>
+{
+    public async Task<Result<RentalResponse>> Handle(RentMovieCommand command, CancellationToken ct)
+    {
+        var userId = currentUser.RequireId();
+
+        // Watching PRO already plays every film; renting on top would only take their money.
+        var now = DateTime.UtcNow;
+        if (await db.Subscriptions.AnyAsync(s => s.UserId == userId && s.StartsAtUtc <= now && s.EndsAtUtc > now, ct))
+            return Result.Failure<RentalResponse>(Error.Conflict("Watching PRO already includes every film — just press Watch."));
+
+        var alreadyOut = await db.Rentals.AnyAsync(
+            r => r.UserId == userId && r.MovieId == command.MovieId && r.ReturnedAtUtc == null, ct);
+        if (alreadyOut)
+            return Result.Failure<RentalResponse>(Error.Conflict("You already have this title out on rental."));
+
+        var movie = await catalog.GetMovieAsync(command.MovieId, ct);
+        if (movie is null) return Result.Failure<RentalResponse>(Error.NotFound("Movie"));
+
+        // Paid before a copy is taken: a refused card should not hold one.
+        var paid = CardPayment.Check(command.Card, configuration);
+        if (paid.IsFailure) return Result.Failure<RentalResponse>(paid.Error);
+
+        // Stock is taken first. If writing the rental row then fails, the compensating
+        // release below puts the copy back — the two modules write to separate schemas,
+        // so a single ambient transaction would need MSDTC and buy little here.
+        if (!await catalog.TryReserveCopyAsync(command.MovieId, ct))
+            return Result.Failure<RentalResponse>(Error.Conflict("Every copy is currently out. Try again later."));
+
+        var rental = new Rental
+        {
+            UserId = userId,
+            MovieId = movie.Id,
+            MovieTitle = movie.Title,
+            PosterUrl = movie.PosterUrl,
+            RentedAtUtc = DateTime.UtcNow,
+            DueAtUtc = DateTime.UtcNow.AddDays(RentalPricing.PeriodDays),
+            // DailyPrice now holds the price of one three-day period; BasePrice the total paid.
+            DailyPrice = RentalPricing.PeriodPrice,
+            BasePrice = RentalPricing.PeriodPrice
+        };
+
+        try
+        {
+            db.Rentals.Add(rental);
+            await db.SaveChangesAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            await catalog.ReleaseCopyAsync(command.MovieId, CancellationToken.None);
+            // Sent twice at once: both passed the check above and the unique index kept one.
+            if (ex is DbUpdateException)
+                return Result.Failure<RentalResponse>(Error.Conflict("You already have this title out on rental."));
+            throw;
+        }
+
+        var contact = await users.GetContactAsync(userId, ct);
+        if (contact is not null)
+            await email.SendAsync(new EmailRequest(contact.Email,
+                Lang.Pick($"{movie.Title} icarəyə götürüldü", $"You rented {movie.Title}", $"Вы взяли напрокат «{movie.Title}»", $"{movie.Title} kiralandı"),
+                "<p>" + Lang.Pick($"Xoş seyrlər. İcarə <strong>{rental.DueAtUtc:dd.MM.yyyy}</strong> tarixində bitir.",
+                                  $"Enjoy the film. Please return it by <strong>{rental.DueAtUtc:dd MMM yyyy}</strong>.",
+                                  $"Приятного просмотра. Прокат заканчивается <strong>{rental.DueAtUtc:dd.MM.yyyy}</strong>.",
+                                  $"İyi seyirler. Kiralama <strong>{rental.DueAtUtc:dd.MM.yyyy}</strong> tarihinde bitiyor.") + "</p>"), ct);
+
+        return Result.Success(rental.ToResponse(new LateFeePolicy(), DateTime.UtcNow));
+    }
+}
+
+public static class RentMovieEndpoint
+{
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapPost("/api/rentals",
+            async Task<Results<Ok<RentalResponse>, BadRequest<Error>, Conflict<Error>, NotFound<Error>>> (
+                RentMovieCommand command, IDispatcher dispatcher, CancellationToken ct) =>
+            {
+                var result = await dispatcher.Send(command, ct);
+                if (result.IsSuccess) return TypedResults.Ok(result.Value);
+                // A card typed wrong is the caller's input (400); "already rented", "no copy free"
+                // and "PRO already has it" are the state of things (409). Both used to be 409.
+                return result.Error.Code switch
+                {
+                    "not_found" => TypedResults.NotFound(result.Error),
+                    "validation" => TypedResults.BadRequest(result.Error),
+                    _ => TypedResults.Conflict(result.Error)
+                };
+            })
+        .WithName("RentMovie").WithTags("Rentals").RequireAuthorization()
+        .WithSummary("Rent a film for three days, paid by card")
+        .WithDescription("Always three days for $0.50 (`days` is ignored). `card`: number, expiryMonth, expiryYear, cvc, holderName " +
+                         "(test card 4242 4242 4242 4242). 400: the card is not valid. 409: you already have it out, every copy is out, " +
+                         "or Watching PRO already includes it.");
+}
+
+internal static class RentalMapper
+{
+    public static RentalResponse ToResponse(this Rental r, LateFeePolicy policy, DateTime nowUtc)
+    {
+        var fee = r.ReturnedAtUtc is null ? policy.Calculate(r, nowUtc) : r.LateFee;
+        return new RentalResponse(
+            r.Id, r.MovieId, r.MovieTitle, r.PosterUrl, r.RentedAtUtc, r.DueAtUtc, r.ReturnedAtUtc,
+            r.DailyPrice, r.BasePrice, fee, Math.Round(r.BasePrice + fee, 2),
+            r.DaysOverdue(nowUtc), r.ExtensionCount, r.StatusAt(nowUtc));
+    }
+}

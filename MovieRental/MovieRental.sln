@@ -1,0 +1,92 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35222.181
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A1000000-0000-4000-8000-000000000001}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+		Directory.Build.props = Directory.Build.props
+		Directory.Packages.props = Directory.Packages.props
+		.gitignore = .gitignore
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "client", "client", "{A1000000-0000-4000-8000-000000000002}"
+	ProjectSection(SolutionItems) = preProject
+		client\package.json = client\package.json
+		client\vite.config.ts = client\vite.config.ts
+		client\tsconfig.json = client\tsconfig.json
+		client\src\main.tsx = client\src\main.tsx
+		client\src\styles\app.css = client\src\styles\app.css
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{0ABE0173-C7D4-5AEA-9478-64751C2131CC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules", "Modules", "{B86DCCE5-8639-5C60-908C-5CEA2D59C2AD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MovieRental.Host", "src\MovieRental.Host\MovieRental.Host.csproj", "{F7D6894A-E5B9-5648-AA58-1F4D704B8443}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MovieRental.SharedKernel", "src\MovieRental.SharedKernel\MovieRental.SharedKernel.csproj", "{52DBE254-FBE9-5A5C-AEDA-6340D91D6BFC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MovieRental.Modules.Identity", "src\Modules\MovieRental.Modules.Identity\MovieRental.Modules.Identity.csproj", "{F735EFBC-2334-546F-B704-7BAADAFA040F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MovieRental.Modules.Catalog", "src\Modules\MovieRental.Modules.Catalog\MovieRental.Modules.Catalog.csproj", "{BBB399F2-2990-5659-B6E9-707F342C9A56}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MovieRental.Modules.Rentals", "src\Modules\MovieRental.Modules.Rentals\MovieRental.Modules.Rentals.csproj", "{998EC240-12C5-5BFC-9306-77BF5DDC9B83}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MovieRental.Modules.Cinema", "src\Modules\MovieRental.Modules.Cinema\MovieRental.Modules.Cinema.csproj", "{F1A09CB1-0B37-5B61-AA7A-23360AC78CAF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MovieRental.Modules.Media", "src\Modules\MovieRental.Modules.Media\MovieRental.Modules.Media.csproj", "{BADC3ACF-A60F-5A0C-AF06-55F32FBEAC71}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F7D6894A-E5B9-5648-AA58-1F4D704B8443}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7D6894A-E5B9-5648-AA58-1F4D704B8443}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7D6894A-E5B9-5648-AA58-1F4D704B8443}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7D6894A-E5B9-5648-AA58-1F4D704B8443}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52DBE254-FBE9-5A5C-AEDA-6340D91D6BFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52DBE254-FBE9-5A5C-AEDA-6340D91D6BFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52DBE254-FBE9-5A5C-AEDA-6340D91D6BFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52DBE254-FBE9-5A5C-AEDA-6340D91D6BFC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F735EFBC-2334-546F-B704-7BAADAFA040F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F735EFBC-2334-546F-B704-7BAADAFA040F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F735EFBC-2334-546F-B704-7BAADAFA040F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F735EFBC-2334-546F-B704-7BAADAFA040F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BBB399F2-2990-5659-B6E9-707F342C9A56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BBB399F2-2990-5659-B6E9-707F342C9A56}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BBB399F2-2990-5659-B6E9-707F342C9A56}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BBB399F2-2990-5659-B6E9-707F342C9A56}.Release|Any CPU.Build.0 = Release|Any CPU
+		{998EC240-12C5-5BFC-9306-77BF5DDC9B83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{998EC240-12C5-5BFC-9306-77BF5DDC9B83}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{998EC240-12C5-5BFC-9306-77BF5DDC9B83}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{998EC240-12C5-5BFC-9306-77BF5DDC9B83}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1A09CB1-0B37-5B61-AA7A-23360AC78CAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1A09CB1-0B37-5B61-AA7A-23360AC78CAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1A09CB1-0B37-5B61-AA7A-23360AC78CAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1A09CB1-0B37-5B61-AA7A-23360AC78CAF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BADC3ACF-A60F-5A0C-AF06-55F32FBEAC71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BADC3ACF-A60F-5A0C-AF06-55F32FBEAC71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BADC3ACF-A60F-5A0C-AF06-55F32FBEAC71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BADC3ACF-A60F-5A0C-AF06-55F32FBEAC71}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B86DCCE5-8639-5C60-908C-5CEA2D59C2AD} = {0ABE0173-C7D4-5AEA-9478-64751C2131CC}
+		{F7D6894A-E5B9-5648-AA58-1F4D704B8443} = {0ABE0173-C7D4-5AEA-9478-64751C2131CC}
+		{52DBE254-FBE9-5A5C-AEDA-6340D91D6BFC} = {0ABE0173-C7D4-5AEA-9478-64751C2131CC}
+		{F735EFBC-2334-546F-B704-7BAADAFA040F} = {B86DCCE5-8639-5C60-908C-5CEA2D59C2AD}
+		{BBB399F2-2990-5659-B6E9-707F342C9A56} = {B86DCCE5-8639-5C60-908C-5CEA2D59C2AD}
+		{998EC240-12C5-5BFC-9306-77BF5DDC9B83} = {B86DCCE5-8639-5C60-908C-5CEA2D59C2AD}
+		{F1A09CB1-0B37-5B61-AA7A-23360AC78CAF} = {B86DCCE5-8639-5C60-908C-5CEA2D59C2AD}
+		{BADC3ACF-A60F-5A0C-AF06-55F32FBEAC71} = {B86DCCE5-8639-5C60-908C-5CEA2D59C2AD}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D27E9588-5BE7-5CD1-A035-C2489D023665}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,24 @@
+namespace MovieRental.Modules.Catalog.Features;
+
+public sealed record MovieListItem(
+    Guid Id, string Title, string Slug, string Genre, int ReleaseYear, int DurationMinutes,
+    decimal DailyPrice, int AvailableCopies, int TotalCopies, double AverageRating, int ReviewCount,
+    string? PosterUrl, bool IsDeleted,
+    // A flag rather than the URL: the list is public, and a card only needs to know whether
+    // to enable its Watch button.
+    bool HasVideo,
+    // The trailer is public (it is what the Watch button plays for everyone), so the address
+    // itself travels with the card.
+    string? TrailerUrl = null,
+    bool IsOriginal = false);
+
+public sealed record MovieDetail(
+    Guid Id, string Title, string Slug, string Description, string Genre, int ReleaseYear,
+    int DurationMinutes, string? Director, string? PosterUrl, string? TrailerUrl, string? VideoUrl,
+    decimal DailyPrice, int AvailableCopies, int TotalCopies, double AverageRating, int ReviewCount,
+    IReadOnlyList<ReviewResponse> Reviews, bool HasVideo = false,
+    // The description in the other site languages, keyed "az", "ru", "tr"; null when only the
+    // English one exists (a title an admin added later). The client picks its own language.
+    IReadOnlyDictionary<string, string>? Descriptions = null);
+
+public sealed record ReviewResponse(Guid Id, Guid UserId, string AuthorName, int Stars, string Comment, DateTime CreatedAtUtc);

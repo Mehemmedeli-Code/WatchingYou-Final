@@ -1,0 +1,529 @@
+﻿using System.Globalization;
+using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
+using Microsoft.AspNetCore.Authorization;
+using MovieRental.Host.Infrastructure;
+using MovieRental.Host.Infrastructure.Localization;
+using MovieRental.Host.Middleware;
+using MovieRental.Host.Pages;
+using MovieRental.Modules.Catalog;
+using MovieRental.Modules.Cinema;
+using MovieRental.Modules.Identity;
+using MovieRental.Modules.Identity.Infrastructure;
+using MovieRental.Modules.Media;
+using MovieRental.Modules.Rentals;
+using MovieRental.SharedKernel.Cqrs;
+using MovieRental.SharedKernel.Cqrs.Behaviors;
+using MovieRental.SharedKernel.Modules;
+using MovieRental.SharedKernel.Security;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// ---------------------------------------------------------------------------
+// Composition. Program.cs knows the list of modules and nothing about their insides.
+// ---------------------------------------------------------------------------
+builder.Services.AddModules(
+    builder.Configuration,
+    new IdentityModule(),
+    new CatalogModule(),
+    new RentalsModule(),
+    new CinemaModule(),
+    new MediaModule());
+
+builder.Services.AddScoped<IDispatcher, Dispatcher>();
+builder.Services.AddScoped(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+builder.Services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+
+builder.Services.AddSingleton<Translations>();
+builder.Services.AddScoped<ILanguageContext, LanguageContext>();
+builder.Services.AddScoped<IPageShellFactory, PageShellFactory>();
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+
+// ---------------------------------------------------------------------------
+// Security
+//
+// Two schemes, one identity. The API runs on bearer tokens; Razor and the Swagger page are
+// plain browser navigations that carry no Authorization header, so they read an HttpOnly
+// cookie issued at login. The selector below picks whichever the request actually brought.
+// ---------------------------------------------------------------------------
+var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
+          ?? throw new InvalidOperationException("The Jwt configuration section is missing.");
+
+// Development used to sign with that committed placeholder too, and the development site is
+// the one opened from phones on the Wi-Fi: anyone who had read the repository could sign a
+// token of their own. A random key kept on this machine replaces it (user secrets still win).
+if (builder.Environment.IsDevelopment() && jwt.SecretKey.StartsWith("replace-this", StringComparison.OrdinalIgnoreCase))
+{
+    jwt.SecretKey = LocalSecret.LoadOrCreate("jwt.key");
+    builder.Configuration[$"{JwtOptions.SectionName}:SecretKey"] = jwt.SecretKey;
+}
+
+// The value in appsettings.json is a placeholder, and that file is committed. Signing real
+// tokens with it means anyone who has read the repository can mint one for any account, so
+// the app refuses to start on it anywhere but a developer's machine. The check used to look
+// for "change", which the placeholder ("replace-this-...") never contained, so it never fired.
+if (!builder.Environment.IsDevelopment() &&
+    jwt.SecretKey.StartsWith("replace-this", StringComparison.OrdinalIgnoreCase))
+{
+    throw new InvalidOperationException(
+        "Jwt:SecretKey is still the placeholder from appsettings.json. Set a real one: " +
+        "dotnet user-secrets set \"Jwt:SecretKey\" \"<64 random characters>\"");
+}
+
+// The Console sender writes every verification and password-reset code to the log. Fine on a
+// developer's machine; on a live site anyone who can read the logs can take over any account.
+if (!builder.Environment.IsDevelopment() &&
+    string.Equals(builder.Configuration["Notifications:Email:Provider"] ?? "Console", "Console", StringComparison.OrdinalIgnoreCase))
+{
+    throw new InvalidOperationException(
+        "Notifications:Email:Provider is 'Console', which logs one-time codes. Configure Smtp for this environment.");
+}
+
+if (jwt.SecretKey.Length < 32)
+    throw new InvalidOperationException("Jwt:SecretKey must be at least 32 characters. Use user secrets, not appsettings.json.");
+
+const string SmartScheme = "smart";
+
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultScheme = SmartScheme;
+        options.DefaultChallengeScheme = SmartScheme;
+    })
+    .AddPolicyScheme(SmartScheme, SmartScheme, options =>
+        options.ForwardDefaultSelector = context =>
+            context.Request.Headers.Authorization.ToString().StartsWith("Bearer ", StringComparison.Ordinal)
+            || IsHubTokenRequest(context.Request)
+                ? JwtBearerDefaults.AuthenticationScheme
+                : CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwt.Issuer,
+            ValidAudience = jwt.Audience,
+            IssuerSigningKey = TokenService.SigningKey(jwt.SecretKey),
+            ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
+            // Default is five minutes of slack, which quietly extends every token's life.
+            ClockSkew = TimeSpan.FromSeconds(30)
+        };
+
+        // A browser cannot set headers on a WebSocket upgrade, so SignalR sends the token as
+        // ?access_token=. It is read only on the hub path: accepting tokens from the query
+        // string everywhere would put them in every server log and browser history entry.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (IsHubTokenRequest(context.Request))
+                    context.Token = context.Request.Query["access_token"];
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = async context =>
+            {
+                if (!await AuthCookie.IsCurrentAsync(context.HttpContext, context.Principal))
+                    context.Fail("This session is no longer valid.");
+            }
+        };
+    })
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "rr.session";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.SlidingExpiration = true;
+        options.Events.OnValidatePrincipal = AuthCookie.ValidateAsync;
+        options.LoginPath = "/account";
+        options.AccessDeniedPath = "/account";
+
+        // Pages redirect to sign-in; the API must not. An API call without a token used to
+        // get a 302 to the HTML login page, which fetch follows silently — the caller then got
+        // a 200 full of HTML and failed parsing it, instead of a plain 401 it could act on.
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api") || context.Request.Path.StartsWithSegments("/hubs"))
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            else
+                context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api") || context.Request.Path.StartsWithSegments("/hubs"))
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            else
+                context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+    });
+
+// Every staff policy also asks for the staff PIN (StaffGate): the role alone, from a stolen
+// session or a guessed password, does not open a staff API.
+StaffPaths.Configure(builder.Configuration);
+builder.Services.AddSingleton<IAuthorizationHandler, StaffUnlockedHandler>();
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationMiddlewareResultHandler, ApiAuthorizationResultHandler>();
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(AppRoles.SuperAdmin, policy => policy.RequireRole(AppRoles.SuperAdmin).AddRequirements(new StaffUnlockedRequirement()))
+    .AddPolicy(AppRoles.Admin, policy => policy.RequireRole(AppRoles.Admin).AddRequirements(new StaffUnlockedRequirement()))
+    .AddPolicy(AppPolicies.SecurityDesk, policy => policy.RequireRole(AppRoles.Security, AppRoles.Admin).AddRequirements(new StaffUnlockedRequirement()))
+    .AddPolicy(AppPolicies.BackOffice, policy => policy.RequireRole(AppRoles.Cashier, AppRoles.Admin).AddRequirements(new StaffUnlockedRequirement()))
+    .AddPolicy(AppPolicies.Moderation, policy => policy.RequireRole(AppRoles.Moderator, AppRoles.Security, AppRoles.Admin).AddRequirements(new StaffUnlockedRequirement()))
+    .AddPolicy(AppRoles.Customer, policy => policy.RequireAuthenticatedUser());
+
+static bool IsHubTokenRequest(HttpRequest request) =>
+    request.Path.StartsWithSegments("/hubs") && !string.IsNullOrEmpty(request.Query["access_token"]);
+
+// ---------------------------------------------------------------------------
+// Rate limiting
+//
+// A six-digit code is a million guesses. Five attempts burn the code, but nothing stopped
+// somebody requesting a fresh one and starting again, so the attempt counter alone was not
+// a defence. These limits are per client address and apply to the endpoints where guessing
+// is the attack: signing in, and anything that takes a code.
+// ---------------------------------------------------------------------------
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.OnRejected = async (context, ct) =>
+    {
+        // Say how long to wait rather than leaving the caller to guess. A legitimate user
+        // who mistyped their password twice deserves a straight answer.
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+            context.HttpContext.Response.Headers.RetryAfter =
+                ((int)retryAfter.TotalSeconds).ToString(CultureInfo.InvariantCulture);
+
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync(
+            """{"code":"too_many_requests","message":"Too many attempts. Wait a minute and try again."}""", ct);
+    };
+
+    options.AddPolicy(AppPolicies.AuthRateLimit, http => RateLimitPartition.GetFixedWindowLimiter(
+        ClientKey(http),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 8, Window = TimeSpan.FromMinutes(1) }));
+
+    options.AddPolicy(AppPolicies.CodeRateLimit, http => RateLimitPartition.GetFixedWindowLimiter(
+        ClientKey(http),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 12, Window = TimeSpan.FromMinutes(5) }));
+
+    options.AddPolicy(AppPolicies.WriteRateLimit, http => RateLimitPartition.GetFixedWindowLimiter(
+        http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? ClientKey(http),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1) }));
+
+    // Reading X-Forwarded-For here directly let anyone pick a fresh "address" per request and
+    // walk straight past these limits. UseForwardedHeaders (below) rewrites RemoteIpAddress
+    // only when the header came through a trusted proxy, so the socket address is all we need.
+    static string ClientKey(HttpContext http) =>
+        http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+});
+
+// ---------------------------------------------------------------------------
+// Presentation
+// ---------------------------------------------------------------------------
+builder.Services.AddPublicApiCaching();
+// The staff screens answer only under the secret segment; /admin and the rest are not routes.
+builder.Services.AddRazorPages(options =>
+{
+    foreach (var (page, path) in new[] { ("/Admin", StaffPaths.Admin), ("/Security", StaffPaths.Security),
+                                         ("/BackOffice", StaffPaths.BackOffice), ("/StaffUnlock", StaffPaths.Unlock) })
+        options.Conventions.AddPageRouteModelConvention(page, model =>
+        {
+            foreach (var selector in model.Selectors) selector.AttributeRouteModel!.Template = path.TrimStart('/');
+        });
+});
+// The OpenAPI document comes from ASP.NET Core's own generator (built in since .NET 9);
+// Swashbuckle is kept only for its UI page, which reads that document.
+builder.Services.AddOpenApi("v1", ApiReference.Describe);
+
+// Cross-origin callers. The website itself is served by this host and needs none of this.
+//  - The phone app (Capacitor) loads its screens from the device: capacitor://localhost on iOS,
+//    https://localhost on Android. It calls this API by full URL, in every environment.
+//  - The Vite dev servers (website 5173, app 5174) run on their own origins, in Development only.
+// Named origins only, never "any": the API accepts credentials, and a wildcard would let any
+// site make signed-in calls on a visitor's behalf.
+const string ClientCors = "clients";
+var corsOrigins = (builder.Configuration.GetSection("Mobile:AllowedOrigins").Get<string[]>()
+                   ?? ["capacitor://localhost", "https://localhost"]).ToList();
+if (builder.Environment.IsDevelopment())
+{
+    corsOrigins.Add(builder.Configuration["Frontend:DevServerUrl"] ?? "http://localhost:5173");
+    corsOrigins.Add("http://localhost:5174");
+}
+// Development also lets the dev servers be opened from a phone on the home Wi-Fi
+// (http://192.168.x.x:5174): private network addresses only, the two dev ports only.
+var allowLanDevServers = builder.Environment.IsDevelopment();
+static bool IsLanDevServer(string origin) =>
+    Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.Scheme == "http" && uri.Port is 5173 or 5174
+    && System.Net.IPAddress.TryParse(uri.Host, out var ip) && ip.GetAddressBytes() is [10, ..] or [192, 168, ..] or [172, >= 16 and <= 31, ..];
+builder.Services.AddCors(options => options.AddPolicy(ClientCors, policy => policy
+    .SetIsOriginAllowed(origin => corsOrigins.Contains(origin) || (allowLanDevServers && IsLanDevServer(origin)))
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+    .AllowCredentials()));
+
+// Compression for the static bundle only: scripts, styles and SVG shrink three to five times.
+// Pages and API responses are left alone on purpose — compressing a response that mixes a
+// secret (a session, a token) with text an attacker can influence is what BREACH exploits.
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.MimeTypes = ["text/javascript", "application/javascript", "text/css", "image/svg+xml"];
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+});
+builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProviderOptions>(o =>
+    o.Level = System.IO.Compression.CompressionLevel.Fastest);
+
+// Every JSON body this API takes is a few kilobytes. Kestrel's default (30 MB) let any caller
+// make the server read and parse megabytes on public endpoints. Uploads raise their own limit.
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 1024 * 1024;
+    options.AddServerHeader = false;
+});
+
+var app = builder.Build();
+
+// ---------------------------------------------------------------------------
+// Pipeline. Order matters: exceptions first so everything below is covered, and
+// authentication before the Swagger gate so it has an identity to check.
+// ---------------------------------------------------------------------------
+// Trusts X-Forwarded-For/-Proto only from known proxies: this machine by default, plus any
+// listed under ForwardedHeaders:KnownProxies (IPs) or :KnownNetworks (CIDR, e.g. Cloudflare's
+// ranges). Behind an untrusted hop the headers are ignored, so nobody can fake their address.
+var forwarded = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
+                     | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+};
+foreach (var ip in app.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? [])
+    forwarded.KnownProxies.Add(System.Net.IPAddress.Parse(ip));
+foreach (var cidr in app.Configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>() ?? [])
+    forwarded.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(cidr));
+app.UseForwardedHeaders(forwarded);
+// Baseline browser hardening. No page here is meant to be framed (the admin's "suspend" and
+// "refund" buttons are clickjacking targets otherwise), and nothing should be type-sniffed.
+// Set when the response starts, not here: the error handler clears the response, and the
+// headers used to go with it, so every API error went out without them.
+// Scripts: this site's files, plus the few inline blocks the layouts carry, each marked with a
+// nonce made for this response alone. Nothing else inline runs — an injected <script> or
+// onclick="" would not have the nonce. Swagger UI (admin only) is a third-party page built
+// on inline script, so it keeps 'unsafe-inline'.
+var useDevServer = app.Configuration.GetValue("Frontend:UseDevServer", false);
+const string CspRest =
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "font-src 'self' data: https://fonts.gstatic.com; " +
+    "img-src 'self' data: blob: https:; " +
+    "media-src 'self' blob: https:; " +
+    "connect-src 'self' https: wss:; " +
+    "worker-src 'self' blob:; " +
+    "frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com; " +
+    "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+app.Use((context, next) =>
+{
+    var nonce = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
+    context.Items["csp-nonce"] = nonce;
+    context.Response.OnStarting(() =>
+    {
+        var headers = context.Response.Headers;
+        headers.XContentTypeOptions = "nosniff";
+        headers.XFrameOptions = "DENY";
+        headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        headers["Permissions-Policy"] = "camera=(self), microphone=(), geolocation=(), payment=()";
+        headers["Cross-Origin-Opener-Policy"] = "same-origin";
+        if (!useDevServer && !headers.ContainsKey("Content-Security-Policy"))
+        {
+            var scripts = context.Request.Path.StartsWithSegments("/swagger")
+                ? "script-src 'self' 'unsafe-inline'"
+                : $"script-src 'self' 'nonce-{nonce}'";
+            headers.ContentSecurityPolicy = $"default-src 'self'; {scripts}; {CspRest}";
+        }
+
+        // Personal answers must not sit in a shared cache or the back/forward cache.
+        if (context.Request.Path.StartsWithSegments("/api") && !headers.ContainsKey("Cache-Control")
+            && (context.Request.Headers.ContainsKey("Authorization") || context.Request.Headers.ContainsKey("Cookie")))
+            headers.CacheControl = "no-store";
+        return Task.CompletedTask;
+    });
+    return next();
+});
+
+// Cross-site request forgery. The API also accepts the session cookie (pages, <video> streams),
+// so a change made with the cookie alone must come from this site's own pages. Browsers say
+// where a request comes from (Sec-Fetch-Site, Origin); a request carrying a bearer token is
+// not at risk, since another site cannot read or attach that token.
+app.Use(async (context, next) =>
+{
+    var request = context.Request;
+    if (!HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method) && !HttpMethods.IsOptions(request.Method)
+        && request.Path.StartsWithSegments("/api")
+        && !request.Headers.Authorization.ToString().StartsWith("Bearer ", StringComparison.Ordinal)
+        && request.Cookies.ContainsKey("rr.session")
+        && IsForeign(request))
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        await context.Response.WriteAsJsonAsync(new { code = "forbidden", message = "This request did not come from this site." });
+        return;
+    }
+    await next();
+});
+
+static bool IsForeign(HttpRequest request)
+{
+    var site = request.Headers["Sec-Fetch-Site"].ToString();
+    if (site is "cross-site" or "same-site") return true;
+    var origin = request.Headers.Origin.ToString();
+    return origin.Length > 0
+        && !string.Equals(origin, $"{request.Scheme}://{request.Host}", StringComparison.OrdinalIgnoreCase);
+}
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+// The visitor's language (?lang, the language cookie, or Accept-Language from the phone app)
+// as the UI culture, so modules that write text of their own — the PDF ticket — can follow
+// it without knowing about the site's language cookie. Number and date parsing stay invariant.
+// Validation messages stay English: the client translates them, field names included, and a
+// half-translated "'Password' должно быть заполнено" would match none of its patterns.
+FluentValidation.ValidatorOptions.Global.LanguageManager.Culture = CultureInfo.GetCultureInfo("en");
+app.Use((context, next) =>
+{
+    CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(context.RequestServices.GetRequiredService<ILanguageContext>().Code);
+    return next();
+});
+app.UseCors(ClientCors);
+
+if (app.Environment.IsDevelopment())
+{
+    await DevelopmentDatabaseBootstrapper.InitialiseAsync(app.Services);
+
+    // One-off commands for trying the social pages by hand; see DemoPeople.
+    if (args.Contains("--seed-demo-people")) { await DemoPeople.SeedAsync(app.Services); return; }
+    if (args.Contains("--remove-demo-people")) { await DemoPeople.RemoveAsync(app.Services); return; }
+}
+else
+{
+    await DevelopmentDatabaseBootstrapper.ApplyMigrationsAsync(app.Services);
+    app.UseHsts();
+}
+await MovieRental.Modules.Identity.Features.StaffOwner.EnsureAsync(app.Services);
+
+app.UseHttpsRedirection();
+app.UseResponseCompression();
+
+// A missing page produces no exception, so the middleware above never sees it. Re-executing
+// into the error page keeps 404 and 403 looking like part of the site rather than the
+// server's default blank response. Scoped away from /api, because a fetch expecting JSON
+// should not be handed a page of HTML to parse. The SignalR hub likewise: its client reads
+// the status (401 means "refresh the token and reconnect"), and re-executing it into the
+// error page turned a 401 into a 404.
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/api") && !context.Request.Path.StartsWithSegments("/hubs"),
+    branch => branch.UseStatusCodePagesWithReExecute("/error/{0}"));
+// The API's own errors left empty (a bare 401, 404, 405, 415) get a { code, message } body.
+app.UseWhen(ApiErrors.IsApi, branch => branch.UseStatusCodePages(ApiErrors.DescribeStatus));
+
+// Routing after the re-execute, on purpose. Left implicit, WebApplication routes at the very
+// start of the pipeline, so the re-executed "/error/404" never found its page and every
+// missing address came back as an empty 404 instead of the site's own page.
+app.UseRouting();
+
+// The web-app manifest is served with its proper type, which install prompts check for.
+var staticTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+staticTypes.Mappings[".webmanifest"] = "application/manifest+json";
+var hashedChunk = new System.Text.RegularExpressions.Regex(@"-[A-Za-z0-9_-]{8}\.(js|css)$");
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = staticTypes,
+    // app.js/app.css are served without a version query (see _Layout.cshtml), so the browser
+    // revalidates them on every load: a 304 when nothing changed. Every chunk they load has a
+    // content hash in its name (vite.config.ts), so a new build means a new URL and the old
+    // one can be cached for good — no round trip per chunk on each page.
+    OnPrepareResponse = context =>
+    {
+        if (context.Context.Request.Path.StartsWithSegments("/app"))
+            context.Context.Response.Headers.CacheControl =
+                hashedChunk.IsMatch(context.File.Name) ? "public, max-age=31536000, immutable" : "no-cache";
+
+        // asp-append-version adds ?v=<content hash> (app.css, shell.css), so that URL is just as
+        // immutable: no revalidation round trip for the render-blocking stylesheet on each page.
+        if (context.Context.Request.Query.ContainsKey("v"))
+            context.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+
+        // The service worker must always be checked for updates, or a fix to it could take a
+        // day to reach people who already have the old one.
+        if (context.Context.Request.Path.Equals("/sw.js"))
+        {
+            context.Context.Response.Headers.CacheControl = "no-cache";
+            context.Context.Response.Headers["Service-Worker-Allowed"] = "/";
+        }
+    }
+});
+app.UseAuthentication();
+app.UseAuthorization();
+
+// The front door. Someone with no session who opens one of the public pages is shown the
+// welcome page first, and brought back to where they were going once signed in. Pages that
+// already require an account keep their own sign-in redirect; the API, the hub, files, the
+// account and privacy pages and the phone app's calls are never touched.
+// The listings (/on-display) and the seat map (/cinema) stay open to everyone: people should
+// see what is playing and which seats are free before deciding to sign up. Booking itself
+// still asks them to sign in.
+string[] welcomeGated = ["/", "/ai-catalog", "/human-craft", "/pro", "/help"];
+app.Use(async (context, next) =>
+{
+    var request = context.Request;
+    var path = request.Path.Value?.TrimEnd('/') is { Length: > 0 } trimmed ? trimmed : "/";
+    if ((HttpMethods.IsGet(request.Method) || HttpMethods.IsHead(request.Method))
+        && context.User.Identity?.IsAuthenticated != true
+        && welcomeGated.Contains(path, StringComparer.OrdinalIgnoreCase))
+    {
+        var back = request.Path + request.QueryString;
+        context.Response.Redirect("/welcome?returnUrl=" + Uri.EscapeDataString(back));
+        return;
+    }
+    await next();
+});
+
+// Signing out ends the staff unlock too: the next person at this browser is asked for the PIN.
+app.Use(async (context, next) =>
+{
+    if (HttpMethods.IsPost(context.Request.Method) && context.Request.Path.Equals("/api/auth/logout", StringComparison.OrdinalIgnoreCase))
+        StaffUnlock.Clear(context);
+    await next();
+});
+
+app.UseRateLimiter();
+app.UseOutputCache();
+app.EvictOnWrite();
+
+ApiReference.Map(app);
+
+app.MapRazorPages();
+app.MapModules();
+AnalyticsEndpoints.Map(app);
+LanguageEndpoints.Map(app);
+
+app.MapGet("/api/health", () => TypedResults.Ok(new HealthStatus("ok", DateTime.UtcNow)))
+   .WithTags("System").AllowAnonymous()
+   .WithSummary("Is the site up? Answers ok and the server's time (UTC)");
+
+app.Run();
+
+internal sealed record HealthStatus(string Status, DateTime Utc);

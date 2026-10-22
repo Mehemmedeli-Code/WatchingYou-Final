@@ -1,0 +1,8 @@
+{
+  "dotnet.defaultSolution": "WatchingYou.sln",
+  "files.exclude": {
+    "**/bin": true,
+    "**/obj": true
+  },
+  "tailwindCSS.experimental.classRegex": [["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]]
+}

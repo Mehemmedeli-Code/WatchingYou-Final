@@ -1,0 +1,152 @@
+﻿using System.Text.Json;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using MovieRental.Host.Infrastructure.Localization;
+using MovieRental.SharedKernel.Security;
+
+namespace MovieRental.Host.Pages;
+
+/// <summary>
+/// Every page carries a strongly-typed view model. ViewBag and ViewData are deliberately
+/// unused across this project: they are untyped, invisible to the compiler and silently
+/// return null when a key is misspelled.
+/// </summary>
+public abstract class AppPageModel : PageModel
+{
+    public AppPageViewModel View { get; protected set; } = AppPageViewModel.Empty;
+}
+
+public sealed record NavItem(string Key, string Href, string Label)
+{
+    public bool IsCurrent { get; init; }
+}
+
+public sealed record LanguageOption(string Code, string Name, bool IsCurrent);
+
+public sealed record AppPageViewModel(
+    string Title,
+    string Tagline,
+    string ActiveNav,
+    string ReactMount,
+    string Language,
+    IReadOnlyList<NavItem> Nav,
+    IReadOnlyList<LanguageOption> Languages,
+    bool IsSignedIn,
+    bool IsAdmin,
+    bool UseShaderBackground,
+    string? UserName,
+    string TranslationsJson,
+    FrontendAssets Assets)
+{
+    public static readonly AppPageViewModel Empty = new(
+        "WatchingYou", string.Empty, string.Empty, "home", Translations.DefaultLanguage,
+        [], [], false, false, true, null, "{}", new FrontendAssets(false, string.Empty));
+}
+
+/// <summary>
+/// Builds the shell once, in one place. Nav visibility is decided here from the signed-in
+/// roles, which is what makes "absent from the DOM" achievable — a page model cannot forget
+/// to hide something it never receives.
+/// </summary>
+public interface IPageShellFactory
+{
+    AppPageViewModel Create(string titleKey, string taglineKey, string activeNav, string reactMount);
+}
+
+internal sealed class PageShellFactory(
+    IConfiguration configuration, ILanguageContext language, ICurrentUser currentUser) : IPageShellFactory
+{
+    // Letters left as they are: the default encoder wrote every Cyrillic or Azerbaijani letter
+    // as \uXXXX, which more than doubled the inlined Russian dictionary. HTML-significant
+    // characters (<, >, &, quotes) are still escaped, so it stays safe inside a script tag.
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Create(System.Text.Unicode.UnicodeRanges.All)
+    };
+
+    public AppPageViewModel Create(string titleKey, string taglineKey, string activeNav, string reactMount)
+    {
+
+        var isSignedIn = currentUser.IsAuthenticated;
+        var isAdmin = currentUser.IsInRole(AppRoles.Admin);
+        // Moderators work at the security desk too (help requests, reported messages).
+        var isSecurity = isAdmin || currentUser.IsInRole(AppRoles.Security) || currentUser.IsInRole(AppRoles.Moderator);
+
+        var nav = new List<NavItem>
+        {
+            new("home", "/", language["nav.catalogue"]),
+            new("on-display", "/on-display", language["nav.onDisplay"]),
+            new("ai-catalog", "/ai-catalog", language["nav.aiCatalog"]),
+            new("human-craft", "/human-craft", language["nav.humanCraft"]),
+            new("cinema", "/cinema", language["nav.cinema"]),
+            new("guide", "/guide", language["nav.guide"])
+        };
+
+        // Watching PRO is sold to viewers. Staff run the site and watch without it, so the
+        // offer is not in their menu; they see the subscribers under Admin and Security instead.
+        var isStaff = isSecurity || currentUser.IsInRole(AppRoles.Cashier);
+        if (!isStaff) nav.Add(new NavItem("pro", "/pro", "Watching PRO"));
+
+        if (isSignedIn)
+        {
+            // Signed-in only: an anonymous visitor has no business browsing who uses the site.
+            // Customers write in; the desk reads under Security → Requests. An agent has no
+            // reason to open a conversation with themselves, so they do not get the link.
+            if (!isSecurity) nav.Add(new NavItem("help", "/help", language["nav.help"]));
+            nav.Add(new NavItem("globe", "/globe", language["nav.globe"]));
+            nav.Add(new NavItem("people", "/people", language["nav.people"]));
+            nav.Add(new NavItem("searching", "/searching", "SearchingYou"));
+            nav.Add(new NavItem("favourites", "/favourites", language["nav.favourites"]));
+            nav.Add(new NavItem("rentals", "/rentals", language["nav.rentals"]));
+            nav.Add(new NavItem("studio", "/studio", language["nav.studio"]));
+        }
+
+        if (isSecurity) nav.Add(new NavItem("security", Infrastructure.StaffPaths.Security, language["nav.security"]));
+        if (isAdmin || currentUser.IsInRole(AppRoles.Cashier))
+            nav.Add(new NavItem("backoffice", Infrastructure.StaffPaths.BackOffice, language["nav.backoffice"]));
+        if (isAdmin)
+        {
+            nav.Add(new NavItem("admin", Infrastructure.StaffPaths.Admin, language["nav.admin"]));
+            nav.Add(new NavItem("api", "/swagger", language["nav.api"]));
+        }
+
+        var languages = Translations.Supported
+            .Select(code => new LanguageOption(code, Translations.DisplayNames[code], code == language.Code))
+            .ToArray();
+
+        return new AppPageViewModel(
+            Title: language[titleKey],
+            Tagline: language[taglineKey],
+            ActiveNav: activeNav,
+            ReactMount: reactMount,
+            Language: language.Code,
+            Nav: [.. nav.Select(item => item with { IsCurrent = item.Key == activeNav })],
+            Languages: languages,
+            IsSignedIn: isSignedIn,
+            IsAdmin: isAdmin,
+            // Admin and Security are dense, data-heavy screens read for minutes at a time.
+            // A moving field behind a table of numbers is a distraction, not decoration, so
+            // those two keep the flat background. Swagger never comes through here at all.
+            UseShaderBackground: activeNav is not ("admin" or "security" or "backoffice"),
+            UserName: isSignedIn ? currentUser.Email : null,
+            // Inlined rather than fetched: a separate request would show untranslated text
+            // for the moment it takes to arrive.
+            TranslationsJson: JsonSerializer.Serialize(language.All, Json),
+            Assets: FrontendAssets.From(configuration));
+    }
+}
+
+/// <summary>
+/// Resolves where the React bundle comes from. In development the Vite dev server serves
+/// modules straight from disk with hot reload; in any other environment the built bundle
+/// sits in wwwroot/app with fixed filenames, so no manifest lookup is needed.
+/// </summary>
+public sealed record FrontendAssets(bool UseDevServer, string DevServerUrl)
+{
+    public string ScriptUrl => UseDevServer ? $"{DevServerUrl}/src/main.tsx" : "/app/app.js";
+    public string? StyleUrl => UseDevServer ? null : "/app/app.css";
+    public string? ViteClientUrl => UseDevServer ? $"{DevServerUrl}/@vite/client" : null;
+
+    public static FrontendAssets From(IConfiguration configuration) => new(
+        configuration.GetValue("Frontend:UseDevServer", false),
+        configuration["Frontend:DevServerUrl"] ?? "http://localhost:5173");
+}

@@ -1,0 +1,17 @@
+bin/
+obj/
+.vs/
+.vscode/*.log
+node_modules/
+dist/
+src/MovieRental.Host/uploads/
+*.user
+
+# Capacitor app build output
+dist-mobile/
+
+# Written by tools/run-site.ps1 and run-mobile.ps1
+logs/
+
+# graphify knowledge graph (local, rebuilt on demand)
+graphify-out/

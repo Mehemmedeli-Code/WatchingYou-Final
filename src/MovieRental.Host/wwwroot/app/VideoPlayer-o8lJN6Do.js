@@ -1,0 +1,1 @@
+import{u as e}from"./app.js";var t=e();function n({src:e,title:n}){return(0,t.jsx)(`video`,{className:`w-full rounded-lg border border-line bg-black`,src:e,controls:!0,preload:`metadata`,playsInline:!0,"aria-label":n})}export{n as t};

@@ -1,0 +1,160 @@
+/* Razor chrome only. Everything inside #root is styled by Tailwind in the React island;
+   these tokens are duplicated in client/src/styles/app.css so both halves agree. */
+:root {
+  /* Mirror of the @theme block in client/src/styles/app.css. Both must agree, or
+     the header ends up one colour and the page body another. */
+  --surface:        #0A0C0A;
+  --surface-raised: #121612;
+  --line:           #1F271F;
+  --accent:         #00E676;
+  --accent-bright:  #5BFFAB;
+  --accent-dim:     #00A85A;
+  --ink:            #FFFFFF;
+  --ink-mute:       #9AA69A;
+  --sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --display: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html.rr { background: var(--surface); }
+
+.rr-body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.rr-skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--accent);
+  color: var(--surface);
+  padding: 0.6rem 1rem;
+  z-index: 100;
+}
+.rr-skip:focus { left: 0; }
+
+.rr-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 0.9rem clamp(1rem, 4vw, 3rem);
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+
+.rr-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-family: var(--display);
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.rr-nav {
+  display: flex;
+  gap: 1.4rem;
+  margin-inline-end: auto;
+  flex-wrap: wrap;
+}
+
+.rr-nav a {
+  color: var(--ink-mute);
+  text-decoration: none;
+  font-size: 0.92rem;
+  padding-bottom: 2px;
+  border-bottom: 1px solid transparent;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+.rr-nav a:hover { color: var(--ink); }
+.rr-nav a.is-current { color: var(--accent); border-bottom-color: var(--accent); }
+
+.rr-account {
+  color: var(--surface);
+  background: var(--accent);
+  border-radius: 999px;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.rr-account:hover { background: var(--accent-bright); }
+
+/* Language picker sits beside the account button, not in the nav — it is a setting for the
+   page you are already on, not another place to go. */
+.rr-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.rr-lang {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.15rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.rr-lang a {
+  color: var(--ink-mute);
+  text-decoration: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.28rem 0.5rem;
+  border-radius: 999px;
+  transition: color 160ms ease, background 160ms ease;
+}
+.rr-lang a:hover { color: var(--ink); }
+.rr-lang a.is-current { color: var(--surface); background: var(--accent); }
+
+#main { flex: 1; }
+.rr-stage { min-height: 60vh; }
+
+.rr-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 2rem clamp(1rem, 4vw, 3rem);
+  border-top: 1px solid var(--line);
+  color: var(--ink-mute);
+  font-size: 0.85rem;
+}
+.rr-footer a { color: var(--accent); }
+
+.rr-noscript { padding: 4rem clamp(1rem, 4vw, 3rem); }
+.rr-noscript h1 { font-family: var(--display); font-weight: 400; }
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 720px) {
+  .rr-header { gap: 1rem; }
+  .rr-nav { gap: 0.9rem; order: 3; width: 100%; }
+  .rr-tools { gap: 0.6rem; }
+  .rr-lang a { padding: 0.24rem 0.38rem; font-size: 0.68rem; }
+}

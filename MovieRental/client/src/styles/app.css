@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+/* Tailwind v4 keeps theme tokens in CSS. These mirror wwwroot/css/shell.css so the
+   Razor chrome and the React island share one palette. */
+@theme {
+  /* ---- PALETTE -------------------------------------------------------------
+     Names describe the ROLE, not the colour, so a repaint only touches values
+     here. Keep in step with wwwroot/css/shell.css, which paints the Razor chrome.
+     ------------------------------------------------------------------------ */
+  --color-surface: #0A0C0A;         /* qara - sehife fonu */
+  --color-surface-raised: #121612;  /* kartlar, panellar */
+  --color-line: #1F271F;            /* serhedler */
+  --color-accent: #00E676;          /* neon yasil - dugmeler, vurgu */
+  --color-accent-bright: #5BFFAB;   /* hover */
+  --color-accent-dim: #00A85A;      /* ikinci derece vurgu */
+  --color-ink: #FFFFFF;             /* ag - esas metn */
+  --color-ink-mute: #9AA69A;        /* ikinci derece metn */
+
+  /* Status. Warn and bad sit off the green axis so they still read as signals. */
+  --color-good: #5BFFAB;
+  --color-good-bg: #0E3A24;
+  --color-warn: #F0C868;
+  --color-warn-bg: #3A3014;
+  --color-bad: #FF8A80;
+  --color-bad-bg: #3F1A16;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 10px;
+}
+
+@layer base {
+  #root {
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-surface);
+  }
+}
+
+/* Reduced motion is respected inside the components too (useReducedMotion); this is the
+   belt-and-braces pass for anything driven by plain CSS. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

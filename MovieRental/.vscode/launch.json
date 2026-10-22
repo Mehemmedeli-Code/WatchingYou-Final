@@ -1,0 +1,34 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run the site",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/MovieRental.Host/bin/Debug/net10.0/MovieRental.Host.dll",
+      "cwd": "${workspaceFolder}/src/MovieRental.Host",
+      "env": { "ASPNETCORE_ENVIRONMENT": "Development" },
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+      }
+    },
+    {
+      "name": "Run the site (with Vite hot reload)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "client: dev server",
+      "program": "${workspaceFolder}/src/MovieRental.Host/bin/Debug/net10.0/MovieRental.Host.dll",
+      "cwd": "${workspaceFolder}/src/MovieRental.Host",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Frontend__UseDevServer": "true"
+      },
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+      }
+    }
+  ]
+}

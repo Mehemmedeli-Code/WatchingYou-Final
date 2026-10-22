@@ -1,0 +1,103 @@
+# Cloud builds for the WatchingYou phone app (client/, Capacitor).
+#
+# Codemagic builds both platforms on its own machines — iOS on a Mac, so no Mac is needed
+# here. Before the first run, set up in the Codemagic UI (Team settings):
+#
+#   1. Environment group "app_config"
+#        WY_API_BASE        https://<your public API address>   (no trailing slash)
+#        APP_STORE_APPLE_ID the app's numeric Apple ID, from App Store Connect → App Information
+#   2. Code signing identities → Android keystores: upload a keystore, reference name
+#        "watchingyou_upload_key"
+#   3. Environment group "google_play"
+#        GCLOUD_SERVICE_ACCOUNT_CREDENTIALS  JSON key of a Play Console service account
+#   4. Integrations → App Store Connect: an API key, named "WatchingYou ASC key"
+#
+# The full walk-through is in docs/MOBILE.md.
+
+workflows:
+  android-release:
+    name: Android → Google Play (internal testing)
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      android_signing:
+        - watchingyou_upload_key
+      groups:
+        - app_config
+        - google_play
+      node: 20
+      java: 21
+    triggering:
+      events: [tag]
+      tag_patterns:
+        - pattern: "app-v*"
+    scripts:
+      - name: Check the API address
+        script: |
+          if [ -z "$WY_API_BASE" ]; then
+            echo "WY_API_BASE is not set. The app would call localhost and fail on every phone." >&2
+            exit 1
+          fi
+      - name: Install
+        script: cd client && npm ci
+      - name: Build the app screens and copy them into Android
+        script: cd client && npm run build:mobile && npx cap sync android
+      - name: Build the signed app bundle (.aab)
+        script: |
+          LATEST=$(google-play get-latest-build-number --package-name "az.watchingyou.cinema" --tracks internal 2>/dev/null || echo 0)
+          export BUILD_NUMBER=$((LATEST + 1))
+          cd client/android && chmod +x gradlew && ./gradlew bundleRelease
+    artifacts:
+      - client/android/app/build/outputs/bundle/**/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
+
+  ios-release:
+    name: iOS → TestFlight / App Store
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: WatchingYou ASC key
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: az.watchingyou.cinema
+      groups:
+        - app_config
+      node: 20
+      xcode: latest
+      cocoapods: default
+    triggering:
+      events: [tag]
+      tag_patterns:
+        - pattern: "app-v*"
+    scripts:
+      - name: Check the API address
+        script: |
+          if [ -z "$WY_API_BASE" ]; then
+            echo "WY_API_BASE is not set. The app would call localhost and fail on every phone." >&2
+            exit 1
+          fi
+      - name: Install
+        script: cd client && npm ci
+      - name: Build the app screens and copy them into iOS
+        script: cd client && npm run build:mobile && npx cap sync ios
+      - name: Install CocoaPods
+        script: cd client/ios/App && pod install
+      - name: Apply the signing profiles
+        script: xcode-project use-profiles
+      - name: Next build number
+        script: |
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0)
+          cd client/ios/App && agvtool new-version -all $((LATEST + 1))
+      - name: Build the signed .ipa
+        script: xcode-project build-ipa --workspace "client/ios/App/App.xcworkspace" --scheme "App"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

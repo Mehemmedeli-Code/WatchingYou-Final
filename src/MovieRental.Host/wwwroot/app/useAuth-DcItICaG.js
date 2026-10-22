@@ -1,0 +1,1 @@
+import{a as e,t}from"./react-B7JSOICP.js";import{p as n}from"./app.js";var r=e(t(),1);function i(){let[e,t]=(0,r.useState)(n.user);(0,r.useEffect)(()=>n.subscribe(t),[]);let i=e?.roles??[],a=i.includes(`Admin`);return{user:e,isSignedIn:e!==null,isAdmin:a,isSecurity:a||i.includes(`Security`),signOut:()=>n.clear()}}export{i as t};
