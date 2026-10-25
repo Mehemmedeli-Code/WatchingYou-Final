@@ -13,6 +13,7 @@ import { LanguageFlags } from "@/components/admin/LanguageFlags";
 import { PromoAdmin } from "@/components/admin/PromoAdmin";
 import { BannerAdmin } from "@/components/admin/BannerAdmin";
 import { HealthPanel } from "@/components/admin/HealthPanel";
+import { AdminJump } from "@/components/admin/AdminJump";
 import { formatDate, formatMoney } from "@/lib/format";
 import { t, languageName, genreName } from "@/lib/i18n";
 import { VideoPlayer } from "@/components/VideoPlayer";
@@ -171,6 +172,7 @@ export default function AdminPage() {
 
   return (
     <>
+      <AdminJump />
       <HealthPanel />
       <Section
         title={t("admin.whereTitle")}

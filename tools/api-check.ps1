@@ -30,6 +30,12 @@ $env:Notifications__Email__Provider = 'Console'   # codes go to the log, where t
 $env:Seed__TestAccounts = 'true'   # the test logins (passwords in %LOCALAPPDATA%\WatchingYou\test-logins.json); a throwaway database only
 $env:ConnectionStrings__Default = "Server=$server;Database=$database;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
 
+# Whatever a run that never finished left behind (it was stopped, or the machine slept): its
+# copy of the site on 7140 and its database. A check on yesterday's data is not a check.
+Get-NetTCPConnection -LocalPort 7140 -State Listen -ErrorAction SilentlyContinue |
+    ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
+sqlcmd -S $server -I -Q "IF DB_ID('$database') IS NOT NULL BEGIN ALTER DATABASE [$database] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [$database]; END" | Out-Null
+
 $site = Start-Process -FilePath $exe -WorkingDirectory $hostDir -WindowStyle Hidden -PassThru `
     -RedirectStandardOutput $log -RedirectStandardError "$log.err"
 try {
