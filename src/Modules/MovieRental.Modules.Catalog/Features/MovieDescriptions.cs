@@ -4,10 +4,11 @@ using Microsoft.Extensions.Hosting;
 namespace MovieRental.Modules.Catalog.Features;
 
 /// <summary>
-/// The catalogue's descriptions in Azerbaijani, Russian and Turkish, from
-/// "seed/movie-descriptions.json" ({ slug: { az, ru, tr } }). Kept beside the seed like the
-/// trailer list rather than in three more columns: the English text stays the record, and a
-/// title nobody has translated yet simply shows it.
+/// Each film's longer write-up (seven to ten sentences) in English, Azerbaijani, Russian and
+/// Turkish, from "seed/movie-descriptions.json" ({ slug: { en, az, ru, tr } }), shown in the
+/// film's details. Kept beside the seed like the trailer list rather than in four more columns:
+/// the one-line English description stays the record (and the cards' text), and a title nobody
+/// has written up yet simply shows it.
 /// </summary>
 public static class MovieDescriptions
 {

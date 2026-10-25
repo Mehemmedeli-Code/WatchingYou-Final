@@ -14,12 +14,15 @@ export function SearchField({
   placeholder,
   className,
   autoFocus,
+  inputProps,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
   autoFocus?: boolean;
+  /** Anything else the field needs (key handling, a list it controls). */
+  inputProps?: React.ComponentProps<"input">;
 }) {
   return (
     <BorderBeam className={cn("w-full", className)}>
@@ -30,6 +33,7 @@ export function SearchField({
           className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute"
         />
         <Input
+          {...inputProps}
           className="pl-9"
           value={value}
           onChange={(e) => onChange(e.target.value)}

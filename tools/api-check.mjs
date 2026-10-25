@@ -150,6 +150,13 @@ const ok = (r) => r.status >= 200 && r.status < 300;
 
 // Catalogue and rentals
 let r = await call("GET", `/api/movies/${movie.id}`); expect("movie detail", ok(r), `${r.status}`);
+// The cast, with photos served by the site itself
+const famous = (await call("GET", "/api/movies?search=Shawshank")).json?.items?.[0];
+r = famous ? await call("GET", `/api/movies/${famous.id}`) : { status: 0, json: null };
+const star = r.json?.cast?.find((a) => a.photoUrl);
+expect("a film's detail lists its cast", ok(r) && r.json.cast?.length > 0 && !!star, `${r.status} ${JSON.stringify(r.json?.cast)?.slice(0, 100)}`);
+if (star) { const photo = await call("GET", star.photoUrl); expect("an actor's photo is served", photo.status === 200, `${photo.status}`); }
+r = await call("GET", "/api/cast/..%2F..%2Fappsettings.json"); expect("the photo endpoint gives out no other file", r.status === 404, `${r.status}`);
 r = await call("PUT", `/api/watchlist/${movie.id}`, { token: c }); expect("watchlist add", ok(r), `${r.status} ${r.text}`);
 r = await call("GET", "/api/watchlist/ids", { token: c }); expect("watchlist contains it", ok(r) && JSON.stringify(r.json).includes(movie.id), r.text.slice(0, 120));
 r = await call("DELETE", `/api/watchlist/${movie.id}`, { token: c }); expect("watchlist remove", ok(r), `${r.status}`);

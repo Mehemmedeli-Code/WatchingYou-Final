@@ -17,8 +17,10 @@ public sealed record MovieDetail(
     int DurationMinutes, string? Director, string? PosterUrl, string? TrailerUrl, string? VideoUrl,
     decimal DailyPrice, int AvailableCopies, int TotalCopies, double AverageRating, int ReviewCount,
     IReadOnlyList<ReviewResponse> Reviews, bool HasVideo = false,
-    // The description in the other site languages, keyed "az", "ru", "tr"; null when only the
+    // The longer write-up, keyed "en", "az", "ru", "tr"; null when only the short
     // English one exists (a title an admin added later). The client picks its own language.
-    IReadOnlyDictionary<string, string>? Descriptions = null);
+    IReadOnlyDictionary<string, string>? Descriptions = null,
+    // Who plays in it, in billing order, with photos; null when the film was never looked up.
+    IReadOnlyList<CastMember>? Cast = null);
 
 public sealed record ReviewResponse(Guid Id, Guid UserId, string AuthorName, int Stars, string Comment, DateTime CreatedAtUtc);

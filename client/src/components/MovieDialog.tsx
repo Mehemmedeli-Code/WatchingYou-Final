@@ -26,7 +26,7 @@ export interface MovieDetail {
   title: string;
   slug: string;
   description: string;
-  /** The description in az / ru / tr, when it has been translated. */
+  /** The longer write-up in en / az / ru / tr, when one has been written. */
   descriptions?: Record<string, string> | null;
   genre: string;
   releaseYear: number;
@@ -43,6 +43,8 @@ export interface MovieDetail {
   averageRating: number;
   reviewCount: number;
   reviews: { id: string; authorName: string; stars: number; comment: string; createdAtUtc: string }[];
+  /** Who plays in it, in billing order; null for a film nobody looked up. */
+  cast?: { name: string; role?: string | null; photoUrl?: string | null; names?: Record<string, string> | null; roles?: Record<string, string> | null }[] | null;
 }
 
 /**
@@ -327,6 +329,23 @@ export function MovieDialog({
                       </div>
                     </>
                   )}
+                </div>
+              ) : null}
+
+              {detail.cast?.length ? (
+                <div className="mt-6 border-t border-line pt-4">
+                  <h3 className="font-display text-lg text-ink">{t("movie.cast", "Cast")}</h3>
+                  <ul className="mt-3 flex gap-3 overflow-x-auto pb-1">
+                    {detail.cast.map((a) => (
+                      <li key={a.name} className="w-24 shrink-0 text-center">
+                        {a.photoUrl
+                          ? <img src={a.photoUrl} alt="" loading="lazy" className="mx-auto h-20 w-20 rounded-full border border-line object-cover" />
+                          : <div className="mx-auto grid h-20 w-20 place-items-center rounded-full border border-line bg-surface font-display text-lg text-ink-mute" aria-hidden>{(a.names?.[lang] ?? a.name).split(" ").map((w) => w[0]).slice(0, 2).join("")}</div>}
+                        <p className="mt-1.5 line-clamp-2 text-xs font-medium text-ink">{a.names?.[lang] ?? a.name}</p>
+                        {a.role ? <p className="line-clamp-2 text-[11px] text-ink-mute">{a.roles?.[lang] ?? a.role}</p> : null}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ) : null}
 

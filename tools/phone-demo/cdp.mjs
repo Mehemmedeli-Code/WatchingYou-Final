@@ -40,9 +40,12 @@ export async function launch({ width = 390, height = 844, scale = 1.2, mobile = 
       for (const fn of listeners.get(msg.method) ?? []) fn(msg.params);
     }
   });
+  // A browser that stops answering (a frozen tab, a machine waking from sleep) fails the call
+  // after 30 seconds instead of holding the whole check forever.
   const send = (method, params = {}) => new Promise((resolve, reject) => {
     const n = ++id;
-    pending.set(n, { resolve, reject });
+    const timer = setTimeout(() => { pending.delete(n); reject(new Error(`no answer from the browser to ${method}`)); }, 30000);
+    pending.set(n, { resolve: (v) => { clearTimeout(timer); resolve(v); }, reject: (e) => { clearTimeout(timer); reject(e); } });
     ws.send(JSON.stringify({ id: n, method, params }));
   });
   const on = (method, fn) => listeners.set(method, [...(listeners.get(method) ?? []), fn]);

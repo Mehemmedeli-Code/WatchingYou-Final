@@ -1,0 +1,9606 @@
+{
+ "pan-s-labyrinth-2006": [
+  {
+   "name": "Ivana Baquero",
+   "names": {
+    "ru": "Ивана Бакеро"
+   },
+   "role": null,
+   "photo": "q236089.jpg"
+  },
+  {
+   "name": "Ariadna Gil",
+   "names": {
+    "ru": "Ариадна Хиль"
+   },
+   "role": null,
+   "photo": "q264754.jpg"
+  },
+  {
+   "name": "Doug Jones",
+   "names": {
+    "ru": "Даг Джонс"
+   },
+   "role": null,
+   "photo": "q461309.jpg"
+  },
+  {
+   "name": "Sergi López",
+   "names": {
+    "ru": "Сержи Лопес"
+   },
+   "role": null,
+   "photo": "q543814.jpg"
+  },
+  {
+   "name": "Maribel Verdú",
+   "names": {
+    "ru": "Марибель Верду"
+   },
+   "role": null,
+   "photo": "q235391.jpg"
+  },
+  {
+   "name": "Álex Angulo",
+   "names": {
+    "ru": "Алекс Ангуло"
+   },
+   "role": null,
+   "photo": "q3178500.jpg"
+  },
+  {
+   "name": "Roger Casamajor",
+   "names": {
+    "ru": "Рохер Касамахор"
+   },
+   "role": null,
+   "photo": "q3818317.jpg"
+  },
+  {
+   "name": "Federico Luppi",
+   "names": {
+    "ru": "Федерико Луппи"
+   },
+   "role": null,
+   "photo": "q1393963.jpg"
+  }
+ ],
+ "groundhog-day-1993": [
+  {
+   "name": "Andie MacDowell",
+   "names": {
+    "ru": "Энди Макдауэлл"
+   },
+   "role": "Rita Hanson",
+   "photo": "q208558.jpg"
+  },
+  {
+   "name": "Bill Murray",
+   "names": {
+    "az": "Bill Mürrey",
+    "ru": "Билл Мюррей"
+   },
+   "role": "Phil Connors",
+   "photo": "q29250.jpg"
+  },
+  {
+   "name": "Chris Elliott",
+   "names": {
+    "ru": "Крис Эллиотт"
+   },
+   "role": "Larry",
+   "photo": "q377424.jpg"
+  },
+  {
+   "name": "Stephen Tobolowsky",
+   "names": {
+    "ru": "Стивен Тоболовски"
+   },
+   "role": "Ned Ryerson",
+   "photo": "q376131.jpg"
+  },
+  {
+   "name": "Brian Doyle-Murray",
+   "names": {
+    "ru": "Брайан Дойл-Мюррей"
+   },
+   "role": "Buster Green",
+   "photo": "q912103.jpg"
+  },
+  {
+   "name": "Rick Ducommun",
+   "names": {
+    "ru": "Рик Дукомман"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Willie Garson",
+   "names": {
+    "ru": "Уилли Гарсон"
+   },
+   "role": null,
+   "photo": "q463402.jpg"
+  },
+  {
+   "name": "Harold Ramis",
+   "names": {
+    "ru": "Гарольд Рамис"
+   },
+   "role": null,
+   "photo": "q286890.jpg"
+  }
+ ],
+ "the-wolf-of-wall-street-2013": [
+  {
+   "name": "Leonardo DiCaprio",
+   "names": {
+    "az": "Leonardo DiKaprio",
+    "ru": "Леонардо Ди Каприо"
+   },
+   "role": "Jordan Belfort",
+   "roles": {
+    "ru": "Джордан Белфорт"
+   },
+   "photo": "q38111.jpg"
+  },
+  {
+   "name": "Jonah Hill",
+   "names": {
+    "az": "Cona Hill",
+    "ru": "Джона Хилл"
+   },
+   "role": "Donnie Azoff",
+   "photo": "q313388.jpg"
+  },
+  {
+   "name": "Margot Robbie",
+   "names": {
+    "az": "Marqo Robbi",
+    "ru": "Марго Робби"
+   },
+   "role": "Naomi Lapaglia",
+   "photo": "q1924847.jpg"
+  },
+  {
+   "name": "Matthew McConaughey",
+   "names": {
+    "az": "Metyu Makkonaxi",
+    "ru": "Мэттью Макконахи"
+   },
+   "role": "Mark Hanna",
+   "photo": "q188955.jpg"
+  },
+  {
+   "name": "Jon Favreau",
+   "names": {
+    "az": "Con Favro",
+    "ru": "Джон Фавро"
+   },
+   "role": "Manny Riskin",
+   "photo": "q295964.jpg"
+  },
+  {
+   "name": "Kyle Chandler",
+   "names": {
+    "ru": "Кайл Чендлер"
+   },
+   "role": "Patrick Denham",
+   "photo": "q359604.jpg"
+  },
+  {
+   "name": "Rob Reiner",
+   "names": {
+    "ru": "Роб Райнер"
+   },
+   "role": "Max Belfort",
+   "photo": "q287607.jpg"
+  },
+  {
+   "name": "Jean Dujardin",
+   "names": {
+    "az": "Jan Düjarden",
+    "ru": "Жан Дюжарден"
+   },
+   "role": "Jean-Jacques Saurel",
+   "photo": "q189422.jpg"
+  }
+ ],
+ "the-sound-of-music-1965": [
+  {
+   "name": "Julie Andrews",
+   "names": {
+    "ru": "Джули Эндрюс"
+   },
+   "role": "Maria von Trapp",
+   "roles": {
+    "ru": "Мария Аугуста фон Трапп"
+   },
+   "photo": "q161819.jpg"
+  },
+  {
+   "name": "Christopher Plummer",
+   "names": {
+    "az": "Kristofer Plammer",
+    "ru": "Кристофер Пламмер"
+   },
+   "role": "Georg von Trapp",
+   "roles": {
+    "ru": "Фон Трапп, Георг Людвиг",
+    "tr": "Georg Ludwig von Trapp"
+   },
+   "photo": "q190523.jpg"
+  },
+  {
+   "name": "Bill Lee",
+   "names": {
+    "ru": "Билл Ли"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Eleanor Parker",
+   "names": {
+    "ru": "Элинор Паркер"
+   },
+   "role": null,
+   "photo": "q237399.jpg"
+  },
+  {
+   "name": "Richard Haydn",
+   "names": {
+    "ru": "Ричард Хэйдн"
+   },
+   "role": null,
+   "photo": "q1355379.jpg"
+  },
+  {
+   "name": "Nicholas Hammond",
+   "names": {
+    "ru": "Николас Хэммонд"
+   },
+   "role": null,
+   "photo": "q266520.jpg"
+  },
+  {
+   "name": "Peggy Wood",
+   "names": {
+    "ru": "Пегги Вуд"
+   },
+   "role": null,
+   "photo": "q266445.jpg"
+  },
+  {
+   "name": "Angela Cartwright",
+   "names": {
+    "ru": "Анджела Картрайт"
+   },
+   "role": null,
+   "photo": "q441899.jpg"
+  }
+ ],
+ "before-sunrise-1995": [
+  {
+   "name": "Ethan Hawke",
+   "names": {
+    "az": "İtan Houk",
+    "ru": "Итан Хоук"
+   },
+   "role": null,
+   "photo": "q484615.jpg"
+  },
+  {
+   "name": "Julie Delpy",
+   "names": {
+    "az": "Cüli Delpi",
+    "ru": "Жюли Дельпи"
+   },
+   "role": null,
+   "photo": "q110462.jpg"
+  },
+  {
+   "name": "Hanno Pöschl",
+   "names": {
+    "ru": "Ханно Пошль"
+   },
+   "role": null,
+   "photo": "q86205.jpg"
+  },
+  {
+   "name": "Tex Rubinowitz",
+   "names": {
+    "ru": "Текс Рубиновиц"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Andrea Eckert",
+   "names": {
+    "ru": "Андреа Эккерт"
+   },
+   "role": null,
+   "photo": "q89070.jpg"
+  },
+  {
+   "name": "Erni Mangold",
+   "names": {
+    "ru": "Эрни Мангольд"
+   },
+   "role": null,
+   "photo": "q89861.jpg"
+  },
+  {
+   "name": "Dominic Castell",
+   "names": {
+    "ru": "Доминик Кастелль"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Adam Goldberg",
+   "names": {
+    "ru": "Адам Голдберг"
+   },
+   "role": null,
+   "photo": "q281964.jpg"
+  }
+ ],
+ "jaws-1975": [
+  {
+   "name": "Roy Scheider",
+   "names": {
+    "ru": "Рой Шайдер"
+   },
+   "role": "Martin Brody",
+   "photo": "q216569.jpg"
+  },
+  {
+   "name": "Robert Shaw",
+   "names": {
+    "ru": "Роберт Шоу"
+   },
+   "role": null,
+   "photo": "q313727.jpg"
+  },
+  {
+   "name": "Richard Dreyfuss",
+   "names": {
+    "ru": "Ричард Дрейфус"
+   },
+   "role": "Matt Hooper",
+   "photo": "q181799.jpg"
+  },
+  {
+   "name": "Lorraine Gary",
+   "names": {
+    "ru": "Лоррейн Гэри"
+   },
+   "role": "Ellen Brody",
+   "photo": null
+  },
+  {
+   "name": "Murray Hamilton",
+   "names": {
+    "ru": "Мюррей Хэмилтон"
+   },
+   "role": null,
+   "photo": "q978706.jpg"
+  },
+  {
+   "name": "Carl Gottlieb",
+   "names": {
+    "ru": "Карл Готтлиб"
+   },
+   "role": null,
+   "photo": "q1038375.jpg"
+  },
+  {
+   "name": "Steven Spielberg",
+   "names": {
+    "az": "Stiven Spilberq",
+    "ru": "Стивен Спилберг"
+   },
+   "role": null,
+   "photo": "q8877.jpg"
+  },
+  {
+   "name": "Craig Kingsbury",
+   "role": null,
+   "photo": null
+  }
+ ],
+ "life-is-beautiful-1997": [
+  {
+   "name": "Roberto Benigni",
+   "names": {
+    "az": "Roberto Beninyi",
+    "ru": "Роберто Бениньи"
+   },
+   "role": "Guido Orefice",
+   "photo": "q23301.jpg"
+  },
+  {
+   "name": "Nicoletta Braschi",
+   "names": {
+    "ru": "Николетта Браски"
+   },
+   "role": "Dora Orefice",
+   "photo": "q254462.jpg"
+  },
+  {
+   "name": "Giorgio Cantarini",
+   "names": {
+    "ru": "Джорджио Кантарини"
+   },
+   "role": "Giosué",
+   "photo": null
+  },
+  {
+   "name": "Giustino Durano",
+   "names": {
+    "ru": "Джустино Дурано"
+   },
+   "role": "Zio",
+   "photo": "q1044758.jpg"
+  },
+  {
+   "name": "Horst Buchholz",
+   "names": {
+    "ru": "Хорст Буххольц"
+   },
+   "role": "Doctor Lessing",
+   "photo": "q60539.jpg"
+  },
+  {
+   "name": "Amerigo Fontani",
+   "names": {
+    "ru": "Америго Фонтани"
+   },
+   "role": "Rodolfo",
+   "photo": "q3614130.jpg"
+  },
+  {
+   "name": "Sergio Bustric",
+   "names": {
+    "ru": "Серджо Бини Бастрик"
+   },
+   "role": "Ferruccio",
+   "photo": null
+  },
+  {
+   "name": "Lydia Alfonsi",
+   "names": {
+    "ru": "Лидия Альфонси"
+   },
+   "role": "Guicciardini",
+   "photo": "q111765.jpg"
+  }
+ ],
+ "the-social-network-2010": [
+  {
+   "name": "Jesse Eisenberg",
+   "names": {
+    "az": "Cessi Ayzenberq",
+    "ru": "Джесси Айзенберг"
+   },
+   "role": "Mark Zuckerberg",
+   "photo": "q219512.jpg"
+  },
+  {
+   "name": "Andrew Garfield",
+   "names": {
+    "az": "Endrü Qarfild",
+    "ru": "Эндрю Гарфилд"
+   },
+   "role": "Eduardo Saverin",
+   "photo": "q23891.jpg"
+  },
+  {
+   "name": "Justin Timberlake",
+   "names": {
+    "az": "Castin Timberleyk",
+    "ru": "Джастин Тимберлейк"
+   },
+   "role": "Sean Parker",
+   "photo": "q43432.jpg"
+  },
+  {
+   "name": "Armie Hammer",
+   "names": {
+    "ru": "Арми Хаммер"
+   },
+   "role": "Cameron Winklevoss",
+   "photo": "q374273.jpg"
+  },
+  {
+   "name": "Brenda Song",
+   "names": {
+    "az": "Brenda Sonq",
+    "ru": "Бренда Сонг"
+   },
+   "role": "Christy Lee",
+   "photo": "q180011.jpg"
+  },
+  {
+   "name": "Rooney Mara",
+   "names": {
+    "az": "Runi Mara",
+    "ru": "Руни Мара"
+   },
+   "role": "Erica Albright",
+   "photo": "q228766.jpg"
+  },
+  {
+   "name": "Max Minghella",
+   "names": {
+    "ru": "Макс Мингелла"
+   },
+   "role": "Divya Narendra",
+   "photo": "q360426.jpg"
+  },
+  {
+   "name": "Rashida Jones",
+   "names": {
+    "az": "Rəşidə Cons",
+    "ru": "Рашида Джонс"
+   },
+   "role": "Marylin Delpy",
+   "photo": "q540608.jpg"
+  }
+ ],
+ "arrival-2016": [
+  {
+   "name": "Amy Adams",
+   "names": {
+    "az": "Emi Adams",
+    "ru": "Эми Адамс"
+   },
+   "role": "Louise Banks",
+   "photo": "q481832.jpg"
+  },
+  {
+   "name": "Jeremy Renner",
+   "names": {
+    "az": "Ceremi Renner",
+    "ru": "Джереми Реннер"
+   },
+   "role": "Ian Donnelly",
+   "photo": "q23365.jpg"
+  },
+  {
+   "name": "Forest Whitaker",
+   "names": {
+    "az": "Forest Uitaker",
+    "ru": "Форест Уитакер"
+   },
+   "role": "Colonel G. T. Weber",
+   "photo": "q182763.jpg"
+  },
+  {
+   "name": "Michael Stuhlbarg",
+   "names": {
+    "ru": "Майкл Сталберг"
+   },
+   "role": "Agent Halpern",
+   "photo": "q438445.jpg"
+  },
+  {
+   "name": "Tzi Ma",
+   "names": {
+    "ru": "Ци Ма"
+   },
+   "role": "General Shang",
+   "photo": "q598178.jpg"
+  },
+  {
+   "name": "Sangita Patel",
+   "names": {
+    "ru": "Сангита Пател"
+   },
+   "role": null,
+   "photo": "q21063644.jpg"
+  },
+  {
+   "name": "Mark O'Brien",
+   "names": {
+    "ru": "Марк О’Брайен"
+   },
+   "role": "Captain Marks",
+   "photo": "q15867224.jpg"
+  },
+  {
+   "name": "Frank Schorpion",
+   "names": {
+    "ru": "Фрэнк Скорпион"
+   },
+   "role": "Dr. Kettler",
+   "photo": null
+  }
+ ],
+ "no-country-for-old-men-2007": [
+  {
+   "name": "Tommy Lee Jones",
+   "names": {
+    "az": "Tommi Li Cons",
+    "ru": "Томми Ли Джонс"
+   },
+   "role": "Ed Tom Bell",
+   "photo": "q170587.jpg"
+  },
+  {
+   "name": "Javier Bardem",
+   "names": {
+    "az": "Xaviyer Bardem",
+    "ru": "Хавьер Бардем"
+   },
+   "role": "Anton Chigurh",
+   "photo": "q134895.jpg"
+  },
+  {
+   "name": "Josh Brolin",
+   "names": {
+    "az": "Coş Brolin",
+    "ru": "Джош Бролин"
+   },
+   "role": "Llewelyn Moss",
+   "photo": "q41396.jpg"
+  },
+  {
+   "name": "Woody Harrelson",
+   "names": {
+    "az": "Vudi Harrelson",
+    "ru": "Вуди Харрельсон"
+   },
+   "role": "Carson Wells",
+   "photo": "q201279.jpg"
+  },
+  {
+   "name": "Kelly Macdonald",
+   "names": {
+    "az": "Kelli Makdonald",
+    "ru": "Келли Макдональд"
+   },
+   "role": "Carla Jean Moss",
+   "photo": "q230383.jpg"
+  },
+  {
+   "name": "Garret Dillahunt",
+   "names": {
+    "ru": "Гаррет Диллахант"
+   },
+   "role": "Wendell",
+   "photo": "q712437.jpg"
+  },
+  {
+   "name": "Barry Corbin",
+   "names": {
+    "ru": "Барри Корбин"
+   },
+   "role": "Ellis",
+   "photo": "q607678.jpg"
+  },
+  {
+   "name": "Stephen Root",
+   "names": {
+    "ru": "Стивен Рут"
+   },
+   "role": "Man who hires Wells",
+   "photo": "q464320.jpg"
+  }
+ ],
+ "catch-me-if-you-can-2002": [
+  {
+   "name": "Leonardo DiCaprio",
+   "names": {
+    "az": "Leonardo DiKaprio",
+    "ru": "Леонардо Ди Каприо"
+   },
+   "role": "Frank Abagnale",
+   "photo": "q38111.jpg"
+  },
+  {
+   "name": "Tom Hanks",
+   "names": {
+    "az": "Tom Henks",
+    "ru": "Том Хэнкс"
+   },
+   "role": "Carl Hanratty",
+   "photo": "q2263.jpg"
+  },
+  {
+   "name": "Christopher Walken",
+   "names": {
+    "az": "Kristofer Uoken",
+    "ru": "Кристофер Уокен"
+   },
+   "role": "Frank Abagnale Sr.",
+   "photo": "q185051.jpg"
+  },
+  {
+   "name": "Martin Sheen",
+   "names": {
+    "az": "Martin Şin",
+    "ru": "Мартин Шин"
+   },
+   "role": "Roger Strong",
+   "photo": "q184572.jpg"
+  },
+  {
+   "name": "Nathalie Baye",
+   "names": {
+    "ru": "Натали Бай"
+   },
+   "role": "Paula Abagnale",
+   "photo": "q106573.jpg"
+  },
+  {
+   "name": "Amy Adams",
+   "names": {
+    "az": "Emi Adams",
+    "ru": "Эми Адамс"
+   },
+   "role": "Brenda Strong",
+   "photo": "q481832.jpg"
+  },
+  {
+   "name": "James Brolin",
+   "names": {
+    "ru": "Джеймс Бролин"
+   },
+   "role": "Jack Barnes",
+   "photo": "q315051.jpg"
+  },
+  {
+   "name": "Brian Howe",
+   "names": {
+    "ru": "Брайан Хау"
+   },
+   "role": "FBI agents Earl Amdursky",
+   "photo": null
+  }
+ ],
+ "the-good-the-bad-and-the-ugly-1966": [
+  {
+   "name": "Clint Eastwood",
+   "names": {
+    "az": "Klint İstvud",
+    "ru": "Клинт Иствуд"
+   },
+   "role": "'Blondie’, Sibley, the Man with No Name: The Good",
+   "photo": "q43203.jpg"
+  },
+  {
+   "name": "Lee Van Cleef",
+   "names": {
+    "az": "Li Van Klif",
+    "ru": "Ли Ван Клиф"
+   },
+   "role": "'Angel Eyes': The Bad",
+   "photo": "q193278.jpg"
+  },
+  {
+   "name": "Eli Wallach",
+   "names": {
+    "az": "Eli Vallax",
+    "ru": "Илай Уоллак"
+   },
+   "role": "Tuco Benedicto Pacífico Juan María Ramírez: The Ugly",
+   "photo": "q104067.jpg"
+  },
+  {
+   "name": "Mario Brega",
+   "names": {
+    "ru": "Марио Брега"
+   },
+   "role": "Corporal Wallace",
+   "photo": null
+  },
+  {
+   "name": "Aldo Giuffrè",
+   "names": {
+    "ru": "Альдо Джуффре"
+   },
+   "role": "alcoholic Union Captain Clinton",
+   "photo": "q555828.jpg"
+  },
+  {
+   "name": "Luigi Pistilli",
+   "names": {
+    "ru": "Луиджи Пистилли"
+   },
+   "role": "Father Pablo Ramírez",
+   "photo": null
+  },
+  {
+   "name": "Antonio Casale",
+   "names": {
+    "ru": "Антонио Казале"
+   },
+   "role": "Jackson/Bill Carson",
+   "photo": null
+  },
+  {
+   "name": "Rada Rassimov",
+   "names": {
+    "ru": "Рада Рассимов"
+   },
+   "role": "Maria",
+   "photo": "q282119.jpg"
+  }
+ ],
+ "eternal-sunshine-of-the-spotless-mind-2004": [
+  {
+   "name": "Jim Carrey",
+   "names": {
+    "az": "Cim Kerri",
+    "ru": "Джим Керри"
+   },
+   "role": "Joel Barish",
+   "photo": "q40504.jpg"
+  },
+  {
+   "name": "Kate Winslet",
+   "names": {
+    "az": "Keyt Vinslet",
+    "ru": "Кейт Уинслет"
+   },
+   "role": "Clementine Kruczynski",
+   "photo": "q202765.jpg"
+  },
+  {
+   "name": "Kirsten Dunst",
+   "names": {
+    "az": "Kirsten Danst",
+    "ru": "Кирстен Данст"
+   },
+   "role": null,
+   "photo": "q76478.jpg"
+  },
+  {
+   "name": "Mark Ruffalo",
+   "names": {
+    "ru": "Марк Руффало"
+   },
+   "role": null,
+   "photo": "q41422.jpg"
+  },
+  {
+   "name": "Elijah Wood",
+   "names": {
+    "az": "Elayca Vud",
+    "ru": "Элайджа Вуд"
+   },
+   "role": null,
+   "photo": "q483771.jpg"
+  },
+  {
+   "name": "Tom Wilkinson",
+   "names": {
+    "az": "Tom Uilkinson",
+    "ru": "Том Уилкинсон"
+   },
+   "role": null,
+   "photo": "q211322.jpg"
+  },
+  {
+   "name": "Jane Adams",
+   "names": {
+    "ru": "Джейн Адамс"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "David Cross",
+   "names": {
+    "az": "Devid Kross",
+    "ru": "Дэвид Кросс"
+   },
+   "role": null,
+   "photo": "q362332.jpg"
+  }
+ ],
+ "once-upon-a-time-in-the-west-1968": [
+  {
+   "name": "Charles Bronson",
+   "names": {
+    "az": "Çarlz Bronson",
+    "ru": "Чарльз Бронсон"
+   },
+   "role": "Harmonica",
+   "photo": "q36105.jpg"
+  },
+  {
+   "name": "Henry Fonda",
+   "names": {
+    "az": "Henri Fonda",
+    "ru": "Генри Фонда"
+   },
+   "role": "Frank",
+   "photo": "q19155.jpg"
+  },
+  {
+   "name": "Claudia Cardinale",
+   "names": {
+    "az": "Klaudiya Kardinale",
+    "ru": "Клаудия Кардинале"
+   },
+   "role": "Jill",
+   "photo": "q107006.jpg"
+  },
+  {
+   "name": "Jason Robards",
+   "names": {
+    "az": "Ceyson Robards",
+    "ru": "Джейсон Робардс"
+   },
+   "role": "Cheyenne",
+   "photo": "q296630.jpg"
+  },
+  {
+   "name": "Gabriele Ferzetti",
+   "names": {
+    "ru": "Габриэле Ферцетти"
+   },
+   "role": "Morton",
+   "photo": "q555379.jpg"
+  },
+  {
+   "name": "Paolo Stoppa",
+   "names": {
+    "ru": "Паоло Стоппа"
+   },
+   "role": "Sam",
+   "photo": null
+  },
+  {
+   "name": "Woody Strode",
+   "names": {
+    "ru": "Вуди Строуд"
+   },
+   "role": null,
+   "photo": "q609860.jpg"
+  },
+  {
+   "name": "Jack Elam",
+   "names": {
+    "ru": "Джек Элам"
+   },
+   "role": null,
+   "photo": "q500155.jpg"
+  }
+ ],
+ "the-lord-of-the-rings-the-two-towers-2002": [
+  {
+   "name": "Ian McKellen",
+   "names": {
+    "az": "Yan MakKellen",
+    "ru": "Иэн Маккеллен"
+   },
+   "role": "Gandalf",
+   "roles": {
+    "az": "Qandalf",
+    "ru": "Гэндальф"
+   },
+   "photo": "q170510.jpg"
+  },
+  {
+   "name": "Sean Astin",
+   "names": {
+    "ru": "Шон Астин"
+   },
+   "role": "Samwise Gamgee",
+   "roles": {
+    "ru": "Сэмуайз Гэмджи"
+   },
+   "photo": "q189351.jpg"
+  },
+  {
+   "name": "Viggo Mortensen",
+   "names": {
+    "az": "Viqo Mortensen",
+    "ru": "Вигго Мортенсен"
+   },
+   "role": "Aragorn",
+   "roles": {
+    "az": "Araqorn",
+    "ru": "Арагорн"
+   },
+   "photo": "q171363.jpg"
+  },
+  {
+   "name": "Andy Serkis",
+   "names": {
+    "az": "Endi Serkis",
+    "ru": "Энди Сёркис"
+   },
+   "role": "Gollum",
+   "roles": {
+    "ru": "Голлум"
+   },
+   "photo": "q206922.jpg"
+  },
+  {
+   "name": "Liv Tyler",
+   "names": {
+    "az": "Liv Tayler",
+    "ru": "Лив Тайлер"
+   },
+   "role": "Arwen",
+   "roles": {
+    "ru": "Арвен"
+   },
+   "photo": "q168763.jpg"
+  },
+  {
+   "name": "Cate Blanchett",
+   "names": {
+    "az": "Keyt Blanşett",
+    "ru": "Кейт Бланшетт"
+   },
+   "role": "Galadriel",
+   "roles": {
+    "az": "Qaladriel",
+    "ru": "Галадриэль"
+   },
+   "photo": "q80966.jpg"
+  },
+  {
+   "name": "John Rhys-Davies",
+   "names": {
+    "ru": "Джон Рис-Дэвис"
+   },
+   "role": "Gimli",
+   "roles": {
+    "ru": "Гимли"
+   },
+   "photo": "q16455.jpg"
+  },
+  {
+   "name": "Orlando Bloom",
+   "names": {
+    "az": "Orlando Blum",
+    "ru": "Орландо Блум"
+   },
+   "role": "Legolas",
+   "roles": {
+    "az": "Leqolas",
+    "ru": "Леголас"
+   },
+   "photo": "q44467.jpg"
+  }
+ ],
+ "return-of-the-jedi-1983": [
+  {
+   "name": "Harrison Ford",
+   "names": {
+    "ru": "Харрисон Форд"
+   },
+   "role": "Han Solo",
+   "roles": {
+    "ru": "Хан Соло"
+   },
+   "photo": "q81328.jpg"
+  },
+  {
+   "name": "Carrie Fisher",
+   "names": {
+    "az": "Kerri Fişer",
+    "ru": "Кэрри Фишер"
+   },
+   "role": "Princess Leia",
+   "roles": {
+    "az": "Şahzadə Leya",
+    "ru": "Лея Органа",
+    "tr": "Leia Organa"
+   },
+   "photo": "q108941.jpg"
+  },
+  {
+   "name": "David Prowse",
+   "names": {
+    "ru": "Дэвид Проуз"
+   },
+   "role": "Darth Vader",
+   "roles": {
+    "ru": "Дарт Вейдер"
+   },
+   "photo": "q128379.jpg"
+  },
+  {
+   "name": "Mark Hamill",
+   "names": {
+    "ru": "Марк Хэмилл"
+   },
+   "role": "Luke Skywalker",
+   "roles": {
+    "az": "Lyuk Skayvolker",
+    "ru": "Люк Скайуокер"
+   },
+   "photo": "q210447.jpg"
+  },
+  {
+   "name": "Ian McDiarmid",
+   "names": {
+    "ru": "Иэн Макдайармид"
+   },
+   "role": "Palpatine",
+   "roles": {
+    "ru": "Палпатин"
+   },
+   "photo": "q315495.jpg"
+  },
+  {
+   "name": "Billy Dee Williams",
+   "names": {
+    "ru": "Билли Ди Уильямс"
+   },
+   "role": "Lando Calrissian",
+   "roles": {
+    "ru": "Лэндо Калриссиан"
+   },
+   "photo": "q358345.jpg"
+  },
+  {
+   "name": "Anthony Daniels",
+   "names": {
+    "ru": "Энтони Дэниелс"
+   },
+   "role": "C-3PO",
+   "photo": "q441685.jpg"
+  },
+  {
+   "name": "Kenny Baker",
+   "names": {
+    "ru": "Кенни Бейкер"
+   },
+   "role": "R2-D2",
+   "photo": "q454081.jpg"
+  }
+ ],
+ "pride-and-prejudice-2005": [
+  {
+   "name": "Keira Knightley",
+   "names": {
+    "az": "Kira Naytli",
+    "ru": "Кира Найтли"
+   },
+   "role": "Elizabeth Bennet",
+   "roles": {
+    "ru": "Элизабет Беннет"
+   },
+   "photo": "q42581.jpg"
+  },
+  {
+   "name": "Matthew Macfadyen",
+   "names": {
+    "ru": "Мэттью Макфэдьен"
+   },
+   "role": "Mr. Darcy",
+   "roles": {
+    "ru": "мистер Дарси",
+    "tr": "Fitzwilliam Darcy"
+   },
+   "photo": "q314954.jpg"
+  },
+  {
+   "name": "Brenda Blethyn",
+   "names": {
+    "ru": "Бренда Блетин"
+   },
+   "role": "Mrs Bennet",
+   "roles": {
+    "ru": "миссис Беннет"
+   },
+   "photo": "q229952.jpg"
+  },
+  {
+   "name": "Donald Sutherland",
+   "names": {
+    "az": "Donald Sazerlend",
+    "ru": "Дональд Сазерленд"
+   },
+   "role": "Mr Bennet",
+   "roles": {
+    "ru": "мистер Беннет"
+   },
+   "photo": "q103784.jpg"
+  },
+  {
+   "name": "Tom Hollander",
+   "names": {
+    "ru": "Том Холландер"
+   },
+   "role": "Mr William Collins",
+   "roles": {
+    "ru": "мистер Уильям Коллинз"
+   },
+   "photo": "q312124.jpg"
+  },
+  {
+   "name": "Rosamund Pike",
+   "names": {
+    "ru": "Розамунд Пайк"
+   },
+   "role": "Jane Bennet",
+   "roles": {
+    "ru": "Джейн Беннет"
+   },
+   "photo": "q230004.jpg"
+  },
+  {
+   "name": "Jena Malone",
+   "names": {
+    "ru": "Джена Мэлоун"
+   },
+   "role": "Lydia Bennet",
+   "roles": {
+    "ru": "Лидия Беннет"
+   },
+   "photo": "q233368.jpg"
+  },
+  {
+   "name": "Judi Dench",
+   "names": {
+    "ru": "Джуди Денч"
+   },
+   "role": "Lady Catherine de Bourgh",
+   "roles": {
+    "ru": "леди Кэтрин де Бёр"
+   },
+   "photo": "q28054.jpg"
+  }
+ ],
+ "the-green-mile-1999": [
+  {
+   "name": "Tom Hanks",
+   "names": {
+    "az": "Tom Henks",
+    "ru": "Том Хэнкс"
+   },
+   "role": null,
+   "photo": "q2263.jpg"
+  },
+  {
+   "name": "David Morse",
+   "names": {
+    "az": "David Morz",
+    "ru": "Дэвид Морс"
+   },
+   "role": null,
+   "photo": "q296370.jpg"
+  },
+  {
+   "name": "Bonnie Hunt",
+   "names": {
+    "az": "Bonni Hant",
+    "ru": "Бонни Хант"
+   },
+   "role": null,
+   "photo": "q272952.jpg"
+  },
+  {
+   "name": "Michael Clarke Duncan",
+   "names": {
+    "az": "Maykl Klark Dunkan",
+    "ru": "Майкл Кларк Дункан"
+   },
+   "role": null,
+   "photo": "q483148.jpg"
+  },
+  {
+   "name": "James Cromwell",
+   "names": {
+    "ru": "Джеймс Кромвелл"
+   },
+   "role": null,
+   "photo": "q299483.jpg"
+  },
+  {
+   "name": "Michael Jeter",
+   "names": {
+    "az": "Maykl Jeter",
+    "ru": "Майкл Джетер"
+   },
+   "role": null,
+   "photo": "q329716.jpg"
+  },
+  {
+   "name": "Doug Hutchison",
+   "names": {
+    "ru": "Даг Хатчисон"
+   },
+   "role": null,
+   "photo": "q506778.jpg"
+  },
+  {
+   "name": "Sam Rockwell",
+   "names": {
+    "az": "Sem Rokuell",
+    "ru": "Сэм Рокуэлл"
+   },
+   "role": null,
+   "photo": "q316446.jpg"
+  }
+ ],
+ "the-silence-of-the-lambs-1991": [
+  {
+   "name": "Jodie Foster",
+   "names": {
+    "az": "Codi Foster",
+    "ru": "Джоди Фостер"
+   },
+   "role": "Clarice Starling",
+   "roles": {
+    "ru": "Кларисса Старлинг"
+   },
+   "photo": "q41351.jpg"
+  },
+  {
+   "name": "Scott Glenn",
+   "names": {
+    "ru": "Скотт Гленн"
+   },
+   "role": "Jack Crawford",
+   "roles": {
+    "ru": "Джек Кроуфорд"
+   },
+   "photo": "q114179.jpg"
+  },
+  {
+   "name": "Ted Levine",
+   "names": {
+    "ru": "Тед Левайн"
+   },
+   "role": "Buffalo Bill",
+   "roles": {
+    "ru": "Буффало Билл"
+   },
+   "photo": "q433520.jpg"
+  },
+  {
+   "name": "Charles Napier",
+   "names": {
+    "ru": "Чарльз Нэпьер"
+   },
+   "role": null,
+   "photo": "q431356.jpg"
+  },
+  {
+   "name": "Kasi Lemmons",
+   "names": {
+    "ru": "Кейси Леммонс"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Brooke Smith",
+   "names": {
+    "ru": "Брук Смит"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Dan Butler",
+   "names": {
+    "ru": "Дэн Батлер"
+   },
+   "role": null,
+   "photo": "q561689.jpg"
+  },
+  {
+   "name": "Diane Baker",
+   "names": {
+    "az": "Dayan Beyker",
+    "ru": "Дайан Бэйкер"
+   },
+   "role": null,
+   "photo": null
+  }
+ ],
+ "parasite-2019": [
+  {
+   "name": "Song Kang-ho",
+   "names": {
+    "ru": "Сон Кан Хо"
+   },
+   "role": null,
+   "photo": "q484400.jpg"
+  },
+  {
+   "name": "Lee Sun-kyun",
+   "names": {
+    "ru": "Ли Сонгюн"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Cho Yeo-jeong",
+   "names": {
+    "ru": "Чо Ёджон"
+   },
+   "role": null,
+   "photo": "q626347.jpg"
+  },
+  {
+   "name": "Jang Hye-jin",
+   "role": null,
+   "photo": "q55733858.jpg"
+  },
+  {
+   "name": "Choi Woo-shik",
+   "names": {
+    "ru": "Чхве У Сик"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Park So-dam",
+   "names": {
+    "ru": "Пак Содам"
+   },
+   "role": null,
+   "photo": "q18700040.jpg"
+  },
+  {
+   "name": "Jung Ziso",
+   "names": {
+    "ru": "Чон Джи-со"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Lee Jung-eun",
+   "role": null,
+   "photo": "q21710318.jpg"
+  }
+ ],
+ "the-departed-2006": [
+  {
+   "name": "Leonardo DiCaprio",
+   "names": {
+    "az": "Leonardo DiKaprio",
+    "ru": "Леонардо Ди Каприо"
+   },
+   "role": "William „Billy“ Costigan",
+   "photo": "q38111.jpg"
+  },
+  {
+   "name": "Matt Damon",
+   "names": {
+    "az": "Mett Deymon",
+    "ru": "Мэтт Деймон"
+   },
+   "role": "Colin Sullivan",
+   "photo": "q175535.jpg"
+  },
+  {
+   "name": "Jack Nicholson",
+   "names": {
+    "az": "Cek Nikolson",
+    "ru": "Джек Николсон"
+   },
+   "role": "Frank Costello",
+   "photo": "q39792.jpg"
+  },
+  {
+   "name": "Mark Wahlberg",
+   "names": {
+    "az": "Mark Uolberq",
+    "ru": "Марк Уолберг"
+   },
+   "role": "Bryce Dignam",
+   "photo": "q164119.jpg"
+  },
+  {
+   "name": "Martin Sheen",
+   "names": {
+    "az": "Martin Şin",
+    "ru": "Мартин Шин"
+   },
+   "role": "Oliver Queenan",
+   "photo": "q184572.jpg"
+  },
+  {
+   "name": "Ray Winstone",
+   "names": {
+    "ru": "Рэй Уинстон"
+   },
+   "role": "Arnold French",
+   "photo": "q310932.jpg"
+  },
+  {
+   "name": "Vera Farmiga",
+   "names": {
+    "az": "Vera Farmiqa",
+    "ru": "Вера Фармига"
+   },
+   "role": "Madolyn Madden",
+   "photo": "q264840.jpg"
+  },
+  {
+   "name": "Anthony Anderson",
+   "names": {
+    "ru": "Энтони Андерсон"
+   },
+   "role": "Brown",
+   "photo": "q313918.jpg"
+  }
+ ],
+ "the-intouchables-2011": [
+  {
+   "name": "François Cluzet",
+   "names": {
+    "ru": "Франсуа Клюзе"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Omar Sy",
+   "names": {
+    "ru": "Омар Си"
+   },
+   "role": null,
+   "photo": "q357387.jpg"
+  },
+  {
+   "name": "Alba Gaïa Bellugi",
+   "names": {
+    "ru": "Альба Гайя Беллуджи"
+   },
+   "role": null,
+   "photo": "q2830742.jpg"
+  },
+  {
+   "name": "Anne Le Ny",
+   "names": {
+    "ru": "Анн Ле Ни"
+   },
+   "role": null,
+   "photo": "q2851174.jpg"
+  },
+  {
+   "name": "Audrey Fleurot",
+   "names": {
+    "ru": "Одри Флеро"
+   },
+   "role": null,
+   "photo": "q457089.jpg"
+  },
+  {
+   "name": "Clotilde Mollet",
+   "names": {
+    "ru": "Клотильд Молле"
+   },
+   "role": null,
+   "photo": "q2979699.jpg"
+  },
+  {
+   "name": "Caroline Bourg",
+   "names": {
+    "ru": "Каролин Бург"
+   },
+   "role": null,
+   "photo": "q1044462.jpg"
+  },
+  {
+   "name": "Cyril Mendy",
+   "names": {
+    "ru": "Сирил Менди"
+   },
+   "role": null,
+   "photo": null
+  }
+ ],
+ "raiders-of-the-lost-ark-1981": [
+  {
+   "name": "John Rhys-Davies",
+   "names": {
+    "ru": "Джон Рис-Дэвис"
+   },
+   "role": "Sallah",
+   "photo": "q16455.jpg"
+  },
+  {
+   "name": "Harrison Ford",
+   "names": {
+    "ru": "Харрисон Форд"
+   },
+   "role": "Indiana Jones",
+   "photo": "q81328.jpg"
+  },
+  {
+   "name": "Karen Allen",
+   "names": {
+    "ru": "Карен Аллен"
+   },
+   "role": "Marion Ravenwood",
+   "photo": "q229137.jpg"
+  },
+  {
+   "name": "Denholm Elliott",
+   "names": {
+    "ru": "Денхолм Эллиотт"
+   },
+   "role": "Marcus Brody",
+   "photo": "q313047.jpg"
+  },
+  {
+   "name": "Paul Freeman",
+   "names": {
+    "ru": "Пол Фриман"
+   },
+   "role": "René Belloq",
+   "photo": "q1378684.jpg"
+  },
+  {
+   "name": "Ronald Lacey",
+   "names": {
+    "ru": "Рональд Лейси"
+   },
+   "role": "Major Arnold Toht",
+   "photo": "q1381935.jpg"
+  },
+  {
+   "name": "William Hootkins",
+   "names": {
+    "ru": "Уильям Хуткинс"
+   },
+   "role": "Major Eaton",
+   "photo": "q1351454.jpg"
+  },
+  {
+   "name": "Alfred Molina",
+   "names": {
+    "ru": "Альфред Молина"
+   },
+   "role": "Satipo",
+   "photo": "q296028.jpg"
+  }
+ ],
+ "schindler-s-list-1993": [
+  {
+   "name": "Ralph Fiennes",
+   "names": {
+    "az": "Ralf Fayns",
+    "ru": "Рэйф Файнс"
+   },
+   "role": "Amon Göth",
+   "photo": "q28493.jpg"
+  },
+  {
+   "name": "Liam Neeson",
+   "names": {
+    "az": "Liam Nison",
+    "ru": "Лиам Нисон"
+   },
+   "role": "Oskar Schindler",
+   "photo": "q58444.jpg"
+  },
+  {
+   "name": "Ben Kingsley",
+   "names": {
+    "az": "Ben Kinqsli",
+    "ru": "Бен Кингсли"
+   },
+   "role": "Itzhak Stern",
+   "photo": "q173158.jpg"
+  },
+  {
+   "name": "Caroline Goodall",
+   "names": {
+    "ru": "Кэролайн Гудолл"
+   },
+   "role": "Emilie Schindler",
+   "photo": "q201976.jpg"
+  },
+  {
+   "name": "Embeth Davidtz",
+   "names": {
+    "ru": "Эмбет Дэвидц"
+   },
+   "role": "Helen Hirsch",
+   "photo": "q260622.jpg"
+  },
+  {
+   "name": "Jonathan Sagall",
+   "names": {
+    "ru": "Джонатан Сегал"
+   },
+   "role": "Poldek Pfefferberg",
+   "photo": "q1356584.jpg"
+  },
+  {
+   "name": "Beatrice Macola",
+   "names": {
+    "ru": "Беатриче Макола"
+   },
+   "role": "Ingrid",
+   "photo": null
+  },
+  {
+   "name": "Andrzej Seweryn",
+   "names": {
+    "ru": "Анджей Северин"
+   },
+   "role": "Julian Scherner",
+   "photo": "q515592.jpg"
+  }
+ ],
+ "e-t-the-extra-terrestrial-1982": [
+  {
+   "name": "Dee Wallace",
+   "names": {
+    "ru": "Ди Уоллес"
+   },
+   "role": null,
+   "photo": "q258064.jpg"
+  },
+  {
+   "name": "Peter Coyote",
+   "names": {
+    "ru": "Питер Койот"
+   },
+   "role": null,
+   "photo": "q354873.jpg"
+  },
+  {
+   "name": "Henry Thomas",
+   "names": {
+    "ru": "Генри Джексон Томас"
+   },
+   "role": "Elliott Taylor",
+   "roles": {
+    "ru": "Эллиот"
+   },
+   "photo": "q506198.jpg"
+  },
+  {
+   "name": "Drew Barrymore",
+   "names": {
+    "az": "Drü Berrimor",
+    "ru": "Дрю Бэрримор"
+   },
+   "role": null,
+   "photo": "q676094.jpg"
+  },
+  {
+   "name": "Erika Eleniak",
+   "names": {
+    "ru": "Эрика Элениак"
+   },
+   "role": null,
+   "photo": "q230390.jpg"
+  },
+  {
+   "name": "C. Thomas Howell",
+   "names": {
+    "ru": "Кристофер Томас Хауэлл"
+   },
+   "role": null,
+   "photo": "q464522.jpg"
+  },
+  {
+   "name": "Sean Frye",
+   "names": {
+    "ru": "Шон Фрай"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "K. C. Martel",
+   "names": {
+    "ru": "К. С. Мартель"
+   },
+   "role": null,
+   "photo": "q1748409.jpg"
+  }
+ ],
+ "12-angry-men-1957": [
+  {
+   "name": "Martin Balsam",
+   "names": {
+    "ru": "Мартин Болсам"
+   },
+   "role": "Juror #1",
+   "roles": {
+    "ru": "Присяжный № 1"
+   },
+   "photo": "q312107.jpg"
+  },
+  {
+   "name": "John Fiedler",
+   "names": {
+    "ru": "Джон Фидлер"
+   },
+   "role": "Juror #2",
+   "roles": {
+    "ru": "Присяжный № 2"
+   },
+   "photo": "q944638.jpg"
+  },
+  {
+   "name": "Lee J. Cobb",
+   "names": {
+    "ru": "Ли Джей Кобб"
+   },
+   "role": "Juror #3",
+   "roles": {
+    "ru": "Присяжный № 3"
+   },
+   "photo": "q348351.jpg"
+  },
+  {
+   "name": "E. G. Marshall",
+   "names": {
+    "ru": "Э. Г. Маршалл"
+   },
+   "role": "Juror #4",
+   "roles": {
+    "ru": "Присяжный № 4"
+   },
+   "photo": "q706165.jpg"
+  },
+  {
+   "name": "Jack Klugman",
+   "names": {
+    "az": "Cek Klaqmen",
+    "ru": "Джек Клагмен"
+   },
+   "role": "Juror #5",
+   "roles": {
+    "ru": "Присяжный № 5"
+   },
+   "photo": "q286738.jpg"
+  },
+  {
+   "name": "Edward Binns",
+   "names": {
+    "ru": "Эдвард Биннс",
+    "tr": "Ed Binns"
+   },
+   "role": "Juror #6",
+   "roles": {
+    "ru": "Присяжный № 6"
+   },
+   "photo": "q1291706.jpg"
+  },
+  {
+   "name": "Jack Warden",
+   "names": {
+    "ru": "Джек Уорден"
+   },
+   "role": "Juror #7",
+   "roles": {
+    "ru": "Присяжный № 7"
+   },
+   "photo": "q373968.jpg"
+  },
+  {
+   "name": "Henry Fonda",
+   "names": {
+    "az": "Henri Fonda",
+    "ru": "Генри Фонда"
+   },
+   "role": "Juror #8",
+   "roles": {
+    "ru": "Присяжный № 8"
+   },
+   "photo": "q19155.jpg"
+  }
+ ],
+ "a-beautiful-mind-2001": [
+  {
+   "name": "Russell Crowe",
+   "names": {
+    "az": "Rassel Krou",
+    "ru": "Рассел Кроу"
+   },
+   "role": "John Nash",
+   "photo": "q129817.jpg"
+  },
+  {
+   "name": "Ed Harris",
+   "names": {
+    "ru": "Эд Харрис"
+   },
+   "role": "William Parcher",
+   "photo": "q104791.jpg"
+  },
+  {
+   "name": "Jennifer Connelly",
+   "names": {
+    "az": "Cennifer Konnelli",
+    "ru": "Дженнифер Коннелли"
+   },
+   "role": "Alicia Nash",
+   "photo": "q103343.jpg"
+  },
+  {
+   "name": "Paul Bettany",
+   "names": {
+    "ru": "Пол Беттани"
+   },
+   "role": "Charles Herman",
+   "photo": "q242707.jpg"
+  },
+  {
+   "name": "Vivien Cardone",
+   "names": {
+    "ru": "Вивьен Кардон"
+   },
+   "role": "Marcee Herman",
+   "photo": null
+  },
+  {
+   "name": "Christopher Plummer",
+   "names": {
+    "az": "Kristofer Plammer",
+    "ru": "Кристофер Пламмер"
+   },
+   "role": "Dr. Rosen",
+   "photo": "q190523.jpg"
+  },
+  {
+   "name": "Adam Goldberg",
+   "names": {
+    "ru": "Адам Голдберг"
+   },
+   "role": "Richard Sol",
+   "photo": "q281964.jpg"
+  },
+  {
+   "name": "Josh Lucas",
+   "names": {
+    "az": "Coş Lukas",
+    "ru": "Джош Лукас"
+   },
+   "role": "Martin Hansen",
+   "photo": "q53651.jpg"
+  }
+ ],
+ "the-notebook-2004": [
+  {
+   "name": "Ryan Gosling",
+   "names": {
+    "az": "Rayan Qoslinq",
+    "ru": "Райан Гослинг"
+   },
+   "role": null,
+   "photo": "q193815.jpg"
+  },
+  {
+   "name": "Rachel McAdams",
+   "names": {
+    "az": "Reyçel Makadams",
+    "ru": "Рэйчел Макадамс"
+   },
+   "role": null,
+   "photo": "q190386.jpg"
+  },
+  {
+   "name": "Gena Rowlands",
+   "names": {
+    "ru": "Джина Роулендс"
+   },
+   "role": null,
+   "photo": "q229258.jpg"
+  },
+  {
+   "name": "James Garner",
+   "names": {
+    "ru": "Джеймс Гарнер"
+   },
+   "role": null,
+   "photo": "q108510.jpg"
+  },
+  {
+   "name": "James Marsden",
+   "names": {
+    "ru": "Джеймс Марсден"
+   },
+   "role": null,
+   "photo": "q485901.jpg"
+  },
+  {
+   "name": "Sam Shepard",
+   "names": {
+    "ru": "Сэм Шепард"
+   },
+   "role": null,
+   "photo": "q294583.jpg"
+  },
+  {
+   "name": "Joan Allen",
+   "names": {
+    "az": "Coan Allen",
+    "ru": "Джоан Аллен"
+   },
+   "role": null,
+   "photo": "q229305.jpg"
+  },
+  {
+   "name": "David Thornton",
+   "names": {
+    "ru": "Дэвид Торнтон"
+   },
+   "role": null,
+   "photo": "q1370632.jpg"
+  }
+ ],
+ "the-matrix-1999": [
+  {
+   "name": "Keanu Reeves",
+   "names": {
+    "az": "Kianu Rivz",
+    "ru": "Киану Ривз"
+   },
+   "role": "Neo",
+   "roles": {
+    "ru": "Нео"
+   },
+   "photo": "q43416.jpg"
+  },
+  {
+   "name": "Laurence Fishburne",
+   "names": {
+    "az": "Lorens Fişborn",
+    "ru": "Лоренс Джон Фишберн III"
+   },
+   "role": "Morpheus",
+   "roles": {
+    "ru": "Морфеус"
+   },
+   "photo": "q193048.jpg"
+  },
+  {
+   "name": "Carrie-Anne Moss",
+   "names": {
+    "az": "Kerri-Enn Moss",
+    "ru": "Керри-Энн Мосс"
+   },
+   "role": "Trinity",
+   "roles": {
+    "ru": "Тринити"
+   },
+   "photo": "q206890.jpg"
+  },
+  {
+   "name": "Hugo Weaving",
+   "names": {
+    "ru": "Хьюго Уивинг"
+   },
+   "role": "Agent Smith",
+   "roles": {
+    "ru": "Агент Смит",
+    "tr": "Ajan Smith"
+   },
+   "photo": "q42204.jpg"
+  }
+ ],
+ "the-lord-of-the-rings-the-return-of-the-king-2003": [
+  {
+   "name": "Elijah Wood",
+   "names": {
+    "az": "Elayca Vud",
+    "ru": "Элайджа Вуд"
+   },
+   "role": "Frodo Baggins",
+   "photo": "q483771.jpg"
+  },
+  {
+   "name": "Ian McKellen",
+   "names": {
+    "az": "Yan MakKellen",
+    "ru": "Иэн Маккеллен"
+   },
+   "role": "Gandalf the White",
+   "photo": "q170510.jpg"
+  },
+  {
+   "name": "Andy Serkis",
+   "names": {
+    "az": "Endi Serkis",
+    "ru": "Энди Сёркис"
+   },
+   "role": "Sméagol Trahald / Gollum",
+   "photo": "q206922.jpg"
+  },
+  {
+   "name": "Viggo Mortensen",
+   "names": {
+    "az": "Viqo Mortensen",
+    "ru": "Вигго Мортенсен"
+   },
+   "role": "Aragorn Elessar",
+   "photo": "q171363.jpg"
+  },
+  {
+   "name": "Liv Tyler",
+   "names": {
+    "az": "Liv Tayler",
+    "ru": "Лив Тайлер"
+   },
+   "role": "Arwen Undómiel",
+   "photo": "q168763.jpg"
+  },
+  {
+   "name": "Sean Astin",
+   "names": {
+    "ru": "Шон Астин"
+   },
+   "role": "Samwise Gamgee",
+   "photo": "q189351.jpg"
+  },
+  {
+   "name": "Cate Blanchett",
+   "names": {
+    "az": "Keyt Blanşett",
+    "ru": "Кейт Бланшетт"
+   },
+   "role": "Galadriel",
+   "photo": "q80966.jpg"
+  },
+  {
+   "name": "Christopher Lee",
+   "names": {
+    "az": "Kristofer Li",
+    "ru": "Кристофер Ли"
+   },
+   "role": "Saruman the White",
+   "photo": "q180338.jpg"
+  }
+ ],
+ "the-truman-show-1998": [
+  {
+   "name": "Jim Carrey",
+   "names": {
+    "az": "Cim Kerri",
+    "ru": "Джим Керри"
+   },
+   "role": "Truman Burbank",
+   "roles": {
+    "ru": "Труман Бёрбанк"
+   },
+   "photo": "q40504.jpg"
+  },
+  {
+   "name": "Ed Harris",
+   "names": {
+    "ru": "Эд Харрис"
+   },
+   "role": "Christof",
+   "photo": "q104791.jpg"
+  },
+  {
+   "name": "Laura Linney",
+   "names": {
+    "ru": "Лора Линни"
+   },
+   "role": "Meryl Burbank",
+   "photo": "q223281.jpg"
+  },
+  {
+   "name": "Noah Emmerich",
+   "names": {
+    "ru": "Ноа Эммерих"
+   },
+   "role": "Marlon",
+   "photo": "q720530.jpg"
+  },
+  {
+   "name": "Natascha McElhone",
+   "names": {
+    "ru": "Наташа Макэлхон"
+   },
+   "role": "Lauren Garland",
+   "photo": "q229237.jpg"
+  },
+  {
+   "name": "Holland Taylor",
+   "names": {
+    "ru": "Холланд Тейлор"
+   },
+   "role": null,
+   "photo": "q235198.jpg"
+  },
+  {
+   "name": "Brian Delate",
+   "names": {
+    "ru": "Брайан Дилейт"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Peter Krause",
+   "names": {
+    "ru": "Питер Краузе"
+   },
+   "role": null,
+   "photo": "q433513.jpg"
+  }
+ ],
+ "gladiator-2000": [
+  {
+   "name": "Russell Crowe",
+   "names": {
+    "az": "Rassel Krou",
+    "ru": "Рассел Кроу"
+   },
+   "role": "Maximus Decimus Meridius",
+   "roles": {
+    "ru": "Максимус Децим Меридий"
+   },
+   "photo": "q129817.jpg"
+  },
+  {
+   "name": "Joaquin Phoenix",
+   "names": {
+    "az": "Xoakin Feniks",
+    "ru": "Хоакин Феникс"
+   },
+   "role": "Commodus",
+   "roles": {
+    "az": "Kommod",
+    "ru": "Коммод"
+   },
+   "photo": "q185140.jpg"
+  },
+  {
+   "name": "Connie Nielsen",
+   "names": {
+    "az": "Konni Nilsen",
+    "ru": "Конни Нильсен"
+   },
+   "role": "Lucilla",
+   "roles": {
+    "ru": "Луцилла"
+   },
+   "photo": "q231951.jpg"
+  },
+  {
+   "name": "Richard Harris",
+   "names": {
+    "az": "Riçard Harris",
+    "ru": "Ричард Харрис"
+   },
+   "role": "Marcus Aurelius",
+   "roles": {
+    "az": "Mark Avreli",
+    "ru": "Марк Аврелий"
+   },
+   "photo": "q106775.jpg"
+  },
+  {
+   "name": "Oliver Reed",
+   "names": {
+    "ru": "Оливер Рид"
+   },
+   "role": "Antonius Proximo",
+   "photo": "q313588.jpg"
+  },
+  {
+   "name": "Djimon Hounsou",
+   "names": {
+    "ru": "Джимон Хонсу"
+   },
+   "role": "Juba",
+   "photo": "q298682.jpg"
+  },
+  {
+   "name": "Derek Jacobi",
+   "names": {
+    "az": "Derek Ceykobi",
+    "ru": "Дерек Джейкоби"
+   },
+   "role": "Senator Gracchus",
+   "photo": "q256164.jpg"
+  },
+  {
+   "name": "Tomas Arana",
+   "names": {
+    "ru": "Томас Арана"
+   },
+   "role": "General Quintus",
+   "photo": null
+  }
+ ],
+ "the-pianist-2002": [
+  {
+   "name": "Adrien Brody",
+   "names": {
+    "az": "Edrien Broudi",
+    "ru": "Эдриен Броуди"
+   },
+   "role": "Władysław Szpilman",
+   "photo": "q104514.jpg"
+  },
+  {
+   "name": "Thomas Kretschmann",
+   "names": {
+    "az": "Tomas Kreçmann",
+    "ru": "Томас Кречман"
+   },
+   "role": "Captain Wilm Hosenfeld",
+   "photo": "q57614.jpg"
+  },
+  {
+   "name": "Frank Finlay",
+   "names": {
+    "ru": "Фрэнк Финлей"
+   },
+   "role": "Samuel Szpilman",
+   "photo": "q738521.jpg"
+  },
+  {
+   "name": "Emilia Fox",
+   "names": {
+    "ru": "Эмилия Фокс"
+   },
+   "role": "Dorota",
+   "photo": "q213257.jpg"
+  },
+  {
+   "name": "Udo Kroschwald",
+   "names": {
+    "ru": "Удо Крошвальд"
+   },
+   "role": "Schultz",
+   "photo": null
+  },
+  {
+   "name": "Maureen Lipman",
+   "names": {
+    "ru": "Морин Липман"
+   },
+   "role": "Edwarda Szpilman",
+   "photo": "q3300246.jpg"
+  },
+  {
+   "name": "Michał Żebrowski",
+   "names": {
+    "ru": "Михал Жебровский"
+   },
+   "role": "Jurek",
+   "photo": "q1930601.jpg"
+  },
+  {
+   "name": "Ed Stoppard",
+   "names": {
+    "ru": "Эд Стоппард"
+   },
+   "role": "Henryk Szpilman",
+   "photo": "q2020161.jpg"
+  }
+ ],
+ "the-martian-2015": [
+  {
+   "name": "Matt Damon",
+   "names": {
+    "az": "Mett Deymon",
+    "ru": "Мэтт Деймон"
+   },
+   "role": "Mark Watney",
+   "roles": {
+    "ru": "Марк Уотни"
+   },
+   "photo": "q175535.jpg"
+  },
+  {
+   "name": "Jessica Chastain",
+   "names": {
+    "az": "Cessika Çesteyn",
+    "ru": "Джессика Честейн"
+   },
+   "role": null,
+   "photo": "q229313.jpg"
+  },
+  {
+   "name": "Kristen Wiig",
+   "names": {
+    "az": "Kristen Viq",
+    "ru": "Кристен Уиг"
+   },
+   "role": null,
+   "photo": "q231382.jpg"
+  },
+  {
+   "name": "Jeff Daniels",
+   "names": {
+    "az": "Ceff Deniels",
+    "ru": "Джефф Дэниэлс"
+   },
+   "role": null,
+   "photo": "q53680.jpg"
+  },
+  {
+   "name": "Michael Peña",
+   "names": {
+    "az": "Maykl Penya",
+    "ru": "Майкл Пенья"
+   },
+   "role": null,
+   "photo": "q359488.jpg"
+  },
+  {
+   "name": "Kate Mara",
+   "names": {
+    "ru": "Кейт Мара"
+   },
+   "role": null,
+   "photo": "q231249.jpg"
+  },
+  {
+   "name": "Sean Bean",
+   "names": {
+    "az": "Şon Bin",
+    "ru": "Шон Бин"
+   },
+   "role": null,
+   "photo": "q191104.jpg"
+  },
+  {
+   "name": "Sebastian Stan",
+   "names": {
+    "az": "Sebastian Sten",
+    "ru": "Себастиан Стэн"
+   },
+   "role": null,
+   "photo": "q455898.jpg"
+  }
+ ],
+ "avengers-endgame-2019": [
+  {
+   "name": "Chris Hemsworth",
+   "names": {
+    "az": "Kris Hemsvort",
+    "ru": "Крис Хемсворт"
+   },
+   "role": "Thor",
+   "photo": "q54314.jpg"
+  },
+  {
+   "name": "Mark Ruffalo",
+   "names": {
+    "ru": "Марк Руффало"
+   },
+   "role": "Bruce Banner/Hulk",
+   "photo": "q41422.jpg"
+  },
+  {
+   "name": "Chris Evans",
+   "names": {
+    "az": "Kris Evans",
+    "ru": "Крис Эванс"
+   },
+   "role": "Steve Rogers/Captain America",
+   "photo": "q178348.jpg"
+  },
+  {
+   "name": "Josh Brolin",
+   "names": {
+    "az": "Coş Brolin",
+    "ru": "Джош Бролин"
+   },
+   "role": "Thanos",
+   "photo": "q41396.jpg"
+  },
+  {
+   "name": "Tom Hiddleston",
+   "names": {
+    "ru": "Том Хиддлстон"
+   },
+   "role": "Loki",
+   "photo": "q295803.jpg"
+  },
+  {
+   "name": "Robert Downey Jr.",
+   "names": {
+    "az": "Robert Dauni",
+    "ru": "Роберт Дауни-младший"
+   },
+   "role": "Tony Stark/Iron Man",
+   "photo": "q165219.jpg"
+  },
+  {
+   "name": "Samuel L. Jackson",
+   "names": {
+    "az": "Semuel L. Cekson",
+    "ru": "Сэмюэл Л. Джексон"
+   },
+   "role": "Nick Fury",
+   "photo": "q172678.jpg"
+  },
+  {
+   "name": "Chris Pratt",
+   "names": {
+    "az": "Kris Prett",
+    "ru": "Крис Прэтт"
+   },
+   "role": "Peter Quill/Star-Lord",
+   "photo": "q503706.jpg"
+  }
+ ],
+ "black-panther-2018": [
+  {
+   "name": "Chadwick Boseman",
+   "names": {
+    "az": "Çedvik Bouzman",
+    "ru": "Чедвик Боузман"
+   },
+   "role": "T’Challa/Black Panther",
+   "photo": "q5066520.jpg"
+  },
+  {
+   "name": "Michael B. Jordan",
+   "names": {
+    "az": "Maykl Bakari Cordan",
+    "ru": "Майкл Б. Джордан"
+   },
+   "role": "Erik Killmonger",
+   "photo": "q3308007.jpg"
+  },
+  {
+   "name": "Lupita Nyong'o",
+   "names": {
+    "ru": "Лупита Нионго"
+   },
+   "role": "Nakia",
+   "photo": "q3840847.jpg"
+  },
+  {
+   "name": "Danai Gurira",
+   "names": {
+    "az": "Danay Qurira",
+    "ru": "Данай Гурира"
+   },
+   "role": "Okoye",
+   "photo": "q636653.jpg"
+  },
+  {
+   "name": "Winston Duke",
+   "names": {
+    "ru": "Уинстон Дьюк"
+   },
+   "role": "M’Baku",
+   "photo": "q27045579.jpg"
+  },
+  {
+   "name": "Andy Serkis",
+   "names": {
+    "az": "Endi Serkis",
+    "ru": "Энди Сёркис"
+   },
+   "role": "Ulysses Klaue",
+   "photo": "q206922.jpg"
+  },
+  {
+   "name": "Forest Whitaker",
+   "names": {
+    "az": "Forest Uitaker",
+    "ru": "Форест Уитакер"
+   },
+   "role": "Zuri",
+   "photo": "q182763.jpg"
+  },
+  {
+   "name": "Florence Kasumba",
+   "names": {
+    "ru": "Флоренс Касумба"
+   },
+   "role": "Ayo",
+   "photo": null
+  }
+ ],
+ "the-shining-1980": [
+  {
+   "name": "Jack Nicholson",
+   "names": {
+    "az": "Cek Nikolson",
+    "ru": "Джек Николсон"
+   },
+   "role": "Jack Torrance",
+   "roles": {
+    "ru": "Джек Торранс"
+   },
+   "photo": "q39792.jpg"
+  },
+  {
+   "name": "Shelley Duvall",
+   "names": {
+    "az": "Şelli Dyuvall",
+    "ru": "Шелли Дюваль"
+   },
+   "role": "Wendy Torrance",
+   "roles": {
+    "ru": "Венди Торранс"
+   },
+   "photo": "q235478.jpg"
+  },
+  {
+   "name": "Danny Lloyd",
+   "names": {
+    "ru": "Дэнни Ллойд"
+   },
+   "role": "Danny Torrance",
+   "roles": {
+    "ru": "Дэнни Торранс"
+   },
+   "photo": "q959299.jpg"
+  },
+  {
+   "name": "Scatman Crothers",
+   "names": {
+    "ru": "Скэтмэн Кротерс"
+   },
+   "role": "Dick Hallorann",
+   "roles": {
+    "ru": "Дик Холлоран"
+   },
+   "photo": "q501996.jpg"
+  },
+  {
+   "name": "Barry Nelson",
+   "names": {
+    "ru": "Барри Нельсон"
+   },
+   "role": "Stuart Ullman",
+   "photo": "q443790.jpg"
+  },
+  {
+   "name": "Philip Stone",
+   "names": {
+    "ru": "Филип Стоун"
+   },
+   "role": "Delbert Grady",
+   "roles": {
+    "ru": "Делберт Грейди"
+   },
+   "photo": null
+  },
+  {
+   "name": "Joe Turkel",
+   "names": {
+    "ru": "Джо Тёркел"
+   },
+   "role": "Lloyd the Bartender",
+   "photo": null
+  },
+  {
+   "name": "Tony Burton",
+   "names": {
+    "ru": "Тони Бёртон"
+   },
+   "role": null,
+   "photo": null
+  }
+ ],
+ "wall-e-2008": [
+  {
+   "name": "Ben Burtt",
+   "names": {
+    "ru": "Бен Бёртт"
+   },
+   "role": "WALL·E",
+   "roles": {
+    "ru": "ВАЛЛ-И"
+   },
+   "photo": "q816456.jpg"
+  },
+  {
+   "name": "Elissa Knight",
+   "names": {
+    "ru": "Элисса Найт"
+   },
+   "role": "EVE",
+   "roles": {
+    "ru": "ЕВА"
+   },
+   "photo": null
+  },
+  {
+   "name": "Jeff Garlin",
+   "names": {
+    "ru": "Джефф Гарлин"
+   },
+   "role": "Captain B. McCrea",
+   "photo": "q983082.jpg"
+  },
+  {
+   "name": "John Ratzenberger",
+   "names": {
+    "ru": "Джон Ратценбергер"
+   },
+   "role": null,
+   "photo": "q374093.jpg"
+  },
+  {
+   "name": "Kathy Najimy",
+   "names": {
+    "ru": "Кэти Наджими"
+   },
+   "role": null,
+   "photo": "q235460.jpg"
+  },
+  {
+   "name": "Sigourney Weaver",
+   "names": {
+    "az": "Siqurni Uiver",
+    "ru": "Сигурни Уивер"
+   },
+   "role": null,
+   "photo": "q102124.jpg"
+  },
+  {
+   "name": "PlainTalk",
+   "role": "Auto",
+   "roles": {
+    "ru": "АВТО"
+   },
+   "photo": null
+  },
+  {
+   "name": "Fred Willard",
+   "names": {
+    "ru": "Фред Уиллард"
+   },
+   "role": null,
+   "photo": "q449521.jpg"
+  }
+ ],
+ "se7en-1995": [
+  {
+   "name": "Brad Pitt",
+   "names": {
+    "az": "Bred Pitt",
+    "ru": "Брэд Питт"
+   },
+   "role": "David Mills",
+   "photo": "q35332.jpg"
+  },
+  {
+   "name": "Morgan Freeman",
+   "names": {
+    "az": "Morqan Friman",
+    "ru": "Морган Фримен"
+   },
+   "role": "William Somerset",
+   "photo": "q48337.jpg"
+  },
+  {
+   "name": "Gwyneth Paltrow",
+   "names": {
+    "az": "Qvinet Peltrou",
+    "ru": "Гвинет Пэлтроу"
+   },
+   "role": "Tracy Mills",
+   "photo": "q34460.jpg"
+  },
+  {
+   "name": "Kevin Spacey",
+   "names": {
+    "az": "Kevin Speysi",
+    "ru": "Кевин Спейси"
+   },
+   "role": "John Doe",
+   "photo": "q25144.jpg"
+  },
+  {
+   "name": "R. Lee Ermey",
+   "names": {
+    "az": "Ronald Li Ermey",
+    "ru": "Ли Эрмей"
+   },
+   "role": "Capitaine de police",
+   "photo": "q353978.jpg"
+  },
+  {
+   "name": "John C. McGinley",
+   "names": {
+    "ru": "Джон К. Макгинли"
+   },
+   "role": "California",
+   "photo": null
+  },
+  {
+   "name": "Richard Roundtree",
+   "names": {
+    "ru": "Ричард Раундтри"
+   },
+   "role": null,
+   "photo": "q446493.jpg"
+  },
+  {
+   "name": "Richard Schiff",
+   "names": {
+    "az": "Riçard Şiff",
+    "ru": "Ричард Шифф"
+   },
+   "role": null,
+   "photo": "q355209.jpg"
+  }
+ ],
+ "rear-window-1954": [
+  {
+   "name": "James Stewart",
+   "names": {
+    "az": "Ceyms Stüart",
+    "ru": "Джеймс Стюарт"
+   },
+   "role": null,
+   "photo": "q102462.jpg"
+  },
+  {
+   "name": "Grace Kelly",
+   "names": {
+    "az": "Qreys Kelli",
+    "ru": "Грейс Келли"
+   },
+   "role": "Lisa Carol Fremont",
+   "photo": "q3925.jpg"
+  },
+  {
+   "name": "Wendell Corey",
+   "names": {
+    "ru": "Уэнделл Кори"
+   },
+   "role": null,
+   "photo": "q1340156.jpg"
+  },
+  {
+   "name": "Thelma Ritter",
+   "names": {
+    "ru": "Телма Риттер"
+   },
+   "role": null,
+   "photo": "q229266.jpg"
+  },
+  {
+   "name": "Raymond Burr",
+   "names": {
+    "ru": "Реймонд Берр"
+   },
+   "role": null,
+   "photo": "q336877.jpg"
+  },
+  {
+   "name": "Judith Evelyn",
+   "names": {
+    "ru": "Джудит Эвелин"
+   },
+   "role": null,
+   "photo": "q3089145.jpg"
+  },
+  {
+   "name": "Georgine Darcy",
+   "names": {
+    "ru": "Джорджин Дарси"
+   },
+   "role": null,
+   "photo": "q3103797.jpg"
+  },
+  {
+   "name": "Ross Bagdasarian Sr.",
+   "names": {
+    "az": "Ross Baqdasaryan",
+    "ru": "Росс Багдасарян",
+    "tr": "Ross Bagdasarian"
+   },
+   "role": null,
+   "photo": "q1176607.jpg"
+  }
+ ],
+ "coco-2017": [
+  {
+   "name": "Azealia Banks",
+   "names": {
+    "az": "Azaliya Benks",
+    "ru": "Азилия Бэнкс"
+   },
+   "role": null,
+   "photo": "q271385.jpg"
+  }
+ ],
+ "cinema-paradiso-1988": [
+  {
+   "name": "Jacques Perrin",
+   "names": {
+    "ru": "Жак Перрен"
+   },
+   "role": null,
+   "photo": "q561124.jpg"
+  },
+  {
+   "name": "Marco Leonardi",
+   "names": {
+    "ru": "Марко Леонарди"
+   },
+   "role": "Salvatore 'Totò' Di Vita adolescente",
+   "photo": null
+  },
+  {
+   "name": "Salvatore Cascio",
+   "names": {
+    "ru": "Сальваторе Кашо"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Philippe Noiret",
+   "names": {
+    "az": "Filipp Nuare",
+    "ru": "Филипп Нуаре"
+   },
+   "role": "Alfredo",
+   "photo": "q106482.jpg"
+  },
+  {
+   "name": "Agnese Nano",
+   "names": {
+    "ru": "Аньезе Нано"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Brigitte Fossey",
+   "names": {
+    "ru": "Брижитт Фоссе"
+   },
+   "role": null,
+   "photo": "q291765.jpg"
+  },
+  {
+   "name": "Antonella Attili",
+   "names": {
+    "ru": "Антонелла Аттили"
+   },
+   "role": "Maria Di Vita giovane",
+   "photo": "q455007.jpg"
+  },
+  {
+   "name": "Pupella Maggio",
+   "names": {
+    "ru": "Пупелла Маджио"
+   },
+   "role": null,
+   "photo": "q434404.jpg"
+  }
+ ],
+ "hereditary-2018": [
+  {
+   "name": "Toni Collette",
+   "names": {
+    "az": "Toni Kollett",
+    "ru": "Тони Коллетт",
+    "tr": "Toni Colette"
+   },
+   "role": null,
+   "photo": "q229291.jpg"
+  },
+  {
+   "name": "Gabriel Byrne",
+   "names": {
+    "az": "Qabriel Birn",
+    "ru": "Гэбриэл Бирн"
+   },
+   "role": null,
+   "photo": "q296616.jpg"
+  },
+  {
+   "name": "Alex Wolff",
+   "names": {
+    "az": "Aleks Volff",
+    "ru": "Алекс Вульфф"
+   },
+   "role": null,
+   "photo": "q940891.jpg"
+  },
+  {
+   "name": "Ann Dowd",
+   "names": {
+    "ru": "Энн Дауд"
+   },
+   "role": null,
+   "photo": "q2558129.jpg"
+  },
+  {
+   "name": "Milly Shapiro",
+   "names": {
+    "ru": "Милли Шапиро"
+   },
+   "role": null,
+   "photo": null
+  }
+ ],
+ "good-will-hunting-1997": [
+  {
+   "name": "Matt Damon",
+   "names": {
+    "az": "Mett Deymon",
+    "ru": "Мэтт Деймон"
+   },
+   "role": null,
+   "photo": "q175535.jpg"
+  },
+  {
+   "name": "Robin Williams",
+   "names": {
+    "az": "Robin Vilyams",
+    "ru": "Робин Уильямс"
+   },
+   "role": "Sean Maguire",
+   "roles": {
+    "ru": "Шон Мэгуайр"
+   },
+   "photo": "q83338.jpg"
+  },
+  {
+   "name": "Ben Affleck",
+   "names": {
+    "az": "Ben Afflek",
+    "ru": "Бен Аффлек"
+   },
+   "role": "Chuckie Sullivan",
+   "roles": {
+    "ru": "Чакки Сэлливан"
+   },
+   "photo": "q483118.jpg"
+  },
+  {
+   "name": "Minnie Driver",
+   "names": {
+    "az": "Minni Drayver",
+    "ru": "Минни Драйвер"
+   },
+   "role": null,
+   "photo": "q229056.jpg"
+  },
+  {
+   "name": "Stellan Skarsgård",
+   "names": {
+    "az": "Stellan Skarsqard",
+    "ru": "Стеллан Скарсгард"
+   },
+   "role": null,
+   "photo": "q208667.jpg"
+  },
+  {
+   "name": "Casey Affleck",
+   "names": {
+    "az": "Keysi Afflek",
+    "ru": "Кейси Аффлек"
+   },
+   "role": null,
+   "photo": "q270730.jpg"
+  },
+  {
+   "name": "Cole Hauser",
+   "names": {
+    "ru": "Коул Хаузер"
+   },
+   "role": null,
+   "photo": "q532180.jpg"
+  },
+  {
+   "name": "Scott William Winters",
+   "names": {
+    "ru": "Скотт Уильям Уинтерс"
+   },
+   "role": null,
+   "photo": null
+  }
+ ],
+ "whiplash-2014": [
+  {
+   "name": "Austin Stowell",
+   "names": {
+    "ru": "Остин Стоуэлл"
+   },
+   "role": null,
+   "photo": "q4204710.jpg"
+  },
+  {
+   "name": "J. K. Simmons",
+   "names": {
+    "az": "C. K. Simmons",
+    "ru": "Джей Кей Симмонс"
+   },
+   "role": null,
+   "photo": "q150482.jpg"
+  },
+  {
+   "name": "Jayson Blair",
+   "names": {
+    "ru": "Джейсон Блэр"
+   },
+   "role": null,
+   "photo": "q3208206.jpg"
+  },
+  {
+   "name": "Melissa Benoist",
+   "names": {
+    "az": "Melissa Benoyst",
+    "ru": "Мелисса Бенойст"
+   },
+   "role": null,
+   "photo": "q46677.jpg"
+  },
+  {
+   "name": "Miles Teller",
+   "names": {
+    "ru": "Майлз Теллер"
+   },
+   "role": null,
+   "photo": "q267330.jpg"
+  },
+  {
+   "name": "Paul Reiser",
+   "names": {
+    "ru": "Пол Райзер"
+   },
+   "role": null,
+   "photo": "q430922.jpg"
+  },
+  {
+   "name": "Chris Mulkey",
+   "names": {
+    "ru": "Крис Малки"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Kofi Siriboe",
+   "role": null,
+   "photo": null
+  }
+ ],
+ "the-dark-knight-2008": [
+  {
+   "name": "Christian Bale",
+   "names": {
+    "az": "Kristian Beyl",
+    "ru": "Кристиан Бейл"
+   },
+   "role": "Bruce Wayne",
+   "roles": {
+    "ru": "Брюс Уэйн"
+   },
+   "photo": "q45772.jpg"
+  },
+  {
+   "name": "Michael Caine",
+   "names": {
+    "az": "Maykl Keyn",
+    "ru": "Майкл Кейн"
+   },
+   "role": "Alfred Pennyworth",
+   "roles": {
+    "ru": "Альфред Пенниуорт"
+   },
+   "photo": "q123351.jpg"
+  },
+  {
+   "name": "Heath Ledger",
+   "names": {
+    "az": "Hit Ledcer",
+    "ru": "Хит Леджер"
+   },
+   "role": "The Joker",
+   "roles": {
+    "az": "Coker",
+    "ru": "Джокер",
+    "tr": "Joker"
+   },
+   "photo": "q40572.jpg"
+  },
+  {
+   "name": "Gary Oldman",
+   "names": {
+    "az": "Qari Oldmen",
+    "ru": "Гэри Олдмен"
+   },
+   "role": "Jim Gordon",
+   "roles": {
+    "ru": "Джеймс Гордон"
+   },
+   "photo": "q83492.jpg"
+  },
+  {
+   "name": "Aaron Eckhart",
+   "names": {
+    "az": "Eyron Ekhart",
+    "ru": "Аарон Экхарт"
+   },
+   "role": "Harvey Dent",
+   "roles": {
+    "ru": "Харви Дент"
+   },
+   "photo": "q192643.jpg"
+  },
+  {
+   "name": "Maggie Gyllenhaal",
+   "names": {
+    "az": "Meqqi Cillenhol",
+    "ru": "Мэгги Джилленхол"
+   },
+   "role": "Rachel Dawes",
+   "roles": {
+    "ru": "Рэйчел Доуз"
+   },
+   "photo": "q202381.jpg"
+  },
+  {
+   "name": "Morgan Freeman",
+   "names": {
+    "az": "Morqan Friman",
+    "ru": "Морган Фримен"
+   },
+   "role": "Lucius Fox",
+   "roles": {
+    "ru": "Люциус Фокс"
+   },
+   "photo": "q48337.jpg"
+  },
+  {
+   "name": "Eric Roberts",
+   "names": {
+    "az": "Erik Roberts",
+    "ru": "Эрик Робертс"
+   },
+   "role": "Sal Maroni",
+   "roles": {
+    "ru": "Сол Марони"
+   },
+   "photo": "q207969.jpg"
+  }
+ ],
+ "the-lion-king-1994": [
+  {
+   "name": "Moira Kelly",
+   "names": {
+    "ru": "Мойра Келли"
+   },
+   "role": "Nala",
+   "roles": {
+    "ru": "Нала"
+   },
+   "photo": null
+  },
+  {
+   "name": "Nathan Lane",
+   "names": {
+    "ru": "Нейтан Лейн"
+   },
+   "role": "Timon",
+   "roles": {
+    "ru": "Тимон"
+   },
+   "photo": "q491264.jpg"
+  },
+  {
+   "name": "Ernie Sabella",
+   "names": {
+    "ru": "Эрни Сабелла"
+   },
+   "role": "Pumbaa",
+   "roles": {
+    "ru": "Пумба"
+   },
+   "photo": "q451833.jpg"
+  },
+  {
+   "name": "Rowan Atkinson",
+   "names": {
+    "az": "Rouen Atkinson",
+    "ru": "Роуэн Аткинсон"
+   },
+   "role": "Zazu",
+   "roles": {
+    "ru": "Зазу"
+   },
+   "photo": "q23760.jpg"
+  },
+  {
+   "name": "Robert Guillaume",
+   "names": {
+    "ru": "Роберт Гийом"
+   },
+   "role": "Rafiki",
+   "photo": "q465442.jpg"
+  },
+  {
+   "name": "Madge Sinclair",
+   "names": {
+    "ru": "Мэдж Синклер"
+   },
+   "role": "Sarabi",
+   "roles": {
+    "ru": "Сараби"
+   },
+   "photo": "q259737.jpg"
+  },
+  {
+   "name": "Whoopi Goldberg",
+   "names": {
+    "az": "Vupi Qoldberq",
+    "ru": "Вупи Голдберг"
+   },
+   "role": "Shenzi",
+   "roles": {
+    "ru": "Шензи"
+   },
+   "photo": "q49001.jpg"
+  },
+  {
+   "name": "Cheech Marin",
+   "names": {
+    "ru": "Чич Марин"
+   },
+   "role": "Banzai",
+   "roles": {
+    "ru": "Банзай"
+   },
+   "photo": "q73007.jpg"
+  }
+ ],
+ "city-of-god-2002": [
+  {
+   "name": "Alexandre Rodrigues",
+   "names": {
+    "ru": "Алешандре Родригис"
+   },
+   "role": "adult Buscapé",
+   "photo": null
+  },
+  {
+   "name": "Alice Braga",
+   "names": {
+    "az": "Alise Braqa",
+    "ru": "Алисе Брага"
+   },
+   "role": "Angélica",
+   "photo": "q230903.jpg"
+  },
+  {
+   "name": "Leandro Firmino",
+   "names": {
+    "ru": "Леандру Фирмину"
+   },
+   "role": "adult Zé Pequeno",
+   "photo": null
+  },
+  {
+   "name": "Phellipe Haagensen",
+   "names": {
+    "ru": "Феллипе Хаагенсен"
+   },
+   "role": "adult Bené",
+   "photo": null
+  },
+  {
+   "name": "Douglas Silva",
+   "names": {
+    "ru": "Дуглас Силва"
+   },
+   "role": "child Dadinho",
+   "photo": "q1252503.jpg"
+  },
+  {
+   "name": "Jonathan Haagensen",
+   "names": {
+    "ru": "Джонатан Хаагенсен"
+   },
+   "role": "Cabeleira",
+   "photo": null
+  },
+  {
+   "name": "Matheus Nachtergaele",
+   "names": {
+    "ru": "Матеус Наштергале"
+   },
+   "role": "Sandro, nicknamed Cenoura",
+   "photo": "q2456161.jpg"
+  },
+  {
+   "name": "Seu Jorge",
+   "names": {
+    "ru": "Сеу Жоржи"
+   },
+   "role": "Mané Galinha",
+   "photo": "q953450.jpg"
+  }
+ ],
+ "harry-potter-and-the-philosopher-s-stone-2001": [
+  {
+   "name": "Daniel Radcliffe",
+   "names": {
+    "az": "Deniel Redkliff",
+    "ru": "Дэниэл Рэдклифф"
+   },
+   "role": "Harry Potter",
+   "roles": {
+    "az": "Harri Potter",
+    "ru": "Гарри Поттер"
+   },
+   "photo": "q38119.jpg"
+  },
+  {
+   "name": "Rupert Grint",
+   "names": {
+    "az": "Rupert Qrint",
+    "ru": "Руперт Гринт"
+   },
+   "role": "Ron Weasley",
+   "roles": {
+    "az": "Ron Uizli",
+    "ru": "Рон Уизли"
+   },
+   "photo": "q19190.jpg"
+  },
+  {
+   "name": "Emma Watson",
+   "names": {
+    "az": "Emma Uotson",
+    "ru": "Эмма Уотсон"
+   },
+   "role": "Hermione Granger",
+   "roles": {
+    "az": "Hermiona Qreyncer",
+    "ru": "Гермиона Грейнджер"
+   },
+   "photo": "q39476.jpg"
+  },
+  {
+   "name": "John Cleese",
+   "names": {
+    "ru": "Джон Клиз"
+   },
+   "role": "Nearly Headless Nick",
+   "roles": {
+    "ru": "Почти-Безголовый-Ник",
+    "tr": "Neredeyse Kafasız Nick"
+   },
+   "photo": "q25014.jpg"
+  },
+  {
+   "name": "Robbie Coltrane",
+   "names": {
+    "az": "Robbi Koltreyn",
+    "ru": "Робби Колтрейн"
+   },
+   "role": "Rubeus Hagrid",
+   "roles": {
+    "az": "Rubeus Haqrid",
+    "ru": "Рубеус Хагрид"
+   },
+   "photo": "q296008.jpg"
+  },
+  {
+   "name": "Warwick Davis",
+   "names": {
+    "ru": "Уорик Дэвис"
+   },
+   "role": "Filius Flitwick",
+   "roles": {
+    "ru": "Филиус Флитвик"
+   },
+   "photo": "q108270.jpg"
+  },
+  {
+   "name": "Richard Griffiths",
+   "names": {
+    "az": "Riçard Qriffits",
+    "ru": "Ричард Гриффитс"
+   },
+   "role": "Vernon Dursley",
+   "roles": {
+    "ru": "Вернон Дурсль"
+   },
+   "photo": "q314831.jpg"
+  },
+  {
+   "name": "Richard Harris",
+   "names": {
+    "az": "Riçard Harris",
+    "ru": "Ричард Харрис"
+   },
+   "role": "Albus Dumbledore",
+   "roles": {
+    "az": "Albus Dambldor",
+    "ru": "Альбус Дамблдор"
+   },
+   "photo": "q106775.jpg"
+  }
+ ],
+ "my-neighbor-totoro-1988": [
+  {
+   "name": "Noriko Hidaka",
+   "names": {
+    "ru": "Норико Хидака"
+   },
+   "role": "Satsuki Kusakabe",
+   "photo": "q49563.jpg"
+  },
+  {
+   "name": "Hitoshi Takagi",
+   "names": {
+    "ru": "Хитоши Такаги"
+   },
+   "role": "Totoro",
+   "roles": {
+    "ru": "Тоторо"
+   },
+   "photo": null
+  },
+  {
+   "name": "Chika Sakamoto",
+   "names": {
+    "ru": "Тика Сакамото"
+   },
+   "role": "Mei Kusakabe",
+   "photo": null
+  },
+  {
+   "name": "Sumi Shimamoto",
+   "names": {
+    "ru": "Суми Симамото"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Naoki Tatsuta",
+   "names": {
+    "ru": "Наоки Тацута"
+   },
+   "role": "Catbus",
+   "roles": {
+    "ru": "Котобус"
+   },
+   "photo": null
+  },
+  {
+   "name": "Tanie Kitabayashi",
+   "names": {
+    "ru": "Таниэ Китабаяси"
+   },
+   "role": null,
+   "photo": "q3547309.jpg"
+  },
+  {
+   "name": "Shigesato Itoi",
+   "names": {
+    "ru": "Шигесато Итои"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Shigeru Chiba",
+   "names": {
+    "ru": "Сигэру Тиба"
+   },
+   "role": null,
+   "photo": null
+  }
+ ],
+ "knives-out-2019": [
+  {
+   "name": "Daniel Craig",
+   "names": {
+    "az": "Deniel Kreyq",
+    "ru": "Дэниел Крэйг"
+   },
+   "role": "Benoit Blanc",
+   "roles": {
+    "ru": "Бенуа Бланк"
+   },
+   "photo": "q4547.jpg"
+  },
+  {
+   "name": "Michael Shannon",
+   "names": {
+    "az": "Maykl Şennon",
+    "ru": "Майкл Шеннон"
+   },
+   "role": null,
+   "photo": "q41449.jpg"
+  },
+  {
+   "name": "Chris Evans",
+   "names": {
+    "az": "Kris Evans",
+    "ru": "Крис Эванс"
+   },
+   "role": null,
+   "photo": "q178348.jpg"
+  },
+  {
+   "name": "LaKeith Stanfield",
+   "names": {
+    "az": "LaKit Stenfild",
+    "ru": "Лакит Стэнфилд",
+    "tr": "Lakeith Stanfield"
+   },
+   "role": null,
+   "photo": "q16762370.jpg"
+  },
+  {
+   "name": "Don Johnson",
+   "names": {
+    "az": "Don Conson",
+    "ru": "Дон Джонсон"
+   },
+   "role": null,
+   "photo": "q309788.jpg"
+  },
+  {
+   "name": "Christopher Plummer",
+   "names": {
+    "az": "Kristofer Plammer",
+    "ru": "Кристофер Пламмер"
+   },
+   "role": null,
+   "photo": "q190523.jpg"
+  },
+  {
+   "name": "Ana de Armas",
+   "names": {
+    "ru": "Ана де Армас"
+   },
+   "role": null,
+   "photo": "q698173.jpg"
+  },
+  {
+   "name": "Jamie Lee Curtis",
+   "names": {
+    "az": "Ceymi Li Körtis",
+    "ru": "Джейми Ли Кёртис"
+   },
+   "role": null,
+   "photo": "q106997.jpg"
+  }
+ ],
+ "mission-impossible-fallout-2018": [
+  {
+   "name": "Rebecca Ferguson",
+   "names": {
+    "ru": "Ребекка Фергюсон"
+   },
+   "role": "Ilsa Faust",
+   "roles": {
+    "ru": "Ильза Фауст"
+   },
+   "photo": "q4947838.jpg"
+  },
+  {
+   "name": "Henry Cavill",
+   "names": {
+    "az": "Henri Kavill",
+    "ru": "Генри Кавилл"
+   },
+   "role": "August Walker",
+   "photo": "q295498.jpg"
+  },
+  {
+   "name": "Simon Pegg",
+   "names": {
+    "az": "Saymon Peqq",
+    "ru": "Саймон Пегг"
+   },
+   "role": "Benji Dunn",
+   "roles": {
+    "ru": "Бенджи Данн"
+   },
+   "photo": "q238464.jpg"
+  },
+  {
+   "name": "Vanessa Kirby",
+   "names": {
+    "az": "Vanessa Kirbi",
+    "ru": "Ванесса Кирби"
+   },
+   "role": "White Widow",
+   "photo": "q6159535.jpg"
+  },
+  {
+   "name": "Alec Baldwin",
+   "names": {
+    "az": "Alek Bolduin",
+    "ru": "Алек Болдуин"
+   },
+   "role": "Alan Hunley",
+   "photo": "q170572.jpg"
+  },
+  {
+   "name": "Sean Harris",
+   "names": {
+    "ru": "Шон Харрис"
+   },
+   "role": "Solomon Lane",
+   "photo": "q1271614.jpg"
+  },
+  {
+   "name": "Angela Bassett",
+   "names": {
+    "az": "Ancela Bassett",
+    "ru": "Анджела Бассетт"
+   },
+   "role": "Erika Sloane",
+   "photo": "q232120.jpg"
+  },
+  {
+   "name": "Tom Cruise",
+   "names": {
+    "az": "Tom Kruz",
+    "ru": "Том Круз"
+   },
+   "role": "Ethan Hunt",
+   "roles": {
+    "ru": "Итан Хант"
+   },
+   "photo": "q37079.jpg"
+  }
+ ],
+ "harry-potter-and-the-prisoner-of-azkaban-2004": [
+  {
+   "name": "Daniel Radcliffe",
+   "names": {
+    "az": "Deniel Redkliff",
+    "ru": "Дэниэл Рэдклифф"
+   },
+   "role": "Harry Potter",
+   "roles": {
+    "az": "Harri Potter",
+    "ru": "Гарри Поттер"
+   },
+   "photo": "q38119.jpg"
+  },
+  {
+   "name": "Rupert Grint",
+   "names": {
+    "az": "Rupert Qrint",
+    "ru": "Руперт Гринт"
+   },
+   "role": "Ron Weasley",
+   "roles": {
+    "az": "Ron Uizli",
+    "ru": "Рон Уизли"
+   },
+   "photo": "q19190.jpg"
+  },
+  {
+   "name": "Emma Watson",
+   "names": {
+    "az": "Emma Uotson",
+    "ru": "Эмма Уотсон"
+   },
+   "role": "Hermione Granger",
+   "roles": {
+    "az": "Hermiona Qreyncer",
+    "ru": "Гермиона Грейнджер"
+   },
+   "photo": "q39476.jpg"
+  },
+  {
+   "name": "Robbie Coltrane",
+   "names": {
+    "az": "Robbi Koltreyn",
+    "ru": "Робби Колтрейн"
+   },
+   "role": "Rubeus Hagrid",
+   "roles": {
+    "az": "Rubeus Haqrid",
+    "ru": "Рубеус Хагрид"
+   },
+   "photo": "q296008.jpg"
+  },
+  {
+   "name": "Michael Gambon",
+   "names": {
+    "az": "Maykl Qembon",
+    "ru": "Майкл Гэмбон"
+   },
+   "role": "Albus Dumbledore",
+   "roles": {
+    "az": "Albus Dambldor",
+    "ru": "Альбус Дамблдор"
+   },
+   "photo": "q203545.jpg"
+  },
+  {
+   "name": "Richard Griffiths",
+   "names": {
+    "az": "Riçard Qriffits",
+    "ru": "Ричард Гриффитс"
+   },
+   "role": "Vernon Dursley",
+   "roles": {
+    "ru": "Вернон Дурсль"
+   },
+   "photo": "q314831.jpg"
+  },
+  {
+   "name": "Gary Oldman",
+   "names": {
+    "az": "Qari Oldmen",
+    "ru": "Гэри Олдмен"
+   },
+   "role": "Sirius Black",
+   "roles": {
+    "az": "Sirius Blek",
+    "ru": "Сириус Блэк"
+   },
+   "photo": "q83492.jpg"
+  },
+  {
+   "name": "Alan Rickman",
+   "names": {
+    "az": "Alan Rikman",
+    "ru": "Алан Рикман"
+   },
+   "role": "Severus Snape",
+   "roles": {
+    "az": "Severus Sneyp",
+    "ru": "Северус Снегг"
+   },
+   "photo": "q106481.jpg"
+  }
+ ],
+ "casablanca-1942": [
+  {
+   "name": "Humphrey Bogart",
+   "names": {
+    "az": "Hamfri Boqart",
+    "ru": "Хамфри Богарт"
+   },
+   "role": "Rick Blaine",
+   "photo": "q16390.jpg"
+  },
+  {
+   "name": "Ingrid Bergman",
+   "names": {
+    "az": "İnqrid Berqman",
+    "ru": "Ингрид Бергман"
+   },
+   "role": "Ilsa Lund",
+   "photo": "q43247.jpg"
+  },
+  {
+   "name": "Paul Henreid",
+   "names": {
+    "ru": "Пол Хенрейд"
+   },
+   "role": "Victor Laszlo",
+   "photo": "q93467.jpg"
+  },
+  {
+   "name": "Claude Rains",
+   "names": {
+    "ru": "Клод Рейнс"
+   },
+   "role": "Captain Louis Renault",
+   "photo": "q318734.jpg"
+  },
+  {
+   "name": "Conrad Veidt",
+   "names": {
+    "az": "Konrad Feydt",
+    "ru": "Конрад Фейдт"
+   },
+   "role": "Major Heinrich Strasser",
+   "photo": "q58801.jpg"
+  },
+  {
+   "name": "Sydney Greenstreet",
+   "names": {
+    "ru": "Сидни Гринстрит"
+   },
+   "role": "Signor Ferrari",
+   "photo": "q656507.jpg"
+  },
+  {
+   "name": "Peter Lorre",
+   "names": {
+    "ru": "Петер Лорре"
+   },
+   "role": "Ugarte",
+   "photo": "q78505.jpg"
+  },
+  {
+   "name": "S. Z. Sakall",
+   "names": {
+    "ru": "Ш. З. Шакалль"
+   },
+   "role": "Carl",
+   "photo": "q955183.jpg"
+  }
+ ],
+ "inglourious-basterds-2009": [
+  {
+   "name": "Brad Pitt",
+   "names": {
+    "az": "Bred Pitt",
+    "ru": "Брэд Питт"
+   },
+   "role": "Aldo Raine",
+   "photo": "q35332.jpg"
+  },
+  {
+   "name": "Christoph Waltz",
+   "names": {
+    "az": "Kristof Valts",
+    "ru": "Кристоф Вальц"
+   },
+   "role": "Hans Landa",
+   "photo": "q76819.jpg"
+  },
+  {
+   "name": "Eli Roth",
+   "names": {
+    "az": "Elay Rot",
+    "ru": "Элай Рот"
+   },
+   "role": "Donny Donowitz",
+   "photo": "q358714.jpg"
+  },
+  {
+   "name": "Michael Fassbender",
+   "names": {
+    "az": "Maykl Fassbender",
+    "ru": "Майкл Фассбендер"
+   },
+   "role": "Archie Hicox",
+   "photo": "q57147.jpg"
+  },
+  {
+   "name": "Diane Kruger",
+   "names": {
+    "az": "Dayan Kryuqer",
+    "ru": "Дайан Крюгер"
+   },
+   "role": "Bridget Von Hammersmark",
+   "photo": "q57118.jpg"
+  },
+  {
+   "name": "Daniel Brühl",
+   "names": {
+    "az": "Daniyel Brül",
+    "ru": "Даниэль Брюль"
+   },
+   "role": "Fredrick Zoller",
+   "photo": "q58592.jpg"
+  },
+  {
+   "name": "Til Schweiger",
+   "names": {
+    "az": "Til Şvayqer",
+    "ru": "Тиль Швайгер"
+   },
+   "role": "Hugo Stiglitz",
+   "photo": "q57391.jpg"
+  },
+  {
+   "name": "Mélanie Laurent",
+   "names": {
+    "az": "Melani Loran",
+    "ru": "Мелани Лоран"
+   },
+   "role": "Shosanna Dreyfus / Emmanuelle Mimieux",
+   "photo": "q234581.jpg"
+  }
+ ],
+ "forrest-gump-1994": [
+  {
+   "name": "Tom Hanks",
+   "names": {
+    "az": "Tom Henks",
+    "ru": "Том Хэнкс"
+   },
+   "role": "Forrest Gump",
+   "photo": "q2263.jpg"
+  },
+  {
+   "name": "Gary Sinise",
+   "names": {
+    "ru": "Гэри Синиз"
+   },
+   "role": "Lieutenant Dan Taylor",
+   "photo": "q180272.jpg"
+  },
+  {
+   "name": "Sally Field",
+   "names": {
+    "ru": "Салли Филд"
+   },
+   "role": "Mrs. Gump",
+   "photo": "q187033.jpg"
+  },
+  {
+   "name": "Robin Wright",
+   "names": {
+    "az": "Robin Rayt",
+    "ru": "Робин Райт"
+   },
+   "role": "Jenny Curran",
+   "photo": "q272972.jpg"
+  },
+  {
+   "name": "Mykelti Williamson",
+   "names": {
+    "ru": "Майкелти Уильямсон"
+   },
+   "role": "Benjamin Buford \"Bubba\" Blue",
+   "photo": "q741555.jpg"
+  },
+  {
+   "name": "Haley Joel Osment",
+   "names": {
+    "az": "Heyli Coel Osment",
+    "ru": "Хэйли Джоэл Осмент"
+   },
+   "role": "Forrest Gump Jr.",
+   "photo": "q489856.jpg"
+  },
+  {
+   "name": "Hanna R. Hall",
+   "names": {
+    "ru": "Ханна Р. Холл"
+   },
+   "role": "young Jenny Curran",
+   "photo": null
+  },
+  {
+   "name": "Mary Ellen Trainor",
+   "names": {
+    "ru": "Мэри Эллен Трейнор"
+   },
+   "role": null,
+   "photo": null
+  }
+ ],
+ "the-shawshank-redemption-1994": [
+  {
+   "name": "Tim Robbins",
+   "names": {
+    "ru": "Тим Роббинс"
+   },
+   "role": "Andy Dufresne",
+   "photo": "q95048.jpg"
+  },
+  {
+   "name": "Morgan Freeman",
+   "names": {
+    "az": "Morqan Friman",
+    "ru": "Морган Фримен"
+   },
+   "role": "Ellis Boyd \"Red\" Redding",
+   "photo": "q48337.jpg"
+  },
+  {
+   "name": "Bob Gunton",
+   "names": {
+    "az": "Bob Qanton",
+    "ru": "Боб Гантон"
+   },
+   "role": "Samuel Norton",
+   "photo": "q352203.jpg"
+  },
+  {
+   "name": "William Sadler",
+   "names": {
+    "az": "Vilyam Sedler",
+    "ru": "Уильям Сэдлер"
+   },
+   "role": "Heywood",
+   "photo": "q152542.jpg"
+  },
+  {
+   "name": "James Whitmore",
+   "names": {
+    "ru": "Джеймс Уитмор"
+   },
+   "role": "Brooks Hatlen",
+   "photo": "q313040.jpg"
+  },
+  {
+   "name": "Clancy Brown",
+   "names": {
+    "az": "Klensi Braun",
+    "ru": "Клэнси Браун"
+   },
+   "role": "Byron Hadley",
+   "photo": "q4488.jpg"
+  },
+  {
+   "name": "Gil Bellows",
+   "names": {
+    "az": "Qil Bellouz",
+    "ru": "Джил Беллоуз"
+   },
+   "role": "Tommy Williams",
+   "photo": "q360313.jpg"
+  },
+  {
+   "name": "Mark Rolston",
+   "names": {
+    "ru": "Марк Ролстон"
+   },
+   "role": "Bogs Diamond",
+   "photo": "q693301.jpg"
+  }
+ ],
+ "die-hard-1988": [
+  {
+   "name": "Bruce Willis",
+   "names": {
+    "az": "Brüs Uillis",
+    "ru": "Брюс Уиллис"
+   },
+   "role": "John McClane",
+   "roles": {
+    "ru": "Джон Макклейн"
+   },
+   "photo": "q2680.jpg"
+  },
+  {
+   "name": "Alexander Godunov",
+   "names": {
+    "ru": "Александр Борисович Годунов"
+   },
+   "role": "Karl",
+   "photo": null
+  },
+  {
+   "name": "Bonnie Bedelia",
+   "names": {
+    "ru": "Бонни Беделиа"
+   },
+   "role": "Holly Gennero",
+   "roles": {
+    "ru": "Холли Дженнеро"
+   },
+   "photo": "q234997.jpg"
+  },
+  {
+   "name": "Reginald VelJohnson",
+   "names": {
+    "ru": "Реджинальд Велджонсон"
+   },
+   "role": "Al Powell",
+   "roles": {
+    "ru": "Эл Пауэл"
+   },
+   "photo": "q470153.jpg"
+  },
+  {
+   "name": "William Atherton",
+   "names": {
+    "ru": "Уильям Атертон"
+   },
+   "role": "Richard Thornburg",
+   "photo": "q495487.jpg"
+  },
+  {
+   "name": "Paul Gleason",
+   "names": {
+    "ru": "Пол Глисон"
+   },
+   "role": "Dwayne T. Robinson",
+   "photo": null
+  },
+  {
+   "name": "Al Leong",
+   "names": {
+    "az": "Al Leonq",
+    "ru": "Аль Леонг"
+   },
+   "role": "Uli",
+   "photo": null
+  },
+  {
+   "name": "Clarence Gilyard",
+   "names": {
+    "ru": "Кларенс Гильярд"
+   },
+   "role": "Theo",
+   "photo": "q1095435.jpg"
+  }
+ ],
+ "pulp-fiction-1994": [
+  {
+   "name": "Bruce Willis",
+   "names": {
+    "az": "Brüs Uillis",
+    "ru": "Брюс Уиллис"
+   },
+   "role": "Butch Coolidge",
+   "roles": {
+    "ru": "Бутч Куллидж"
+   },
+   "photo": "q2680.jpg"
+  },
+  {
+   "name": "John Travolta",
+   "names": {
+    "az": "Con Travolta",
+    "ru": "Джон Траволта"
+   },
+   "role": "Vincent Vega",
+   "roles": {
+    "ru": "Винсент Вега"
+   },
+   "photo": "q80938.jpg"
+  },
+  {
+   "name": "Rosanna Arquette",
+   "names": {
+    "az": "Rozanna Arket",
+    "ru": "Розанна Аркетт"
+   },
+   "role": null,
+   "photo": "q109232.jpg"
+  },
+  {
+   "name": "Uma Thurman",
+   "names": {
+    "az": "Uma Turman",
+    "ru": "Ума Турман"
+   },
+   "role": "Mia Wallace",
+   "roles": {
+    "az": "Mia Volles",
+    "ru": "Миа Уоллес"
+   },
+   "photo": "q125017.jpg"
+  },
+  {
+   "name": "Samuel L. Jackson",
+   "names": {
+    "az": "Semuel L. Cekson",
+    "ru": "Сэмюэл Л. Джексон"
+   },
+   "role": "Jules Winnfield",
+   "roles": {
+    "ru": "Джулс Уиннфилд"
+   },
+   "photo": "q172678.jpg"
+  },
+  {
+   "name": "Christopher Walken",
+   "names": {
+    "az": "Kristofer Uoken",
+    "ru": "Кристофер Уокен"
+   },
+   "role": null,
+   "photo": "q185051.jpg"
+  },
+  {
+   "name": "Harvey Keitel",
+   "names": {
+    "az": "Harvi Keytel",
+    "ru": "Харви Кейтель"
+   },
+   "role": "Winston Wolfe",
+   "photo": "q191132.jpg"
+  },
+  {
+   "name": "Tim Roth",
+   "names": {
+    "ru": "Тим Рот"
+   },
+   "role": null,
+   "photo": "q203804.jpg"
+  }
+ ],
+ "spirited-away-2001": [
+  {
+   "name": "Ryūnosuke Kamiki",
+   "names": {
+    "ru": "Рюноскэ Камики"
+   },
+   "role": null,
+   "photo": "q1041546.jpg"
+  },
+  {
+   "name": "Yō Ōizumi",
+   "names": {
+    "ru": "Ё Оойдзуми"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Yasuko Sawaguchi",
+   "names": {
+    "ru": "Ясуко Савагучи"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Bunta Sugawara",
+   "names": {
+    "ru": "Бунта Сугавара"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Rumi Hiiragi",
+   "names": {
+    "ru": "Руми Хиираги"
+   },
+   "role": "Chihiro Ogino",
+   "roles": {
+    "ru": "Тихиро Огино"
+   },
+   "photo": null
+  },
+  {
+   "name": "Miyu Irino",
+   "names": {
+    "ru": "Мию Ирино"
+   },
+   "role": "Haku",
+   "photo": null
+  },
+  {
+   "name": "Mari Natsuki",
+   "names": {
+    "ru": "Мари Нацуки"
+   },
+   "role": "Yubaba",
+   "roles": {
+    "ru": "Юбаба"
+   },
+   "photo": "q1190336.jpg"
+  },
+  {
+   "name": "Takashi Naitō",
+   "names": {
+    "ru": "Такаси Наито"
+   },
+   "role": null,
+   "photo": null
+  }
+ ],
+ "finding-nemo-2003": [
+  {
+   "name": "Albert Brooks",
+   "names": {
+    "az": "Albert Bruks",
+    "ru": "Альберт Брукс"
+   },
+   "role": "Marlin",
+   "roles": {
+    "ru": "Марлин"
+   },
+   "photo": "q356303.jpg"
+  },
+  {
+   "name": "Ellen DeGeneres",
+   "names": {
+    "az": "Ellen Dedceneres",
+    "ru": "Эллен Дедженерес"
+   },
+   "role": "Dory",
+   "roles": {
+    "ru": "Дори"
+   },
+   "photo": "q483325.jpg"
+  },
+  {
+   "name": "Alexander Gould",
+   "names": {
+    "ru": "Александр Гоулд"
+   },
+   "role": "Nemo",
+   "roles": {
+    "ru": "Немо"
+   },
+   "photo": "q462065.jpg"
+  },
+  {
+   "name": "Willem Dafoe",
+   "names": {
+    "az": "Villem Defo",
+    "ru": "Уиллем Дефо"
+   },
+   "role": "Gill",
+   "photo": "q188772.jpg"
+  },
+  {
+   "name": "Brad Garrett",
+   "names": {
+    "ru": "Брэд Гарретт"
+   },
+   "role": "Bloat",
+   "photo": "q331720.jpg"
+  },
+  {
+   "name": "Allison Janney",
+   "names": {
+    "az": "Ellison Cenni",
+    "ru": "Эллисон Дженни"
+   },
+   "role": "Peach",
+   "photo": "q229487.jpg"
+  },
+  {
+   "name": "Stephen Root",
+   "names": {
+    "ru": "Стивен Рут"
+   },
+   "role": "Bubbles",
+   "photo": "q464320.jpg"
+  },
+  {
+   "name": "Austin Pendleton",
+   "names": {
+    "ru": "Остин Пендлтон"
+   },
+   "role": "Gurgle",
+   "roles": {
+    "ru": "Булькать"
+   },
+   "photo": "q572004.jpg"
+  }
+ ],
+ "psycho-1960": [
+  {
+   "name": "John Gavin",
+   "names": {
+    "ru": "Джон Гэвин"
+   },
+   "role": null,
+   "photo": "q145627.jpg"
+  },
+  {
+   "name": "Martin Balsam",
+   "names": {
+    "ru": "Мартин Болсам"
+   },
+   "role": null,
+   "photo": "q312107.jpg"
+  },
+  {
+   "name": "John McIntire",
+   "names": {
+    "ru": "Джон Макинтайр"
+   },
+   "role": null,
+   "photo": "q1277934.jpg"
+  },
+  {
+   "name": "Simon Oakland",
+   "names": {
+    "ru": "Саймон Оукленд"
+   },
+   "role": null,
+   "photo": "q2287751.jpg"
+  },
+  {
+   "name": "Vaughn Taylor",
+   "names": {
+    "ru": "Вон Тейлор"
+   },
+   "role": null,
+   "photo": "q3555082.jpg"
+  },
+  {
+   "name": "Frank Albertson",
+   "names": {
+    "ru": "Фрэнк Альбертсон"
+   },
+   "role": null,
+   "photo": "q3082484.jpg"
+  },
+  {
+   "name": "Lurene Tuttle",
+   "names": {
+    "ru": "Лёрин Таттл"
+   },
+   "role": null,
+   "photo": "q456357.jpg"
+  },
+  {
+   "name": "Pat Hitchcock",
+   "names": {
+    "ru": "Патриция Хичкок"
+   },
+   "role": null,
+   "photo": "q271569.jpg"
+  }
+ ],
+ "top-gun-maverick-2022": [
+  {
+   "name": "Tom Cruise",
+   "names": {
+    "az": "Tom Kruz",
+    "ru": "Том Круз"
+   },
+   "role": "Capt. Pete 'Maverick' Mitchell",
+   "photo": "q37079.jpg"
+  },
+  {
+   "name": "Val Kilmer",
+   "names": {
+    "az": "Vel Kilmer",
+    "ru": "Вэл Килмер"
+   },
+   "role": "Adm. Tom 'Iceman' Kazansky",
+   "photo": "q191084.jpg"
+  },
+  {
+   "name": "Jennifer Connelly",
+   "names": {
+    "az": "Cennifer Konnelli",
+    "ru": "Дженнифер Коннелли"
+   },
+   "role": "Penny Benjamin",
+   "photo": "q103343.jpg"
+  },
+  {
+   "name": "Miles Teller",
+   "names": {
+    "ru": "Майлз Теллер"
+   },
+   "role": "Lt. Bradley 'Rooster' Bradshaw",
+   "photo": "q267330.jpg"
+  },
+  {
+   "name": "Jon Hamm",
+   "names": {
+    "ru": "Джон Хэмм"
+   },
+   "role": "Adm. Beau 'Cyclone' Simpson",
+   "photo": "q313107.jpg"
+  },
+  {
+   "name": "Ed Harris",
+   "names": {
+    "ru": "Эд Харрис"
+   },
+   "role": "Radm. Chester 'Hammer' Cain",
+   "photo": "q104791.jpg"
+  },
+  {
+   "name": "Glen Powell",
+   "names": {
+    "ru": "Глен Пауэлл"
+   },
+   "role": "Lt. Jake 'Hangman' Seresin",
+   "photo": "q5567967.jpg"
+  },
+  {
+   "name": "Manny Jacinto",
+   "names": {
+    "ru": "Мэнни Хасинто"
+   },
+   "role": "Lt. Billy 'Fritz' Avalone",
+   "photo": "q28134241.jpg"
+  }
+ ],
+ "the-godfather-1972": [
+  {
+   "name": "Marlon Brando",
+   "names": {
+    "ru": "Марлон Брандо"
+   },
+   "role": "Vito Corleone",
+   "photo": null
+  },
+  {
+   "name": "Al Pacino",
+   "names": {
+    "az": "Al Paçino",
+    "ru": "Аль Пачино"
+   },
+   "role": "Michael",
+   "photo": "q41163.jpg"
+  },
+  {
+   "name": "James Caan",
+   "names": {
+    "az": "Ceyms Kaan",
+    "ru": "Джеймс Каан"
+   },
+   "role": "Sonny",
+   "photo": "q95043.jpg"
+  },
+  {
+   "name": "Richard S. Castellano",
+   "names": {
+    "ru": "Ричард Кастеллано"
+   },
+   "role": "Clemenza",
+   "photo": "q464714.jpg"
+  },
+  {
+   "name": "Robert Duvall",
+   "names": {
+    "az": "Rabert Duval",
+    "ru": "Роберт Дюваль"
+   },
+   "role": "Tom Hagen",
+   "photo": "q171736.jpg"
+  },
+  {
+   "name": "Sterling Hayden",
+   "names": {
+    "ru": "Стерлинг Хэйден"
+   },
+   "role": "Capt. McCluskey",
+   "photo": "q323166.jpg"
+  },
+  {
+   "name": "John Cazale",
+   "names": {
+    "ru": "Джон Казале"
+   },
+   "role": "Fredo",
+   "photo": null
+  },
+  {
+   "name": "Diane Keaton",
+   "names": {
+    "az": "Dayan Kiton",
+    "ru": "Дайан Китон"
+   },
+   "role": "Kay Adams",
+   "photo": "q102642.jpg"
+  }
+ ],
+ "jurassic-park-1993": [
+  {
+   "name": "Richard Attenborough",
+   "names": {
+    "az": "Lord Riçard",
+    "ru": "Ричард Аттенборо"
+   },
+   "role": "John Hammond",
+   "roles": {
+    "ru": "Джон Хэммонд"
+   },
+   "photo": "q51506.jpg"
+  },
+  {
+   "name": "Jeff Goldblum",
+   "names": {
+    "az": "Ceff Qoldblum",
+    "ru": "Джефф Голдблюм"
+   },
+   "role": "Ian Malcolm",
+   "roles": {
+    "ru": "Ян Малкольм"
+   },
+   "photo": "q106706.jpg"
+  },
+  {
+   "name": "Samuel L. Jackson",
+   "names": {
+    "az": "Semuel L. Cekson",
+    "ru": "Сэмюэл Л. Джексон"
+   },
+   "role": null,
+   "photo": "q172678.jpg"
+  },
+  {
+   "name": "Sam Neill",
+   "names": {
+    "az": "Sem Neill",
+    "ru": "Сэм Нилл"
+   },
+   "role": "Alan Grant",
+   "roles": {
+    "ru": "Алан Грант"
+   },
+   "photo": "q214309.jpg"
+  },
+  {
+   "name": "Laura Dern",
+   "names": {
+    "az": "Lora Dern",
+    "ru": "Лора Дерн"
+   },
+   "role": "Ellie Sattler",
+   "roles": {
+    "ru": "Элли Сэттлер"
+   },
+   "photo": "q220901.jpg"
+  },
+  {
+   "name": "Ariana Richards",
+   "names": {
+    "ru": "Ариана Ричардс"
+   },
+   "role": null,
+   "photo": "q264559.jpg"
+  },
+  {
+   "name": "Wayne Knight",
+   "names": {
+    "ru": "Уэйн Найт"
+   },
+   "role": "Dennis Nedry",
+   "roles": {
+    "ru": "Деннис Недри"
+   },
+   "photo": "q311976.jpg"
+  },
+  {
+   "name": "BD Wong",
+   "names": {
+    "ru": "Брэдли Дэррил Вонг",
+    "tr": "B. D. Wong"
+   },
+   "role": "Henry Wu",
+   "roles": {
+    "ru": "Генри Ву"
+   },
+   "photo": "q359207.jpg"
+  }
+ ],
+ "the-usual-suspects-1995": [
+  {
+   "name": "Stephen Baldwin",
+   "names": {
+    "az": "Stiven Bolduin",
+    "ru": "Стивен Болдуин"
+   },
+   "role": null,
+   "photo": "q310947.jpg"
+  },
+  {
+   "name": "Gabriel Byrne",
+   "names": {
+    "az": "Qabriel Birn",
+    "ru": "Гэбриэл Бирн"
+   },
+   "role": null,
+   "photo": "q296616.jpg"
+  },
+  {
+   "name": "Benicio del Toro",
+   "names": {
+    "ru": "Бенисио дель Торо",
+    "tr": "Benicio Del Toro"
+   },
+   "role": null,
+   "photo": "q193668.jpg"
+  },
+  {
+   "name": "Chazz Palminteri",
+   "names": {
+    "ru": "Чезз Палминтери"
+   },
+   "role": null,
+   "photo": "q338812.jpg"
+  },
+  {
+   "name": "Kevin Pollak",
+   "names": {
+    "ru": "Кевин Поллак"
+   },
+   "role": null,
+   "photo": "q351812.jpg"
+  },
+  {
+   "name": "Pete Postlethwaite",
+   "names": {
+    "ru": "Пит Послтуэйт"
+   },
+   "role": null,
+   "photo": "q217137.jpg"
+  },
+  {
+   "name": "Kevin Spacey",
+   "names": {
+    "az": "Kevin Speysi",
+    "ru": "Кевин Спейси"
+   },
+   "role": "Keyser Söze",
+   "roles": {
+    "ru": "Кайзер Созе"
+   },
+   "photo": "q25144.jpg"
+  },
+  {
+   "name": "Peter Greene",
+   "names": {
+    "az": "Piter Qrin",
+    "ru": "Питер Грин"
+   },
+   "role": null,
+   "photo": "q164534.jpg"
+  }
+ ],
+ "dune-part-two-2024": [
+  {
+   "name": "Timothée Chalamet",
+   "names": {
+    "az": "Timoti Şalame",
+    "ru": "Тимоти Шаламе"
+   },
+   "role": "Paul Atreides",
+   "roles": {
+    "ru": "Пол Атрейдес"
+   },
+   "photo": "q19877770.jpg"
+  },
+  {
+   "name": "Zendaya",
+   "names": {
+    "ru": "Зендея"
+   },
+   "role": "Chani",
+   "roles": {
+    "ru": "Чани"
+   },
+   "photo": "q189489.jpg"
+  },
+  {
+   "name": "Rebecca Ferguson",
+   "names": {
+    "ru": "Ребекка Фергюсон"
+   },
+   "role": "Lady Jessica",
+   "roles": {
+    "ru": "леди Джессика",
+    "tr": "Leydi Jessica"
+   },
+   "photo": "q4947838.jpg"
+  },
+  {
+   "name": "Javier Bardem",
+   "names": {
+    "az": "Xaviyer Bardem",
+    "ru": "Хавьер Бардем"
+   },
+   "role": "Stilgar",
+   "roles": {
+    "ru": "Стилгар"
+   },
+   "photo": "q134895.jpg"
+  },
+  {
+   "name": "Stellan Skarsgård",
+   "names": {
+    "az": "Stellan Skarsqard",
+    "ru": "Стеллан Скарсгард"
+   },
+   "role": "Vladimir Harkonnen",
+   "roles": {
+    "ru": "Владимир Харконнен"
+   },
+   "photo": "q208667.jpg"
+  },
+  {
+   "name": "Florence Pugh",
+   "names": {
+    "az": "Florens Pyu",
+    "ru": "Флоренс Пью"
+   },
+   "role": "Princess Irulan",
+   "roles": {
+    "ru": "Ирулана",
+    "tr": "Prenses Irulan"
+   },
+   "photo": "q22277803.jpg"
+  },
+  {
+   "name": "Christopher Walken",
+   "names": {
+    "az": "Kristofer Uoken",
+    "ru": "Кристофер Уокен"
+   },
+   "role": "Shaddam Corrino IV",
+   "roles": {
+    "ru": "Шаддам IV Коррино"
+   },
+   "photo": "q185051.jpg"
+  },
+  {
+   "name": "Josh Brolin",
+   "names": {
+    "az": "Coş Brolin",
+    "ru": "Джош Бролин"
+   },
+   "role": "Gurney Halleck",
+   "roles": {
+    "ru": "Гурни Халлек"
+   },
+   "photo": "q41396.jpg"
+  }
+ ],
+ "gravity-2013": [
+  {
+   "name": "Carl Boenish",
+   "names": {
+    "ru": "Карл Бениш"
+   },
+   "role": null,
+   "photo": "q4083809.jpg"
+  }
+ ],
+ "blade-runner-1982": [
+  {
+   "name": "Harrison Ford",
+   "names": {
+    "ru": "Харрисон Форд"
+   },
+   "role": "Rick Deckard",
+   "roles": {
+    "ru": "Рик Декард"
+   },
+   "photo": "q81328.jpg"
+  },
+  {
+   "name": "Edward James Olmos",
+   "names": {
+    "az": "Edvard Ceyms Olmos",
+    "ru": "Эдвард Джеймс Олмос"
+   },
+   "role": "Gaff",
+   "photo": "q211415.jpg"
+  },
+  {
+   "name": "Rutger Hauer",
+   "names": {
+    "ru": "Рутгер Хауэр"
+   },
+   "role": "Roy Batty",
+   "roles": {
+    "ru": "Рой Батти"
+   },
+   "photo": "q213574.jpg"
+  },
+  {
+   "name": "Sean Young",
+   "names": {
+    "ru": "Шон Янг"
+   },
+   "role": "Rachael Rosen",
+   "roles": {
+    "ru": "Рейчел Роузен"
+   },
+   "photo": "q230736.jpg"
+  },
+  {
+   "name": "Daryl Hannah",
+   "names": {
+    "ru": "Дэрил Ханна"
+   },
+   "role": "Pris Stratton",
+   "roles": {
+    "ru": "Прис Стрэттон"
+   },
+   "photo": "q207596.jpg"
+  },
+  {
+   "name": "Brion James",
+   "names": {
+    "ru": "Брайон Джеймс"
+   },
+   "role": "Leon Kowalski",
+   "photo": null
+  },
+  {
+   "name": "Joanna Cassidy",
+   "names": {
+    "ru": "Джоанна Кэссиди"
+   },
+   "role": "Zhora Salome",
+   "photo": "q236702.jpg"
+  },
+  {
+   "name": "M. Emmet Walsh",
+   "names": {
+    "ru": "М. Эммет Уолш"
+   },
+   "role": "Harry Bryant",
+   "photo": "q498420.jpg"
+  }
+ ],
+ "vertigo-1958": [
+  {
+   "name": "James Stewart",
+   "names": {
+    "az": "Ceyms Stüart",
+    "ru": "Джеймс Стюарт"
+   },
+   "role": null,
+   "photo": "q102462.jpg"
+  },
+  {
+   "name": "Kim Novak",
+   "names": {
+    "ru": "Ким Новак"
+   },
+   "role": null,
+   "photo": "q212879.jpg"
+  },
+  {
+   "name": "Barbara Bel Geddes",
+   "names": {
+    "az": "Barbara Bell Geddes",
+    "ru": "Барбара Бел Геддес"
+   },
+   "role": null,
+   "photo": "q232421.jpg"
+  },
+  {
+   "name": "Tom Helmore",
+   "names": {
+    "ru": "Том Хелмор"
+   },
+   "role": null,
+   "photo": "q919651.jpg"
+  },
+  {
+   "name": "Henry Jones",
+   "names": {
+    "ru": "Генри Джонс"
+   },
+   "role": null,
+   "photo": "q1375484.jpg"
+  },
+  {
+   "name": "Ellen Corby",
+   "names": {
+    "ru": "Эллен Корби"
+   },
+   "role": null,
+   "photo": "q368794.jpg"
+  },
+  {
+   "name": "Konstantin Shayne",
+   "names": {
+    "ru": "Константин Шэйн"
+   },
+   "role": null,
+   "photo": "q3198775.jpg"
+  },
+  {
+   "name": "Lee Patrick",
+   "names": {
+    "ru": "Ли Патрик"
+   },
+   "role": null,
+   "photo": "q531282.jpg"
+  }
+ ],
+ "2001-a-space-odyssey-1968": [
+  {
+   "name": "Keir Dullea",
+   "names": {
+    "ru": "Кир Дулли"
+   },
+   "role": "David Bowman",
+   "roles": {
+    "ru": "Дэвид Боуман"
+   },
+   "photo": "q692979.jpg"
+  },
+  {
+   "name": "Gary Lockwood",
+   "names": {
+    "ru": "Гари Локвуд"
+   },
+   "role": "Frank Poole",
+   "roles": {
+    "ru": "Фрэнк Пул"
+   },
+   "photo": "q640929.jpg"
+  },
+  {
+   "name": "William Sylvester",
+   "names": {
+    "ru": "Уильям Сильвестер"
+   },
+   "role": "Heywood R. Floyd",
+   "roles": {
+    "ru": "Хейвуд Р. Флойд"
+   },
+   "photo": null
+  },
+  {
+   "name": "Leonard Rossiter",
+   "names": {
+    "ru": "Леонард Росситер"
+   },
+   "role": "Andrei Smyslov",
+   "photo": "q967062.jpg"
+  },
+  {
+   "name": "Margaret Tyzack",
+   "names": {
+    "az": "Marqaret Tayzek",
+    "ru": "Маргарет Тайзэк"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Robert Beatty",
+   "names": {
+    "ru": "Роберт Битти"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Sean Sullivan",
+   "names": {
+    "ru": "Шон Салливан"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Douglas Rain",
+   "names": {
+    "ru": "Дуглас Рэйн"
+   },
+   "role": "HAL 9000",
+   "photo": null
+  }
+ ],
+ "blade-runner-2049-2017": [
+  {
+   "name": "Ryan Gosling",
+   "names": {
+    "az": "Rayan Qoslinq",
+    "ru": "Райан Гослинг"
+   },
+   "role": null,
+   "photo": "q193815.jpg"
+  },
+  {
+   "name": "Harrison Ford",
+   "names": {
+    "ru": "Харрисон Форд"
+   },
+   "role": "Rick Deckard",
+   "roles": {
+    "ru": "Рик Декард"
+   },
+   "photo": "q81328.jpg"
+  },
+  {
+   "name": "Robin Wright",
+   "names": {
+    "az": "Robin Rayt",
+    "ru": "Робин Райт"
+   },
+   "role": null,
+   "photo": "q272972.jpg"
+  },
+  {
+   "name": "Dave Bautista",
+   "names": {
+    "az": "Deyv Botista",
+    "ru": "Дейв Батиста",
+    "tr": "Dave Batista"
+   },
+   "role": null,
+   "photo": "q44158.jpg"
+  },
+  {
+   "name": "Ana de Armas",
+   "names": {
+    "ru": "Ана де Армас"
+   },
+   "role": null,
+   "photo": "q698173.jpg"
+  },
+  {
+   "name": "Sylvia Hoeks",
+   "names": {
+    "az": "Silviya Huks",
+    "ru": "Сильвия Хукс"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Mackenzie Davis",
+   "names": {
+    "az": "Makkenzi Devis",
+    "ru": "Маккензи Дэвис"
+   },
+   "role": null,
+   "photo": "q16238721.jpg"
+  },
+  {
+   "name": "Barkhad Abdi",
+   "names": {
+    "ru": "Бархад Абди",
+    "tr": "Berhad Abdi"
+   },
+   "role": null,
+   "photo": "q15381644.jpg"
+  }
+ ],
+ "saving-private-ryan-1998": [
+  {
+   "name": "Tom Hanks",
+   "names": {
+    "az": "Tom Henks",
+    "ru": "Том Хэнкс"
+   },
+   "role": "Captain John H. Miller",
+   "photo": "q2263.jpg"
+  },
+  {
+   "name": "Matt Damon",
+   "names": {
+    "az": "Mett Deymon",
+    "ru": "Мэтт Деймон"
+   },
+   "role": "Private First Class James Francis Ryan",
+   "photo": "q175535.jpg"
+  },
+  {
+   "name": "Edward Burns",
+   "names": {
+    "ru": "Эдвард Бёрнс"
+   },
+   "role": "Private First Class Richard Reiben",
+   "photo": "q314485.jpg"
+  },
+  {
+   "name": "Tom Sizemore",
+   "names": {
+    "ru": "Том Сайзмор"
+   },
+   "role": "Technical Sergeant Mike Horvath",
+   "photo": "q349852.jpg"
+  },
+  {
+   "name": "Jeremy Davies",
+   "names": {
+    "ru": "Джереми Дэвис"
+   },
+   "role": "T/5 Corporal Timothy Upham",
+   "photo": "q312337.jpg"
+  },
+  {
+   "name": "Adam Goldberg",
+   "names": {
+    "ru": "Адам Голдберг"
+   },
+   "role": "Private Stanley \"Fish\" Mellish",
+   "photo": "q281964.jpg"
+  },
+  {
+   "name": "Barry Pepper",
+   "names": {
+    "ru": "Барри Пеппер"
+   },
+   "role": "Private Daniel Jackson",
+   "photo": "q315604.jpg"
+  },
+  {
+   "name": "Giovanni Ribisi",
+   "names": {
+    "az": "Ciovanni Ribisi",
+    "ru": "Джованни Рибизи"
+   },
+   "role": "T/4 Corporal Medic Irwin Wade",
+   "photo": "q224081.jpg"
+  }
+ ],
+ "oldboy-2003": [
+  {
+   "name": "Choi Min-sik",
+   "names": {
+    "ru": "Чхве Мин Сик"
+   },
+   "role": "Oh Dae-su",
+   "photo": "q484575.jpg"
+  },
+  {
+   "name": "Yoo Ji-tae",
+   "names": {
+    "ru": "Ю Джитхэ"
+   },
+   "role": "이우진",
+   "photo": "q489475.jpg"
+  },
+  {
+   "name": "Kang Hye-jung",
+   "names": {
+    "ru": "Кан Хеджон"
+   },
+   "role": "미도",
+   "photo": "q485387.jpg"
+  },
+  {
+   "name": "Ji Dae-han",
+   "names": {
+    "ru": "Чи Дэ-хан"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Oh Tae-kyung",
+   "names": {
+    "ru": "О Тхэ-гён"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Yoon Jin-seo",
+   "names": {
+    "ru": "Юн Джин-со"
+   },
+   "role": null,
+   "photo": "q484983.jpg"
+  },
+  {
+   "name": "Oh Dal-su",
+   "names": {
+    "ru": "О Даль-су"
+   },
+   "role": null,
+   "photo": "q483575.jpg"
+  },
+  {
+   "name": "Kim Byeong-ok",
+   "names": {
+    "ru": "Ким Бён-ок"
+   },
+   "role": null,
+   "photo": null
+  }
+ ],
+ "inside-out-2015": [
+  {
+   "name": "Amy Poehler",
+   "names": {
+    "az": "Emi Poler",
+    "ru": "Эми Полер"
+   },
+   "role": "Joy",
+   "roles": {
+    "ru": "Радость"
+   },
+   "photo": "q230203.jpg"
+  },
+  {
+   "name": "Phyllis Smith",
+   "names": {
+    "ru": "Филлис Смит"
+   },
+   "role": "Sadness",
+   "roles": {
+    "ru": "Печаль"
+   },
+   "photo": "q508280.jpg"
+  },
+  {
+   "name": "Bill Hader",
+   "names": {
+    "az": "Bill Heyder",
+    "ru": "Билл Хейдер"
+   },
+   "role": "fear",
+   "roles": {
+    "az": "قورخو",
+    "ru": "страх",
+    "tr": "Korku"
+   },
+   "photo": "q14537.jpg"
+  },
+  {
+   "name": "Lewis Black",
+   "names": {
+    "ru": "Льюис Блэк"
+   },
+   "role": "anger",
+   "roles": {
+    "az": "Hirs",
+    "ru": "гнев",
+    "tr": "kızgınlık"
+   },
+   "photo": "q180252.jpg"
+  },
+  {
+   "name": "Mindy Kaling",
+   "names": {
+    "az": "Mindi Kalinq",
+    "ru": "Минди Калинг"
+   },
+   "role": "disgust",
+   "roles": {
+    "az": "İyrənmə",
+    "ru": "отвращение",
+    "tr": "iğrenme"
+   },
+   "photo": "q539917.jpg"
+  },
+  {
+   "name": "Diane Lane",
+   "names": {
+    "az": "Dayan Leyn",
+    "ru": "Дайан Лейн"
+   },
+   "role": "mother",
+   "roles": {
+    "az": "ana",
+    "ru": "мать",
+    "tr": "anne"
+   },
+   "photo": "q255070.jpg"
+  },
+  {
+   "name": "Kyle MacLachlan",
+   "names": {
+    "ru": "Кайл Маклахлен"
+   },
+   "role": "father",
+   "roles": {
+    "az": "ata",
+    "ru": "отец",
+    "tr": "baba"
+   },
+   "photo": "q207506.jpg"
+  },
+  {
+   "name": "John Ratzenberger",
+   "names": {
+    "ru": "Джон Ратценбергер"
+   },
+   "role": null,
+   "photo": "q374093.jpg"
+  }
+ ],
+ "the-grand-budapest-hotel-2014": [
+  {
+   "name": "Ralph Fiennes",
+   "names": {
+    "az": "Ralf Fayns",
+    "ru": "Рэйф Файнс"
+   },
+   "role": "Monsieur Gustave H.",
+   "photo": "q28493.jpg"
+  },
+  {
+   "name": "Tony Revolori",
+   "names": {
+    "az": "Toni Revolori",
+    "ru": "Тони Револори"
+   },
+   "role": "Zero Moustafa",
+   "photo": "q16237562.jpg"
+  },
+  {
+   "name": "Saoirse Ronan",
+   "names": {
+    "az": "Sirşa Ronan",
+    "ru": "Сирша Ронан"
+   },
+   "role": "Agatha",
+   "photo": "q228603.jpg"
+  },
+  {
+   "name": "Edward Norton",
+   "names": {
+    "az": "Edvard Norton",
+    "ru": "Эдвард Нортон"
+   },
+   "role": "Albert Henckels",
+   "photo": "q125904.jpg"
+  },
+  {
+   "name": "Jude Law",
+   "names": {
+    "az": "Judi Lou",
+    "ru": "Джуд Лоу"
+   },
+   "role": "the young Author",
+   "photo": "q160432.jpg"
+  },
+  {
+   "name": "Owen Wilson",
+   "names": {
+    "az": "Oven Uilson",
+    "ru": "Оуэн Уилсон"
+   },
+   "role": "M. Chuck",
+   "photo": "q161916.jpg"
+  },
+  {
+   "name": "Tilda Swinton",
+   "names": {
+    "az": "Tilda Svinton",
+    "ru": "Тильда Суинтон"
+   },
+   "role": "Madame D.",
+   "photo": "q200534.jpg"
+  },
+  {
+   "name": "Willem Dafoe",
+   "names": {
+    "az": "Villem Defo",
+    "ru": "Уиллем Дефо"
+   },
+   "role": "J. G. Jopling",
+   "photo": "q188772.jpg"
+  }
+ ],
+ "a-clockwork-orange-1971": [
+  {
+   "name": "Patrick Magee",
+   "names": {
+    "ru": "Патрик Мэги"
+   },
+   "role": null,
+   "photo": "q925310.jpg"
+  },
+  {
+   "name": "Adrienne Corri",
+   "names": {
+    "ru": "Эдриенн Корри"
+   },
+   "role": null,
+   "photo": "q377450.jpg"
+  },
+  {
+   "name": "Miriam Karlin",
+   "names": {
+    "ru": "Мириам Карлин"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Godfrey Quigley",
+   "names": {
+    "ru": "Годфри Куигли"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Anthony Sharp",
+   "names": {
+    "ru": "Энтони Шарп"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Warren Clarke",
+   "names": {
+    "ru": "Уоррен Кларк"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Malcolm McDowell",
+   "names": {
+    "az": "Malkolm Makdauell",
+    "ru": "Малкольм Макдауэлл"
+   },
+   "role": "Alex",
+   "roles": {
+    "ru": "Алекс"
+   },
+   "photo": "q117392.jpg"
+  },
+  {
+   "name": "Michael Tarn",
+   "names": {
+    "ru": "Майкл Тарн"
+   },
+   "role": null,
+   "photo": null
+  }
+ ],
+ "spider-man-into-the-spider-verse-2018": [
+  {
+   "name": "Nicolas Cage",
+   "names": {
+    "az": "Nikolas Keyc",
+    "ru": "Николас Кейдж"
+   },
+   "role": "Spider-Man Noir",
+   "roles": {
+    "ru": "Человек-паук Нуар"
+   },
+   "photo": "q42869.jpg"
+  },
+  {
+   "name": "Hailee Steinfeld",
+   "names": {
+    "az": "Heyli Staynfeld",
+    "ru": "Хейли Стайнфелд"
+   },
+   "role": "Gwen Stacy",
+   "roles": {
+    "ru": "Гвен Стейси"
+   },
+   "photo": "q231726.jpg"
+  },
+  {
+   "name": "Jake Johnson",
+   "names": {
+    "az": "Ceyk Conson",
+    "ru": "Джейк Джонсон"
+   },
+   "role": "Spider-Man",
+   "roles": {
+    "az": "Hörümçək-adam",
+    "ru": "Человек-паук",
+    "tr": "Örümcek Adam"
+   },
+   "photo": "q171525.jpg"
+  },
+  {
+   "name": "Mahershala Ali",
+   "names": {
+    "az": "Maherşala Ali",
+    "ru": "Махершалалхашбаз Али"
+   },
+   "role": "Aaron Davis",
+   "photo": "q360531.jpg"
+  },
+  {
+   "name": "Liev Schreiber",
+   "names": {
+    "az": "Lev Şrayber",
+    "ru": "Лев Шрайбер"
+   },
+   "role": "Kingpin",
+   "roles": {
+    "az": "Kinqpin",
+    "ru": "Кингпин"
+   },
+   "photo": "q298368.jpg"
+  },
+  {
+   "name": "Lily Tomlin",
+   "names": {
+    "az": "Lili Tomlin",
+    "ru": "Лили Томлин"
+   },
+   "role": "Aunt May",
+   "roles": {
+    "az": "Mey xala",
+    "ru": "тётя Мэй",
+    "tr": "May Parker"
+   },
+   "photo": "q229271.jpg"
+  },
+  {
+   "name": "Shameik Moore",
+   "names": {
+    "az": "Şamik Mur",
+    "ru": "Шамик Мур"
+   },
+   "role": "Miles Morales",
+   "photo": "q16236922.jpg"
+  },
+  {
+   "name": "Zoë Kravitz",
+   "names": {
+    "az": "Zoi Kravits",
+    "ru": "Зои Кравиц"
+   },
+   "role": "Mary Jane Watson",
+   "roles": {
+    "az": "Meri Ceyn Uotson",
+    "ru": "Мэри Джейн Уотсон"
+   },
+   "photo": "q227129.jpg"
+  }
+ ],
+ "her-2013": [
+  {
+   "name": "Joaquin Phoenix",
+   "names": {
+    "az": "Xoakin Feniks",
+    "ru": "Хоакин Феникс"
+   },
+   "role": "Theodore Twombly",
+   "photo": "q185140.jpg"
+  },
+  {
+   "name": "Amy Adams",
+   "names": {
+    "az": "Emi Adams",
+    "ru": "Эми Адамс"
+   },
+   "role": null,
+   "photo": "q481832.jpg"
+  },
+  {
+   "name": "Rooney Mara",
+   "names": {
+    "az": "Runi Mara",
+    "ru": "Руни Мара"
+   },
+   "role": null,
+   "photo": "q228766.jpg"
+  },
+  {
+   "name": "Olivia Wilde",
+   "names": {
+    "az": "Oliviya Vayld",
+    "ru": "Оливия Уайлд"
+   },
+   "role": null,
+   "photo": "q200355.jpg"
+  },
+  {
+   "name": "Scarlett Johansson",
+   "names": {
+    "az": "Skarlet Yohansson",
+    "ru": "Скарлетт Йоханссон"
+   },
+   "role": "Samantha",
+   "roles": {
+    "ru": "Саманта"
+   },
+   "photo": "q34436.jpg"
+  },
+  {
+   "name": "Chris Pratt",
+   "names": {
+    "az": "Kris Prett",
+    "ru": "Крис Прэтт"
+   },
+   "role": null,
+   "photo": "q503706.jpg"
+  },
+  {
+   "name": "Matt Letscher",
+   "names": {
+    "ru": "Мэтт Летчер"
+   },
+   "role": null,
+   "photo": "q1184704.jpg"
+  },
+  {
+   "name": "Luka Jones",
+   "names": {
+    "ru": "Лука Джонс"
+   },
+   "role": null,
+   "photo": null
+  }
+ ],
+ "the-empire-strikes-back-1980": [
+  {
+   "name": "Harrison Ford",
+   "names": {
+    "ru": "Харрисон Форд"
+   },
+   "role": "Han Solo",
+   "roles": {
+    "ru": "Хан Соло"
+   },
+   "photo": "q81328.jpg"
+  },
+  {
+   "name": "Carrie Fisher",
+   "names": {
+    "az": "Kerri Fişer",
+    "ru": "Кэрри Фишер"
+   },
+   "role": "Princess Leia",
+   "roles": {
+    "az": "Şahzadə Leya",
+    "ru": "Лея Органа",
+    "tr": "Leia Organa"
+   },
+   "photo": "q108941.jpg"
+  },
+  {
+   "name": "David Prowse",
+   "names": {
+    "ru": "Дэвид Проуз"
+   },
+   "role": "Darth Vader",
+   "roles": {
+    "ru": "Дарт Вейдер"
+   },
+   "photo": "q128379.jpg"
+  },
+  {
+   "name": "Mark Hamill",
+   "names": {
+    "ru": "Марк Хэмилл"
+   },
+   "role": "Luke Skywalker",
+   "roles": {
+    "az": "Lyuk Skayvolker",
+    "ru": "Люк Скайуокер"
+   },
+   "photo": "q210447.jpg"
+  },
+  {
+   "name": "Billy Dee Williams",
+   "names": {
+    "ru": "Билли Ди Уильямс"
+   },
+   "role": "Lando Calrissian",
+   "roles": {
+    "ru": "Лэндо Калриссиан"
+   },
+   "photo": "q358345.jpg"
+  },
+  {
+   "name": "Anthony Daniels",
+   "names": {
+    "ru": "Энтони Дэниелс"
+   },
+   "role": "C-3PO",
+   "photo": "q441685.jpg"
+  },
+  {
+   "name": "Kenny Baker",
+   "names": {
+    "ru": "Кенни Бейкер"
+   },
+   "role": "R2-D2",
+   "photo": "q454081.jpg"
+  },
+  {
+   "name": "Peter Mayhew",
+   "names": {
+    "ru": "Питер Мейхью"
+   },
+   "role": "Chewbacca",
+   "roles": {
+    "az": "Çubakka",
+    "ru": "Чубакка"
+   },
+   "photo": "q560552.jpg"
+  }
+ ],
+ "get-out-2017": [
+  {
+   "name": "Daniel Kaluuya",
+   "names": {
+    "ru": "Дэниэл Калуя"
+   },
+   "role": null,
+   "photo": "q510970.jpg"
+  },
+  {
+   "name": "Allison Williams",
+   "names": {
+    "ru": "Эллисон Уильямс"
+   },
+   "role": null,
+   "photo": "q4455554.jpg"
+  },
+  {
+   "name": "Catherine Keener",
+   "names": {
+    "az": "Ketrin Kiner",
+    "ru": "Кэтрин Кинер"
+   },
+   "role": null,
+   "photo": "q230378.jpg"
+  },
+  {
+   "name": "Bradley Whitford",
+   "names": {
+    "az": "Bredli Vitford",
+    "ru": "Брэдли Уитфорд"
+   },
+   "role": null,
+   "photo": "q352180.jpg"
+  },
+  {
+   "name": "Caleb Landry Jones",
+   "names": {
+    "az": "Kaleb Lendri Cons",
+    "ru": "Калеб Лэндри Джонс"
+   },
+   "role": null,
+   "photo": "q920607.jpg"
+  },
+  {
+   "name": "Betty Gabriel",
+   "names": {
+    "ru": "Бетти Гэбриел"
+   },
+   "role": null,
+   "photo": "q28812610.jpg"
+  },
+  {
+   "name": "Stephen Root",
+   "names": {
+    "ru": "Стивен Рут"
+   },
+   "role": null,
+   "photo": "q464320.jpg"
+  },
+  {
+   "name": "Lil Rel Howery",
+   "names": {
+    "ru": "Лил Рел Хауэри"
+   },
+   "role": null,
+   "photo": "q21067271.jpg"
+  }
+ ],
+ "unforgiven-1992": [
+  {
+   "name": "Gene Hackman",
+   "names": {
+    "az": "Cin Hekmen",
+    "ru": "Джин Хэкмен"
+   },
+   "role": "\"Little\" Bill Daggett",
+   "photo": "q150943.jpg"
+  },
+  {
+   "name": "Morgan Freeman",
+   "names": {
+    "az": "Morqan Friman",
+    "ru": "Морган Фримен"
+   },
+   "role": "Ned Logan",
+   "photo": "q48337.jpg"
+  },
+  {
+   "name": "Richard Harris",
+   "names": {
+    "az": "Riçard Harris",
+    "ru": "Ричард Харрис"
+   },
+   "role": "English Bob",
+   "photo": "q106775.jpg"
+  },
+  {
+   "name": "Saul Rubinek",
+   "names": {
+    "az": "Sol Rubinek",
+    "ru": "Сол Рубинек"
+   },
+   "role": "W. W. Beauchamp",
+   "photo": "q976176.jpg"
+  },
+  {
+   "name": "Frances Fisher",
+   "names": {
+    "az": "Frensis Fişer",
+    "ru": "Фрэнсис Фишер"
+   },
+   "role": "Strawberry Alice",
+   "photo": "q35011.jpg"
+  },
+  {
+   "name": "Anna Thomson",
+   "names": {
+    "ru": "Анна Томсон"
+   },
+   "role": "Delilah Fitzgerald",
+   "photo": "q448587.jpg"
+  },
+  {
+   "name": "Jaimz Woolvett",
+   "names": {
+    "ru": "Джеймс Вулветт"
+   },
+   "role": "Schofield Kid",
+   "photo": null
+  },
+  {
+   "name": "John Pyper-Ferguson",
+   "names": {
+    "ru": "Джон Пайпер-Фергюсон"
+   },
+   "role": null,
+   "photo": "q2563511.jpg"
+  }
+ ],
+ "princess-mononoke-1997": [
+  {
+   "name": "Yōji Matsuda",
+   "names": {
+    "ru": "Ёдзи Мацуда"
+   },
+   "role": "Ashitaka",
+   "roles": {
+    "ru": "Аситака"
+   },
+   "photo": null
+  },
+  {
+   "name": "Yuriko Ishida",
+   "names": {
+    "ru": "Юрико Исида"
+   },
+   "role": "San",
+   "roles": {
+    "ru": "Сан"
+   },
+   "photo": null
+  },
+  {
+   "name": "Yūko Tanaka",
+   "names": {
+    "ru": "Юко Танака"
+   },
+   "role": "Lady Eboshi",
+   "roles": {
+    "ru": "Госпожа Эбоси"
+   },
+   "photo": null
+  },
+  {
+   "name": "Kaoru Kobayashi",
+   "names": {
+    "ru": "Каору Кобаяси"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Masahiko Nishimura",
+   "names": {
+    "ru": "Масахико Нисимура"
+   },
+   "role": "Kohroku",
+   "photo": "q1078548.jpg"
+  },
+  {
+   "name": "Akihiro Miwa",
+   "names": {
+    "ru": "Акихиро Мива"
+   },
+   "role": "Moro",
+   "roles": {
+    "ru": "Моро"
+   },
+   "photo": "q1076203.jpg"
+  },
+  {
+   "name": "Mitsuko Mori",
+   "names": {
+    "ru": "Мицуко Мори"
+   },
+   "role": null,
+   "photo": "q907554.jpg"
+  },
+  {
+   "name": "Hisaya Morishige",
+   "names": {
+    "ru": "Хисая Морисигэ"
+   },
+   "role": null,
+   "photo": "q1078152.jpg"
+  }
+ ],
+ "singin-in-the-rain-1952": [
+  {
+   "name": "Gene Kelly",
+   "names": {
+    "az": "Cin Kelli",
+    "ru": "Джин Келли"
+   },
+   "role": null,
+   "photo": "q73089.jpg"
+  },
+  {
+   "name": "Donald O'Connor",
+   "names": {
+    "ru": "О’Коннор, Дональд"
+   },
+   "role": null,
+   "photo": "q348345.jpg"
+  },
+  {
+   "name": "Debbie Reynolds",
+   "names": {
+    "ru": "Дебби Рейнольдс"
+   },
+   "role": null,
+   "photo": "q263696.jpg"
+  },
+  {
+   "name": "Jean Hagen",
+   "names": {
+    "ru": "Джин Хэген"
+   },
+   "role": null,
+   "photo": "q235744.jpg"
+  },
+  {
+   "name": "Millard Mitchell",
+   "names": {
+    "ru": "Миллард Митчелл"
+   },
+   "role": null,
+   "photo": "q1376744.jpg"
+  },
+  {
+   "name": "Cyd Charisse",
+   "names": {
+    "az": "Sid Çariss",
+    "ru": "Сид Чарисс"
+   },
+   "role": null,
+   "photo": "q62558.jpg"
+  },
+  {
+   "name": "Rita Moreno",
+   "names": {
+    "ru": "Рита Морено"
+   },
+   "role": null,
+   "photo": "q230151.jpg"
+  },
+  {
+   "name": "Mae Clarke",
+   "names": {
+    "ru": "Мэй Кларк"
+   },
+   "role": null,
+   "photo": "q435532.jpg"
+  }
+ ],
+ "oppenheimer-2023": [
+  {
+   "name": "Cillian Murphy",
+   "names": {
+    "az": "Killian Mörfi",
+    "ru": "Киллиан Мерфи"
+   },
+   "role": "J. Robert Oppenheimer",
+   "roles": {
+    "az": "Robert Oppenheymer",
+    "ru": "Роберт Оппенгеймер",
+    "tr": "Robert Oppenheimer"
+   },
+   "photo": null
+  },
+  {
+   "name": "Robert Downey Jr.",
+   "names": {
+    "az": "Robert Dauni",
+    "ru": "Роберт Дауни-младший"
+   },
+   "role": "Lewis Strauss",
+   "roles": {
+    "ru": "Льюис Штраусс"
+   },
+   "photo": "q165219.jpg"
+  },
+  {
+   "name": "Matt Damon",
+   "names": {
+    "az": "Mett Deymon",
+    "ru": "Мэтт Деймон"
+   },
+   "role": "Leslie Groves",
+   "roles": {
+    "az": "Lesli Qrovs",
+    "ru": "Лесли Гровс"
+   },
+   "photo": "q175535.jpg"
+  },
+  {
+   "name": "Emily Blunt",
+   "names": {
+    "az": "Emili Blant",
+    "ru": "Эмили Блант"
+   },
+   "role": "Katherine Oppenheimer",
+   "roles": {
+    "ru": "Кэтрин Оппенгеймер"
+   },
+   "photo": "q193517.jpg"
+  },
+  {
+   "name": "Florence Pugh",
+   "names": {
+    "az": "Florens Pyu",
+    "ru": "Флоренс Пью"
+   },
+   "role": "Jean Tatlock",
+   "roles": {
+    "ru": "Джин Тэтлок"
+   },
+   "photo": "q22277803.jpg"
+  },
+  {
+   "name": "Rami Malek",
+   "names": {
+    "ru": "Рами Малек"
+   },
+   "role": "David L. Hill",
+   "roles": {
+    "ru": "Дэвид Лоуренс Хилл"
+   },
+   "photo": "q375590.jpg"
+  },
+  {
+   "name": "Benny Safdie",
+   "names": {
+    "ru": "Бенни Сафди"
+   },
+   "role": "Edward Teller",
+   "roles": {
+    "az": "Edvard Teller",
+    "ru": "Эдвард Теллер"
+   },
+   "photo": "q43676009.jpg"
+  },
+  {
+   "name": "Josh Hartnett",
+   "names": {
+    "az": "Coş Hartnett",
+    "ru": "Джош Хартнетт"
+   },
+   "role": "Ernest Lawrence",
+   "roles": {
+    "az": "Ernest Lourens",
+    "ru": "Эрнест Орландо Лоуренс",
+    "tr": "Ernest Orlando Lawrence"
+   },
+   "photo": "q303957.jpg"
+  }
+ ],
+ "la-la-land-2016": [
+  {
+   "name": "Emma Stone",
+   "names": {
+    "az": "Emma Stoun",
+    "ru": "Эмма Стоун"
+   },
+   "role": "Mia Dolan",
+   "roles": {
+    "ru": "Миа Долан"
+   },
+   "photo": "q147077.jpg"
+  },
+  {
+   "name": "J. K. Simmons",
+   "names": {
+    "az": "C. K. Simmons",
+    "ru": "Джей Кей Симмонс"
+   },
+   "role": null,
+   "photo": "q150482.jpg"
+  },
+  {
+   "name": "Finn Wittrock",
+   "names": {
+    "ru": "Финн Уиттрок"
+   },
+   "role": null,
+   "photo": "q5450687.jpg"
+  },
+  {
+   "name": "Rosemarie DeWitt",
+   "names": {
+    "ru": "Розмари Деуитт"
+   },
+   "role": null,
+   "photo": "q236956.jpg"
+  },
+  {
+   "name": "Meagen Fay",
+   "names": {
+    "ru": "Миген Фэй"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "John Legend",
+   "names": {
+    "ru": "Джон Ледженд"
+   },
+   "role": null,
+   "photo": "q44857.jpg"
+  },
+  {
+   "name": "Sonoya Mizuno",
+   "names": {
+    "ru": "Соноя Мидзуно"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Callie Hernandez",
+   "names": {
+    "ru": "Кэлли Эрнандес"
+   },
+   "role": null,
+   "photo": "q24444473.jpg"
+  }
+ ],
+ "heat-1995": [
+  {
+   "name": "Robert De Niro",
+   "names": {
+    "az": "Robert de Niro",
+    "ru": "Роберт Де Ниро"
+   },
+   "role": "Neil McCauley",
+   "photo": "q36949.jpg"
+  },
+  {
+   "name": "Al Pacino",
+   "names": {
+    "az": "Al Paçino",
+    "ru": "Аль Пачино"
+   },
+   "role": "Vincent Hanna",
+   "roles": {
+    "ru": "Винсент Ханна"
+   },
+   "photo": "q41163.jpg"
+  },
+  {
+   "name": "Val Kilmer",
+   "names": {
+    "az": "Vel Kilmer",
+    "ru": "Вэл Килмер"
+   },
+   "role": "Chris Shiherlis",
+   "photo": "q191084.jpg"
+  },
+  {
+   "name": "Jon Voight",
+   "names": {
+    "az": "Con Voyt",
+    "ru": "Джон Войт"
+   },
+   "role": "Nate",
+   "photo": "q167520.jpg"
+  },
+  {
+   "name": "Tom Sizemore",
+   "names": {
+    "ru": "Том Сайзмор"
+   },
+   "role": "Michael Cheritto",
+   "photo": "q349852.jpg"
+  },
+  {
+   "name": "Diane Venora",
+   "names": {
+    "ru": "Дайан Венора"
+   },
+   "role": "Justine Hanna",
+   "photo": null
+  },
+  {
+   "name": "Amy Brenneman",
+   "names": {
+    "ru": "Эми Бреннеман"
+   },
+   "role": "Eady",
+   "photo": "q232520.jpg"
+  },
+  {
+   "name": "Ashley Judd",
+   "names": {
+    "ru": "Эшли Джадд"
+   },
+   "role": "Charlene Shiherlis",
+   "photo": "q228645.jpg"
+  }
+ ],
+ "terminator-2-judgment-day-1991": [
+  {
+   "name": "Arnold Schwarzenegger",
+   "names": {
+    "az": "Arnold Şvartsenegger",
+    "ru": "Арнольд Шварцнеггер"
+   },
+   "role": "Terminator",
+   "roles": {
+    "ru": "T-800",
+    "tr": "Terminatör"
+   },
+   "photo": "q2685.jpg"
+  },
+  {
+   "name": "Edward Furlong",
+   "names": {
+    "ru": "Эдвард Фёрлонг"
+   },
+   "role": "John Connor",
+   "roles": {
+    "ru": "Джон Коннор"
+   },
+   "photo": "q309631.jpg"
+  },
+  {
+   "name": "Linda Hamilton",
+   "names": {
+    "ru": "Линда Хэмилтон"
+   },
+   "role": "Sarah Connor",
+   "roles": {
+    "ru": "Сара Коннор"
+   },
+   "photo": "q208214.jpg"
+  },
+  {
+   "name": "Robert Patrick",
+   "names": {
+    "az": "Robert Patrik",
+    "ru": "Роберт Патрик"
+   },
+   "role": "T-1000",
+   "photo": "q272977.jpg"
+  },
+  {
+   "name": "Earl Boen",
+   "names": {
+    "ru": "Эрл Боэн"
+   },
+   "role": "Peter Silberman",
+   "roles": {
+    "ru": "Питер Силберман"
+   },
+   "photo": null
+  },
+  {
+   "name": "Joe Morton",
+   "names": {
+    "az": "Co Morton",
+    "ru": "Джо Мортон"
+   },
+   "role": "Miles Dyson",
+   "roles": {
+    "ru": "Майлз Дайсон"
+   },
+   "photo": "q459007.jpg"
+  },
+  {
+   "name": "S. Epatha Merkerson",
+   "names": {
+    "ru": "Эпата Меркерсон"
+   },
+   "role": null,
+   "photo": "q1198897.jpg"
+  },
+  {
+   "name": "Xander Berkeley",
+   "names": {
+    "ru": "Ксандер Беркли"
+   },
+   "role": null,
+   "photo": "q361610.jpg"
+  }
+ ],
+ "guardians-of-the-galaxy-2014": [
+  {
+   "name": "Chris Pratt",
+   "names": {
+    "az": "Kris Prett",
+    "ru": "Крис Прэтт"
+   },
+   "role": "Peter Quill",
+   "photo": "q503706.jpg"
+  },
+  {
+   "name": "Dave Bautista",
+   "names": {
+    "az": "Deyv Botista",
+    "ru": "Дейв Батиста",
+    "tr": "Dave Batista"
+   },
+   "role": "Drax",
+   "photo": "q44158.jpg"
+  },
+  {
+   "name": "Zoe Saldaña",
+   "names": {
+    "az": "Zoe Saldana",
+    "ru": "Зои Салдана"
+   },
+   "role": "Gamora",
+   "photo": "q190162.jpg"
+  },
+  {
+   "name": "Michael Rooker",
+   "names": {
+    "az": "Maykl Ruker",
+    "ru": "Майкл Рукер"
+   },
+   "role": "Yondu Udonta",
+   "photo": "q525065.jpg"
+  },
+  {
+   "name": "Lee Pace",
+   "names": {
+    "az": "Li Peys",
+    "ru": "Ли Пейс"
+   },
+   "role": "Ronan",
+   "photo": "q355168.jpg"
+  },
+  {
+   "name": "Ophelia Lovibond",
+   "names": {
+    "ru": "Офелия Ловибонд"
+   },
+   "role": "Carina",
+   "photo": null
+  },
+  {
+   "name": "Karen Gillan",
+   "names": {
+    "ru": "Карен Гиллан"
+   },
+   "role": "Nebula",
+   "photo": "q231237.jpg"
+  },
+  {
+   "name": "Djimon Hounsou",
+   "names": {
+    "ru": "Джимон Хонсу"
+   },
+   "role": "Korath",
+   "photo": "q298682.jpg"
+  }
+ ],
+ "seven-samurai-1954": [
+  {
+   "name": "Takashi Shimura",
+   "names": {
+    "ru": "Такаси Симура"
+   },
+   "role": "Kambei Shimada",
+   "photo": "q40070.jpg"
+  },
+  {
+   "name": "Toshirō Mifune",
+   "names": {
+    "az": "Tosiro Mifune",
+    "ru": "Тосиро Мифунэ",
+    "tr": "Toshiro Mifune"
+   },
+   "role": "Kikuchiyo",
+   "photo": "q37001.jpg"
+  },
+  {
+   "name": "Seiji Miyaguchi",
+   "names": {
+    "ru": "Сэйдзи Миягути"
+   },
+   "role": "Kyūzō",
+   "photo": "q922612.jpg"
+  },
+  {
+   "name": "Minoru Chiaki",
+   "names": {
+    "ru": "Минору Тиаки"
+   },
+   "role": "Heihachi Hayashida",
+   "photo": "q975630.jpg"
+  },
+  {
+   "name": "Isao Kimura",
+   "names": {
+    "ru": "Исао Кимура"
+   },
+   "role": "Katsushirō Okamoto",
+   "photo": "q63525.jpg"
+  },
+  {
+   "name": "Keiko Tsushima",
+   "names": {
+    "ru": "Кэйко Цусима"
+   },
+   "role": "Shino",
+   "photo": "q438605.jpg"
+  },
+  {
+   "name": "Bokuzen Hidari",
+   "names": {
+    "ru": "Бокудзэн Хидари"
+   },
+   "role": "Yohei",
+   "photo": "q1992367.jpg"
+  },
+  {
+   "name": "Yoshio Inaba",
+   "names": {
+    "ru": "Ёсио Инаба"
+   },
+   "role": "Gorōbei Katayama",
+   "photo": "q1861772.jpg"
+  }
+ ],
+ "apocalypse-now-1979": [
+  {
+   "name": "Marlon Brando",
+   "names": {
+    "ru": "Марлон Брандо"
+   },
+   "role": "Colonel Walter Kurtz",
+   "photo": null
+  },
+  {
+   "name": "Robert Duvall",
+   "names": {
+    "az": "Rabert Duval",
+    "ru": "Роберт Дюваль"
+   },
+   "role": "Lieutenant Colonel William \"Bill\" Kilgore",
+   "photo": "q171736.jpg"
+  },
+  {
+   "name": "Frederic Forrest",
+   "names": {
+    "ru": "Фредерик Форрест"
+   },
+   "role": "Engineman 3rd Class Jay \"Chef\" Hicks",
+   "photo": "q719266.jpg"
+  },
+  {
+   "name": "Albert Hall",
+   "names": {
+    "ru": "Альберт Холл"
+   },
+   "role": "Chief Petty Officer George Phillips",
+   "photo": null
+  },
+  {
+   "name": "Dennis Hopper",
+   "names": {
+    "ru": "Деннис Хоппер"
+   },
+   "role": "American photojournalist",
+   "photo": "q102711.jpg"
+  },
+  {
+   "name": "Francis Ford Coppola",
+   "names": {
+    "az": "Frensis Ford Koppola",
+    "ru": "Фрэнсис Форд Коппола"
+   },
+   "role": "a TV news director",
+   "photo": "q56094.jpg"
+  },
+  {
+   "name": "Vittorio Storaro",
+   "names": {
+    "ru": "Витторио Стораро"
+   },
+   "role": "cameraman",
+   "photo": "q363413.jpg"
+  },
+  {
+   "name": "Sam Bottoms",
+   "names": {
+    "ru": "Сэм Боттомс"
+   },
+   "role": "Gunner's mate 3rd Class Lance B. Johnson",
+   "photo": null
+  }
+ ],
+ "zodiac-2007": [
+  {
+   "name": "Jake Gyllenhaal",
+   "names": {
+    "az": "Ceyk Cillenhol",
+    "ru": "Джейк Джилленхол"
+   },
+   "role": "Robert Graysmith",
+   "photo": "q133313.jpg"
+  },
+  {
+   "name": "Mark Ruffalo",
+   "names": {
+    "ru": "Марк Руффало"
+   },
+   "role": "Inspector Dave Toschi",
+   "photo": "q41422.jpg"
+  },
+  {
+   "name": "Robert Downey Jr.",
+   "names": {
+    "az": "Robert Dauni",
+    "ru": "Роберт Дауни-младший"
+   },
+   "role": "Paul Avery",
+   "photo": "q165219.jpg"
+  },
+  {
+   "name": "Anthony Edwards",
+   "names": {
+    "ru": "Энтони Эдвардс"
+   },
+   "role": "Inspector Bill Armstrong",
+   "photo": "q314924.jpg"
+  },
+  {
+   "name": "Brian Cox",
+   "names": {
+    "az": "Brayan Koks",
+    "ru": "Брайан Кокс"
+   },
+   "role": "Melvin Belli",
+   "photo": "q34975.jpg"
+  },
+  {
+   "name": "Elias Koteas",
+   "names": {
+    "ru": "Элиас Котеас"
+   },
+   "role": "Sergeant Jack Mulanax",
+   "photo": "q379808.jpg"
+  },
+  {
+   "name": "Chloë Sevigny",
+   "names": {
+    "az": "Kloi Sevini",
+    "ru": "Хлоя Севиньи"
+   },
+   "role": "Melanie Graysmith",
+   "photo": "q235870.jpg"
+  },
+  {
+   "name": "John Carroll Lynch",
+   "names": {
+    "az": "Con Kerroll Linç",
+    "ru": "Джон Кэрролл Линч"
+   },
+   "role": "Arthur Leigh Allen",
+   "photo": "q707759.jpg"
+  }
+ ],
+ "star-wars-a-new-hope-1977": [
+  {
+   "name": "Harrison Ford",
+   "names": {
+    "ru": "Харрисон Форд"
+   },
+   "role": "Han Solo",
+   "roles": {
+    "ru": "Хан Соло"
+   },
+   "photo": "q81328.jpg"
+  },
+  {
+   "name": "Alec Guinness",
+   "names": {
+    "ru": "Алек Гиннесс"
+   },
+   "role": "Obi-Wan Kenobi",
+   "roles": {
+    "az": "Obi-Van Kenobi",
+    "ru": "Оби-Ван Кеноби"
+   },
+   "photo": "q103894.jpg"
+  },
+  {
+   "name": "Carrie Fisher",
+   "names": {
+    "az": "Kerri Fişer",
+    "ru": "Кэрри Фишер"
+   },
+   "role": "Princess Leia",
+   "roles": {
+    "az": "Şahzadə Leya",
+    "ru": "Лея Органа",
+    "tr": "Leia Organa"
+   },
+   "photo": "q108941.jpg"
+  },
+  {
+   "name": "Mark Hamill",
+   "names": {
+    "ru": "Марк Хэмилл"
+   },
+   "role": "Luke Skywalker",
+   "roles": {
+    "az": "Lyuk Skayvolker",
+    "ru": "Люк Скайуокер"
+   },
+   "photo": "q210447.jpg"
+  },
+  {
+   "name": "Peter Cushing",
+   "names": {
+    "az": "Piter Kaşinq",
+    "ru": "Питер Кушинг"
+   },
+   "role": "Wilhuff Tarkin",
+   "roles": {
+    "ru": "Уилхуфф Таркин",
+    "tr": "Grand Moff Tarkin"
+   },
+   "photo": null
+  },
+  {
+   "name": "Peter Mayhew",
+   "names": {
+    "ru": "Питер Мейхью"
+   },
+   "role": "Chewbacca",
+   "roles": {
+    "az": "Çubakka",
+    "ru": "Чубакка"
+   },
+   "photo": "q560552.jpg"
+  },
+  {
+   "name": "David Prowse",
+   "names": {
+    "ru": "Дэвид Проуз"
+   },
+   "role": "Darth Vader",
+   "roles": {
+    "ru": "Дарт Вейдер"
+   },
+   "photo": "q128379.jpg"
+  },
+  {
+   "name": "Anthony Daniels",
+   "names": {
+    "ru": "Энтони Дэниелс"
+   },
+   "role": "C-3PO",
+   "photo": "q441685.jpg"
+  }
+ ],
+ "the-godfather-part-ii-1974": [
+  {
+   "name": "Al Pacino",
+   "names": {
+    "az": "Al Paçino",
+    "ru": "Аль Пачино"
+   },
+   "role": "Michael Corleone",
+   "photo": "q41163.jpg"
+  },
+  {
+   "name": "Robert Duvall",
+   "names": {
+    "az": "Rabert Duval",
+    "ru": "Роберт Дюваль"
+   },
+   "role": "Tom Hagen",
+   "photo": "q171736.jpg"
+  },
+  {
+   "name": "Diane Keaton",
+   "names": {
+    "az": "Dayan Kiton",
+    "ru": "Дайан Китон"
+   },
+   "role": "Kay Adams-Corleone",
+   "photo": "q102642.jpg"
+  },
+  {
+   "name": "Robert De Niro",
+   "names": {
+    "az": "Robert de Niro",
+    "ru": "Роберт Де Ниро"
+   },
+   "role": "Vito Corleone",
+   "photo": "q36949.jpg"
+  },
+  {
+   "name": "Talia Shire",
+   "names": {
+    "ru": "Талия Шайр"
+   },
+   "role": "Connie Corleone",
+   "photo": "q108622.jpg"
+  },
+  {
+   "name": "Morgana King",
+   "names": {
+    "ru": "Моргана Кинг"
+   },
+   "role": "Mama Carmela Corleone",
+   "photo": "q524930.jpg"
+  },
+  {
+   "name": "John Cazale",
+   "names": {
+    "ru": "Джон Казале"
+   },
+   "role": "Fredo Corleone",
+   "photo": null
+  },
+  {
+   "name": "Marianna Hill",
+   "names": {
+    "ru": "Марианна Хилл"
+   },
+   "role": "Deanna Corleone",
+   "photo": "q1693866.jpg"
+  }
+ ],
+ "the-lord-of-the-rings-the-fellowship-of-the-ring-2001": [
+  {
+   "name": "Elijah Wood",
+   "names": {
+    "az": "Elayca Vud",
+    "ru": "Элайджа Вуд"
+   },
+   "role": "Frodo Baggins",
+   "roles": {
+    "ru": "Фродо Бэггинс"
+   },
+   "photo": "q483771.jpg"
+  },
+  {
+   "name": "Ian McKellen",
+   "names": {
+    "az": "Yan MakKellen",
+    "ru": "Иэн Маккеллен"
+   },
+   "role": "Gandalf",
+   "roles": {
+    "az": "Qandalf",
+    "ru": "Гэндальф"
+   },
+   "photo": "q170510.jpg"
+  },
+  {
+   "name": "Liv Tyler",
+   "names": {
+    "az": "Liv Tayler",
+    "ru": "Лив Тайлер"
+   },
+   "role": "Arwen",
+   "roles": {
+    "ru": "Арвен"
+   },
+   "photo": "q168763.jpg"
+  },
+  {
+   "name": "Viggo Mortensen",
+   "names": {
+    "az": "Viqo Mortensen",
+    "ru": "Вигго Мортенсен"
+   },
+   "role": "Aragorn",
+   "roles": {
+    "az": "Araqorn",
+    "ru": "Арагорн"
+   },
+   "photo": "q171363.jpg"
+  },
+  {
+   "name": "Sean Astin",
+   "names": {
+    "ru": "Шон Астин"
+   },
+   "role": "Samwise Gamgee",
+   "roles": {
+    "ru": "Сэмуайз Гэмджи"
+   },
+   "photo": "q189351.jpg"
+  },
+  {
+   "name": "Cate Blanchett",
+   "names": {
+    "az": "Keyt Blanşett",
+    "ru": "Кейт Бланшетт"
+   },
+   "role": "Galadriel",
+   "roles": {
+    "az": "Qaladriel",
+    "ru": "Галадриэль"
+   },
+   "photo": "q80966.jpg"
+  },
+  {
+   "name": "John Rhys-Davies",
+   "names": {
+    "ru": "Джон Рис-Дэвис"
+   },
+   "role": "Gimli",
+   "roles": {
+    "ru": "Гимли"
+   },
+   "photo": "q16455.jpg"
+  },
+  {
+   "name": "Billy Boyd",
+   "names": {
+    "ru": "Билли Бойд"
+   },
+   "role": "Peregrin Took",
+   "roles": {
+    "ru": "Перегрин Тук"
+   },
+   "photo": "q276425.jpg"
+  }
+ ],
+ "the-big-lebowski-1998": [
+  {
+   "name": "Julianne Moore",
+   "names": {
+    "az": "Culianna Mur",
+    "ru": "Джулианна Мур"
+   },
+   "role": "Maude Lebowski",
+   "roles": {
+    "ru": "Мод Лебовски"
+   },
+   "photo": "q80405.jpg"
+  },
+  {
+   "name": "Steve Buscemi",
+   "names": {
+    "az": "Stiv Buşemi",
+    "ru": "Стив Бушеми"
+   },
+   "role": "Theodore Donald Kerabatsos",
+   "roles": {
+    "ru": "Теодор Дональд Каработсос"
+   },
+   "photo": "q104061.jpg"
+  },
+  {
+   "name": "Jeff Bridges",
+   "names": {
+    "az": "Ceff Brices",
+    "ru": "Джефф Бриджес"
+   },
+   "role": "The Dude",
+   "roles": {
+    "ru": "Чувак"
+   },
+   "photo": "q174843.jpg"
+  },
+  {
+   "name": "John Goodman",
+   "names": {
+    "az": "Con Qudmen",
+    "ru": "Джон Гудмен"
+   },
+   "role": "Walter Sobchak",
+   "roles": {
+    "ru": "Уолтер Собчак"
+   },
+   "photo": "q215072.jpg"
+  },
+  {
+   "name": "John Turturro",
+   "names": {
+    "ru": "Джон Туртурро"
+   },
+   "role": "Jesus Quintana",
+   "roles": {
+    "ru": "Хесус Кинтана"
+   },
+   "photo": "q244234.jpg"
+  },
+  {
+   "name": "David Huddleston",
+   "names": {
+    "ru": "Дэвид Хаддлстон"
+   },
+   "role": "Jeffrey Lebowski",
+   "roles": {
+    "ru": "Джеффри Лебовски"
+   },
+   "photo": "q659962.jpg"
+  },
+  {
+   "name": "Philip Seymour Hoffman",
+   "names": {
+    "az": "Filip Seymur Hoffman",
+    "ru": "Филип Сеймур Хоффман"
+   },
+   "role": "Brandt",
+   "photo": "q180560.jpg"
+  },
+  {
+   "name": "Ben Gazzara",
+   "names": {
+    "ru": "Бен Газзара"
+   },
+   "role": "Jackie Treehorn",
+   "roles": {
+    "ru": "Джэки Трихорн"
+   },
+   "photo": "q296287.jpg"
+  }
+ ],
+ "aliens-1986": [
+  {
+   "name": "William Hope",
+   "names": {
+    "ru": "Уильям Хоуп"
+   },
+   "role": "Scott Gorman",
+   "roles": {
+    "ru": "Скотт Горман"
+   },
+   "photo": null
+  },
+  {
+   "name": "Paul Reiser",
+   "names": {
+    "ru": "Пол Райзер"
+   },
+   "role": "Carter Burke",
+   "roles": {
+    "ru": "Картер Бёрк"
+   },
+   "photo": "q430922.jpg"
+  },
+  {
+   "name": "Bill Paxton",
+   "names": {
+    "az": "Bill Pekston",
+    "ru": "Билл Пэкстон"
+   },
+   "role": "William Hudson",
+   "roles": {
+    "ru": "Уильям Хадсон"
+   },
+   "photo": "q110374.jpg"
+  },
+  {
+   "name": "Jenette Goldstein",
+   "names": {
+    "ru": "Дженетт Голдстин"
+   },
+   "role": "Jenette Vasquez",
+   "roles": {
+    "ru": "Дженетт Васкес"
+   },
+   "photo": "q263964.jpg"
+  },
+  {
+   "name": "Al Matthews",
+   "names": {
+    "ru": "Эл Мэтьюз"
+   },
+   "role": "Al Apone",
+   "roles": {
+    "ru": "Эл Эйпон"
+   },
+   "photo": null
+  },
+  {
+   "name": "Mark Rolston",
+   "names": {
+    "ru": "Марк Ролстон"
+   },
+   "role": "Mark Drake",
+   "roles": {
+    "ru": "Марк Дрейк"
+   },
+   "photo": "q693301.jpg"
+  },
+  {
+   "name": "Ricco Ross",
+   "names": {
+    "ru": "Рикко Росс"
+   },
+   "role": "Ricco Frost",
+   "roles": {
+    "ru": "Рикко Фрост"
+   },
+   "photo": "q2056689.jpg"
+  },
+  {
+   "name": "Colette Hiller",
+   "names": {
+    "ru": "Колетт Хиллер"
+   },
+   "role": "Colette Ferro",
+   "roles": {
+    "ru": "Колетт Ферро"
+   },
+   "photo": null
+  }
+ ],
+ "django-unchained-2012": [
+  {
+   "name": "Jamie Foxx",
+   "names": {
+    "az": "Ceymi Foks",
+    "ru": "Джейми Фокс"
+   },
+   "role": "Django Freeman",
+   "roles": {
+    "ru": "Джанго Фримен"
+   },
+   "photo": "q171905.jpg"
+  },
+  {
+   "name": "Christoph Waltz",
+   "names": {
+    "az": "Kristof Valts",
+    "ru": "Кристоф Вальц"
+   },
+   "role": "King Schultz",
+   "roles": {
+    "ru": "доктор Кинг Шульц"
+   },
+   "photo": "q76819.jpg"
+  },
+  {
+   "name": "Leonardo DiCaprio",
+   "names": {
+    "az": "Leonardo DiKaprio",
+    "ru": "Леонардо Ди Каприо"
+   },
+   "role": "Calvin Candie",
+   "photo": "q38111.jpg"
+  },
+  {
+   "name": "Kerry Washington",
+   "names": {
+    "az": "Kerri Vaşinqton",
+    "ru": "Керри Вашингтон"
+   },
+   "role": "Broomhilda von Shaft",
+   "roles": {
+    "ru": "Брумхильда фон Шафт"
+   },
+   "photo": "q232104.jpg"
+  },
+  {
+   "name": "Samuel L. Jackson",
+   "names": {
+    "az": "Semuel L. Cekson",
+    "ru": "Сэмюэл Л. Джексон"
+   },
+   "role": "Stephen",
+   "roles": {
+    "ru": "Стивен"
+   },
+   "photo": "q172678.jpg"
+  },
+  {
+   "name": "Walton Goggins",
+   "names": {
+    "az": "Volton Qoggins",
+    "ru": "Уолтон Гоггинс"
+   },
+   "role": "Billy Crash",
+   "roles": {
+    "ru": "Билли Крэш"
+   },
+   "photo": "q516690.jpg"
+  },
+  {
+   "name": "Dennis Christopher",
+   "names": {
+    "ru": "Деннис Кристофер"
+   },
+   "role": "Leonide Moguy",
+   "photo": "q1278871.jpg"
+  },
+  {
+   "name": "James Remar",
+   "names": {
+    "ru": "Джеймс Ремар"
+   },
+   "role": "Butch Pooch",
+   "photo": "q441913.jpg"
+  }
+ ],
+ "fight-club-1999": [
+  {
+   "name": "Edward Norton",
+   "names": {
+    "az": "Edvard Norton",
+    "ru": "Эдвард Нортон"
+   },
+   "role": "The Narrator",
+   "roles": {
+    "ru": "Рассказчик"
+   },
+   "photo": "q125904.jpg"
+  },
+  {
+   "name": "Brad Pitt",
+   "names": {
+    "az": "Bred Pitt",
+    "ru": "Брэд Питт"
+   },
+   "role": "Tyler Durden",
+   "roles": {
+    "ru": "Тайлер Дёрден"
+   },
+   "photo": "q35332.jpg"
+  },
+  {
+   "name": "Helena Bonham Carter",
+   "names": {
+    "az": "Helena Bonem Karter",
+    "ru": "Хелена Бонэм Картер"
+   },
+   "role": "Marla Singer",
+   "roles": {
+    "ru": "Марла Сингер"
+   },
+   "photo": "q170428.jpg"
+  },
+  {
+   "name": "Jared Leto",
+   "names": {
+    "az": "Cared Leto",
+    "ru": "Джаред Лето"
+   },
+   "role": "Angel Face",
+   "roles": {
+    "ru": "Мистер Ангел"
+   },
+   "photo": "q484523.jpg"
+  },
+  {
+   "name": "Meat Loaf",
+   "names": {
+    "ru": "Мит Лоуф"
+   },
+   "role": "Robert Paulson",
+   "roles": {
+    "ru": "Роберт Полсон"
+   },
+   "photo": "q152929.jpg"
+  },
+  {
+   "name": "Zach Grenier",
+   "names": {
+    "ru": "Зак Гренье"
+   },
+   "role": null,
+   "photo": "q139341.jpg"
+  },
+  {
+   "name": "David Lee Smith",
+   "names": {
+    "ru": "Дэвид Ли Смит"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Eion Bailey",
+   "names": {
+    "ru": "Эйон Бэйли"
+   },
+   "role": null,
+   "photo": "q964006.jpg"
+  }
+ ],
+ "full-metal-jacket-1987": [
+  {
+   "name": "Adam Baldwin",
+   "names": {
+    "ru": "Адам Болдуин"
+   },
+   "role": "Animal Mother",
+   "photo": "q312161.jpg"
+  },
+  {
+   "name": "Matthew Modine",
+   "names": {
+    "ru": "Мэттью Модайн"
+   },
+   "role": "Private/Sergeant J. T. \"Joker\" Davis",
+   "photo": "q318249.jpg"
+  },
+  {
+   "name": "Vincent D'Onofrio",
+   "names": {
+    "ru": "Винсент Д’Онофрио"
+   },
+   "role": "Private Leonard \"Gomer Pyle” Lawrence",
+   "photo": "q320052.jpg"
+  },
+  {
+   "name": "R. Lee Ermey",
+   "names": {
+    "az": "Ronald Li Ermey",
+    "ru": "Ли Эрмей"
+   },
+   "role": "Gunnery Sergeant Hartman",
+   "photo": "q353978.jpg"
+  },
+  {
+   "name": "Arliss Howard",
+   "names": {
+    "ru": "Арлисс Ховард"
+   },
+   "role": "Private/Sergeant \"Cowboy\" Evans",
+   "photo": null
+  },
+  {
+   "name": "Dorian Harewood",
+   "names": {
+    "ru": "Дориан Хэрвуд"
+   },
+   "role": "Eightball",
+   "photo": "q1244995.jpg"
+  },
+  {
+   "name": "Ed O'Ross",
+   "names": {
+    "ru": "О’Росс, Эд"
+   },
+   "role": "Lieutenant Walter J. \"Touchdown\" Schinoski",
+   "photo": "q1262126.jpg"
+  },
+  {
+   "name": "John Terry",
+   "names": {
+    "ru": "Джон Терри"
+   },
+   "role": "Lieutenant Lockhart",
+   "photo": null
+  }
+ ],
+ "john-wick-2014": [
+  {
+   "name": "Keanu Reeves",
+   "names": {
+    "az": "Kianu Rivz",
+    "ru": "Киану Ривз"
+   },
+   "role": "John Wick",
+   "roles": {
+    "ru": "Джон Уик"
+   },
+   "photo": "q43416.jpg"
+  },
+  {
+   "name": "Adrianne Palicki",
+   "names": {
+    "ru": "Эдрианн Палики"
+   },
+   "role": "Ms. Perkins",
+   "photo": "q262278.jpg"
+  },
+  {
+   "name": "Alfie Allen",
+   "names": {
+    "ru": "Альфи Аллен"
+   },
+   "role": "Iosef Tarasov",
+   "photo": "q552026.jpg"
+  },
+  {
+   "name": "Bridget Moynahan",
+   "names": {
+    "ru": "Бриджит Мойнахан"
+   },
+   "role": "Helen Wick",
+   "photo": "q232343.jpg"
+  },
+  {
+   "name": "Bridget Regan",
+   "names": {
+    "ru": "Бриджит Риган"
+   },
+   "role": "Addy",
+   "photo": "q240187.jpg"
+  },
+  {
+   "name": "Clarke Peters",
+   "names": {
+    "ru": "Кларк Питерс"
+   },
+   "role": "Harry",
+   "photo": "q1095834.jpg"
+  },
+  {
+   "name": "Daniel Bernhardt",
+   "names": {
+    "ru": "Даниэл Бернхардт"
+   },
+   "role": "Kirill",
+   "photo": "q115932.jpg"
+  },
+  {
+   "name": "David Patrick Kelly",
+   "names": {
+    "ru": "Дэвид Патрик Келли"
+   },
+   "role": "Charlie",
+   "photo": "q210076.jpg"
+  }
+ ],
+ "interstellar-2014": [
+  {
+   "name": "Matthew McConaughey",
+   "names": {
+    "az": "Metyu Makkonaxi",
+    "ru": "Мэттью Макконахи"
+   },
+   "role": "Joseph Cooper",
+   "roles": {
+    "ru": "Джозеф Купер"
+   },
+   "photo": "q188955.jpg"
+  },
+  {
+   "name": "Anne Hathaway",
+   "names": {
+    "az": "Enn Heteuey",
+    "ru": "Энн Хэтэуэй"
+   },
+   "role": "Amelia Brand",
+   "roles": {
+    "ru": "Амелия Брэнд"
+   },
+   "photo": "q36301.jpg"
+  },
+  {
+   "name": "Jessica Chastain",
+   "names": {
+    "az": "Cessika Çesteyn",
+    "ru": "Джессика Честейн"
+   },
+   "role": "Murph (as a woman)",
+   "photo": "q229313.jpg"
+  },
+  {
+   "name": "Michael Caine",
+   "names": {
+    "az": "Maykl Keyn",
+    "ru": "Майкл Кейн"
+   },
+   "role": "John Brand",
+   "roles": {
+    "ru": "Джон Брэнд"
+   },
+   "photo": "q123351.jpg"
+  },
+  {
+   "name": "Bill Irwin",
+   "names": {
+    "az": "Bill İrvin",
+    "ru": "Билл Ирвин"
+   },
+   "role": "TARS",
+   "roles": {
+    "ru": "ТАРС"
+   },
+   "photo": "q603317.jpg"
+  },
+  {
+   "name": "Ellen Burstyn",
+   "names": {
+    "ru": "Эллен Бёрстин"
+   },
+   "role": "Murph (as an old, sick woman)",
+   "photo": "q211144.jpg"
+  },
+  {
+   "name": "Wes Bentley",
+   "names": {
+    "ru": "Уэс Бентли"
+   },
+   "role": "Doyle",
+   "roles": {
+    "ru": "Дойл"
+   },
+   "photo": "q368037.jpg"
+  },
+  {
+   "name": "Matt Damon",
+   "names": {
+    "az": "Mett Deymon",
+    "ru": "Мэтт Деймон"
+   },
+   "role": "Hugh Mann",
+   "roles": {
+    "ru": "Хью Манн"
+   },
+   "photo": "q175535.jpg"
+  }
+ ],
+ "memento-2000": [
+  {
+   "name": "Carrie-Anne Moss",
+   "names": {
+    "az": "Kerri-Enn Moss",
+    "ru": "Керри-Энн Мосс"
+   },
+   "role": null,
+   "photo": "q206890.jpg"
+  },
+  {
+   "name": "Guy Pearce",
+   "names": {
+    "az": "Qay Pirs",
+    "ru": "Гай Пирс"
+   },
+   "role": "Leonard Shelby",
+   "photo": "q223745.jpg"
+  },
+  {
+   "name": "Joe Pantoliano",
+   "names": {
+    "az": "Co Pantoliano",
+    "ru": "Джо Пантолиано"
+   },
+   "role": null,
+   "photo": "q296883.jpg"
+  },
+  {
+   "name": "Mark Boone Junior",
+   "names": {
+    "ru": "Марк Бун-младший"
+   },
+   "role": null,
+   "photo": "q718382.jpg"
+  },
+  {
+   "name": "Jorja Fox",
+   "names": {
+    "ru": "Джорджа Фокс"
+   },
+   "role": null,
+   "photo": "q231807.jpg"
+  },
+  {
+   "name": "Stephen Tobolowsky",
+   "names": {
+    "ru": "Стивен Тоболовски"
+   },
+   "role": null,
+   "photo": "q376131.jpg"
+  },
+  {
+   "name": "Harriet Sansom Harris",
+   "names": {
+    "ru": "Гарриет Сэнсом Харрис"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Callum Keith Rennie",
+   "names": {
+    "ru": "Каллум Кит Ренни"
+   },
+   "role": null,
+   "photo": "q551558.jpg"
+  }
+ ],
+ "the-sixth-sense-1999": [
+  {
+   "name": "Bruce Willis",
+   "names": {
+    "az": "Brüs Uillis",
+    "ru": "Брюс Уиллис"
+   },
+   "role": "Malcolm Crowe",
+   "roles": {
+    "ru": "Малкольм Кроу"
+   },
+   "photo": "q2680.jpg"
+  },
+  {
+   "name": "Haley Joel Osment",
+   "names": {
+    "az": "Heyli Coel Osment",
+    "ru": "Хэйли Джоэл Осмент"
+   },
+   "role": "Cole Sear",
+   "roles": {
+    "ru": "Коул Сиэр"
+   },
+   "photo": "q489856.jpg"
+  },
+  {
+   "name": "Toni Collette",
+   "names": {
+    "az": "Toni Kollett",
+    "ru": "Тони Коллетт",
+    "tr": "Toni Colette"
+   },
+   "role": null,
+   "photo": "q229291.jpg"
+  },
+  {
+   "name": "Olivia Williams",
+   "names": {
+    "az": "Oliviya Vilyams",
+    "ru": "Оливия Уильямс"
+   },
+   "role": null,
+   "photo": "q231163.jpg"
+  },
+  {
+   "name": "Donnie Wahlberg",
+   "names": {
+    "ru": "Донни Уолберг"
+   },
+   "role": null,
+   "photo": "q313470.jpg"
+  },
+  {
+   "name": "Peter Anthony Tambakis",
+   "names": {
+    "ru": "Питер Энтони Тамбакис"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Mischa Barton",
+   "names": {
+    "az": "Mişa Barton",
+    "ru": "Миша Бартон"
+   },
+   "role": null,
+   "photo": "q207458.jpg"
+  },
+  {
+   "name": "Glenn Fitzgerald",
+   "names": {
+    "ru": "Гленн Фицджералд"
+   },
+   "role": null,
+   "photo": "q1433160.jpg"
+  }
+ ],
+ "dunkirk-2017": [
+  {
+   "name": "Kenneth Branagh",
+   "names": {
+    "az": "Kennet Brana",
+    "ru": "Кеннет Брана"
+   },
+   "role": "Commander Bolton",
+   "photo": "q55294.jpg"
+  },
+  {
+   "name": "Olivia Wilde",
+   "names": {
+    "az": "Oliviya Vayld",
+    "ru": "Оливия Уайлд"
+   },
+   "role": null,
+   "photo": "q200355.jpg"
+  },
+  {
+   "name": "Armie Hammer",
+   "names": {
+    "ru": "Арми Хаммер"
+   },
+   "role": null,
+   "photo": "q374273.jpg"
+  },
+  {
+   "name": "Aneurin Barnard",
+   "names": {
+    "ru": "Анейрин Барнард"
+   },
+   "role": "Gibson",
+   "photo": "q245880.jpg"
+  },
+  {
+   "name": "James D'Arcy",
+   "names": {
+    "ru": "Джеймс Д’Арси",
+    "tr": "James D’Arcy"
+   },
+   "role": "Colonel Winnant",
+   "photo": "q717194.jpg"
+  },
+  {
+   "name": "Cillian Murphy",
+   "names": {
+    "az": "Killian Mörfi",
+    "ru": "Киллиан Мерфи"
+   },
+   "role": "Shivering Soldier",
+   "photo": null
+  },
+  {
+   "name": "Mark Rylance",
+   "names": {
+    "ru": "Марк Райлэнс"
+   },
+   "role": "Mr Dawson",
+   "photo": "q324572.jpg"
+  },
+  {
+   "name": "Tom Hardy",
+   "names": {
+    "az": "Tom Hardi",
+    "ru": "Том Харди"
+   },
+   "role": "Farrier (Fortis 1)",
+   "photo": "q208026.jpg"
+  }
+ ],
+ "home-alone-1990": [
+  {
+   "name": "Macaulay Culkin",
+   "names": {
+    "az": "Makaley Kalkin",
+    "ru": "Маколей Калкин"
+   },
+   "role": "Kevin McCallister",
+   "roles": {
+    "ru": "Кевин Маккаллистер"
+   },
+   "photo": "q103578.jpg"
+  },
+  {
+   "name": "Joe Pesci",
+   "names": {
+    "az": "Co Peski",
+    "ru": "Джо Пеши"
+   },
+   "role": "Harry",
+   "photo": "q20178.jpg"
+  },
+  {
+   "name": "Daniel Stern",
+   "names": {
+    "ru": "Дэниел Стерн"
+   },
+   "role": "Marv",
+   "photo": "q379811.jpg"
+  },
+  {
+   "name": "John Heard",
+   "names": {
+    "ru": "Джон Херд"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Catherine O'Hara",
+   "names": {
+    "az": "Ketrin Ohara",
+    "ru": "Кэтрин О’Хара"
+   },
+   "role": null,
+   "photo": "q233365.jpg"
+  },
+  {
+   "name": "Roberts Blossom",
+   "names": {
+    "ru": "Робертс Блоссом"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "John Candy",
+   "names": {
+    "ru": "Джон Кэнди"
+   },
+   "role": "Gus Polinski",
+   "photo": "q218532.jpg"
+  },
+  {
+   "name": "Devin Ratray",
+   "names": {
+    "ru": "Девин Рэтрей"
+   },
+   "role": null,
+   "photo": null
+  }
+ ],
+ "kill-bill-vol-1-2003": [
+  {
+   "name": "Uma Thurman",
+   "names": {
+    "az": "Uma Turman",
+    "ru": "Ума Турман"
+   },
+   "role": "Beatrix Kiddo",
+   "roles": {
+    "ru": "Беатрикс Киддо"
+   },
+   "photo": "q125017.jpg"
+  },
+  {
+   "name": "Lucy Liu",
+   "names": {
+    "az": "Lüsi Lyu",
+    "ru": "Люси Лью"
+   },
+   "role": "O-Ren Ishii",
+   "roles": {
+    "ru": "О-Рен Ишии"
+   },
+   "photo": "q188375.jpg"
+  },
+  {
+   "name": "Vivica A. Fox",
+   "names": {
+    "ru": "Вивика А. Фокс"
+   },
+   "role": "Vernita Green",
+   "roles": {
+    "ru": "Вернита Грин"
+   },
+   "photo": "q220396.jpg"
+  },
+  {
+   "name": "Daryl Hannah",
+   "names": {
+    "ru": "Дэрил Ханна"
+   },
+   "role": "Elle Driver",
+   "roles": {
+    "ru": "Элли Драйвер"
+   },
+   "photo": "q207596.jpg"
+  },
+  {
+   "name": "David Carradine",
+   "names": {
+    "ru": "Дэвид Кэррадайн"
+   },
+   "role": "Bill",
+   "roles": {
+    "ru": "Билл"
+   },
+   "photo": "q187038.jpg"
+  },
+  {
+   "name": "Michael Madsen",
+   "names": {
+    "ru": "Майкл Мэдсен"
+   },
+   "role": "Budd",
+   "roles": {
+    "ru": "Бадд"
+   },
+   "photo": "q220584.jpg"
+  },
+  {
+   "name": "Julie Dreyfus",
+   "names": {
+    "ru": "Жюли Дрейфус"
+   },
+   "role": "Sofie Fatale",
+   "photo": "q263178.jpg"
+  },
+  {
+   "name": "Chiaki Kuriyama",
+   "names": {
+    "az": "Çiaki Kuriyama",
+    "ru": "Чиаки Курияма"
+   },
+   "role": "Gogo Yubari",
+   "roles": {
+    "ru": "Гого Юбари"
+   },
+   "photo": "q234094.jpg"
+  }
+ ],
+ "back-to-the-future-1985": [
+  {
+   "name": "Christopher Lloyd",
+   "names": {
+    "az": "Kristofer Lloyd",
+    "ru": "Кристофер Ллойд"
+   },
+   "role": "Emmett Brown",
+   "roles": {
+    "ru": "Эмметт Браун"
+   },
+   "photo": "q109324.jpg"
+  },
+  {
+   "name": "Lea Thompson",
+   "names": {
+    "ru": "Лиа Томпсон"
+   },
+   "role": "Lorraine Baines McFly",
+   "roles": {
+    "ru": "Лоррейн Бейнс"
+   },
+   "photo": "q230605.jpg"
+  },
+  {
+   "name": "Crispin Glover",
+   "names": {
+    "ru": "Криспин Гловер"
+   },
+   "role": "George McFly",
+   "roles": {
+    "ru": "Джордж Макфлай"
+   },
+   "photo": "q310060.jpg"
+  },
+  {
+   "name": "Michael J. Fox",
+   "names": {
+    "ru": "Майкл Джей Фокс"
+   },
+   "role": "Marty McFly",
+   "roles": {
+    "ru": "Марти Макфлай"
+   },
+   "photo": "q395274.jpg"
+  },
+  {
+   "name": "Thomas F. Wilson",
+   "names": {
+    "ru": "Томас Ф. Уилсон"
+   },
+   "role": "Biff Tannen",
+   "roles": {
+    "ru": "Бифф Таннен"
+   },
+   "photo": "q360663.jpg"
+  },
+  {
+   "name": "Marc McClure",
+   "names": {
+    "az": "Mark KakKlyur",
+    "ru": "Марк МакКлюр"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Wendie Jo Sperber",
+   "names": {
+    "ru": "Уэнди Джо Спербер"
+   },
+   "role": null,
+   "photo": "q449324.jpg"
+  },
+  {
+   "name": "James Tolkan",
+   "names": {
+    "ru": "Джеймс Толкан"
+   },
+   "role": null,
+   "photo": "q783369.jpg"
+  }
+ ],
+ "avatar-2009": [
+  {
+   "name": "Sam Worthington",
+   "names": {
+    "az": "Sem Vortinqton",
+    "ru": "Сэм Уортингтон"
+   },
+   "role": "Jake Sully",
+   "roles": {
+    "ru": "Джейк Салли"
+   },
+   "photo": "q82085.jpg"
+  },
+  {
+   "name": "Zoe Saldaña",
+   "names": {
+    "az": "Zoe Saldana",
+    "ru": "Зои Салдана"
+   },
+   "role": "Neytiri",
+   "roles": {
+    "ru": "Нейтири"
+   },
+   "photo": "q190162.jpg"
+  },
+  {
+   "name": "Stephen Lang",
+   "names": {
+    "az": "Stiven Lenq",
+    "ru": "Стивен Лэнг"
+   },
+   "role": "Miles Quaritch",
+   "roles": {
+    "ru": "Майлз Куоритч"
+   },
+   "photo": "q312902.jpg"
+  },
+  {
+   "name": "Michelle Rodriguez",
+   "names": {
+    "az": "Mişel Rodriqes",
+    "ru": "Мишель Родригес"
+   },
+   "role": "Trudy Chacón",
+   "photo": "q184219.jpg"
+  },
+  {
+   "name": "Joel David Moore",
+   "names": {
+    "az": "Coel David Mur",
+    "ru": "Джоэл Дэвид Мур"
+   },
+   "role": "Norm Spellman",
+   "photo": "q371786.jpg"
+  },
+  {
+   "name": "Giovanni Ribisi",
+   "names": {
+    "az": "Ciovanni Ribisi",
+    "ru": "Джованни Рибизи"
+   },
+   "role": "Parker Selfridge",
+   "roles": {
+    "ru": "Паркер Селфридж"
+   },
+   "photo": "q224081.jpg"
+  },
+  {
+   "name": "Dileep Rao",
+   "names": {
+    "az": "Dilepp Rao",
+    "ru": "Дилип Рао"
+   },
+   "role": "Max Patel",
+   "photo": null
+  },
+  {
+   "name": "Laz Alonso",
+   "names": {
+    "ru": "Лаз Алонсо"
+   },
+   "role": "Tsu'tey",
+   "photo": "q302335.jpg"
+  }
+ ],
+ "titanic-1997": [
+  {
+   "name": "Leonardo DiCaprio",
+   "names": {
+    "az": "Leonardo DiKaprio",
+    "ru": "Леонардо Ди Каприо"
+   },
+   "role": "Jack Dawson",
+   "photo": "q38111.jpg"
+  },
+  {
+   "name": "Kate Winslet",
+   "names": {
+    "az": "Keyt Vinslet",
+    "ru": "Кейт Уинслет"
+   },
+   "role": "Rose DeWitt Bukater",
+   "photo": "q202765.jpg"
+  },
+  {
+   "name": "Billy Zane",
+   "names": {
+    "az": "Billi Zeyn",
+    "ru": "Билли Зейн"
+   },
+   "role": "Caledon Hockley",
+   "photo": "q205435.jpg"
+  },
+  {
+   "name": "Kathy Bates",
+   "names": {
+    "az": "Keti Beyts",
+    "ru": "Кэти Бэйтс"
+   },
+   "role": "Margaret Molly Brown",
+   "photo": "q544465.jpg"
+  },
+  {
+   "name": "Frances Fisher",
+   "names": {
+    "az": "Frensis Fişer",
+    "ru": "Фрэнсис Фишер"
+   },
+   "role": "Ruth DeWitt Bukater",
+   "photo": "q35011.jpg"
+  },
+  {
+   "name": "Bernard Hill",
+   "names": {
+    "ru": "Бернард Хилл"
+   },
+   "role": "Captain Edward John Smith",
+   "photo": "q310515.jpg"
+  },
+  {
+   "name": "Jonathan Hyde",
+   "names": {
+    "az": "Conatan Hayd",
+    "ru": "Джонатан Хайд"
+   },
+   "role": "J. Bruce Ismay",
+   "photo": "q435468.jpg"
+  },
+  {
+   "name": "David Warner",
+   "names": {
+    "az": "Devid Vorner",
+    "ru": "Дэвид Уорнер"
+   },
+   "role": "Spicer Lovejoy",
+   "photo": "q363271.jpg"
+  }
+ ],
+ "fargo-1996": [
+  {
+   "name": "Frances McDormand",
+   "names": {
+    "az": "Frensis MakDormand",
+    "ru": "Фрэнсис Макдорманд"
+   },
+   "role": "Marge Gunderson",
+   "photo": "q204299.jpg"
+  },
+  {
+   "name": "William H. Macy",
+   "names": {
+    "az": "Vilyam H. Meysi",
+    "ru": "Уильям Мэйси"
+   },
+   "role": "Jerry Lundegaard",
+   "photo": "q224159.jpg"
+  },
+  {
+   "name": "Steve Buscemi",
+   "names": {
+    "az": "Stiv Buşemi",
+    "ru": "Стив Бушеми"
+   },
+   "role": "Carl Showalter",
+   "photo": "q104061.jpg"
+  },
+  {
+   "name": "Harve Presnell",
+   "names": {
+    "ru": "Харви Преснелл"
+   },
+   "role": "Wade Gustafson",
+   "photo": "q1395333.jpg"
+  },
+  {
+   "name": "Peter Stormare",
+   "names": {
+    "ru": "Петер Стормаре"
+   },
+   "role": "Gaear Grimsrud",
+   "photo": "q295148.jpg"
+  },
+  {
+   "name": "Tony Denman",
+   "names": {
+    "ru": "Тони Денмен"
+   },
+   "role": "Scotty Lundegaard",
+   "photo": null
+  },
+  {
+   "name": "Larry Brandenburg",
+   "names": {
+    "ru": "Ларри Бранденбург"
+   },
+   "role": "Stan Grossman",
+   "photo": null
+  },
+  {
+   "name": "John Carroll Lynch",
+   "names": {
+    "az": "Con Kerroll Linç",
+    "ru": "Джон Кэрролл Линч"
+   },
+   "role": "Norm Gunderson",
+   "photo": "q707759.jpg"
+  }
+ ],
+ "the-prestige-2006": [
+  {
+   "name": "Christian Bale",
+   "names": {
+    "az": "Kristian Beyl",
+    "ru": "Кристиан Бейл"
+   },
+   "role": "Alfred The Professor Borden / Bernard Fallon / Freddy Borden",
+   "photo": "q45772.jpg"
+  },
+  {
+   "name": "Hugh Jackman",
+   "names": {
+    "az": "Hyu Cekman",
+    "ru": "Хью Джекман"
+   },
+   "role": "Robert The Great Danton Angier / Lord Caldlow",
+   "photo": "q129591.jpg"
+  },
+  {
+   "name": "Michael Caine",
+   "names": {
+    "az": "Maykl Keyn",
+    "ru": "Майкл Кейн"
+   },
+   "role": "John Cutter",
+   "photo": "q123351.jpg"
+  },
+  {
+   "name": "Scarlett Johansson",
+   "names": {
+    "az": "Skarlet Yohansson",
+    "ru": "Скарлетт Йоханссон"
+   },
+   "role": "Olivia Wenscombe",
+   "photo": "q34436.jpg"
+  },
+  {
+   "name": "Rebecca Hall",
+   "names": {
+    "ru": "Ребекка Холл"
+   },
+   "role": "Sarah Borden",
+   "photo": "q230534.jpg"
+  },
+  {
+   "name": "Piper Perabo",
+   "names": {
+    "ru": "Пайпер Перабо"
+   },
+   "role": "Julia McCullough",
+   "photo": "q228868.jpg"
+  },
+  {
+   "name": "David Bowie",
+   "names": {
+    "az": "Devid Boui",
+    "ru": "Дэвид Боуи"
+   },
+   "role": "Nikola Tesla",
+   "photo": "q5383.jpg"
+  },
+  {
+   "name": "Andy Serkis",
+   "names": {
+    "az": "Endi Serkis",
+    "ru": "Энди Сёркис"
+   },
+   "role": "Mr. Alley",
+   "photo": "q206922.jpg"
+  }
+ ],
+ "alien-1979": [
+  {
+   "name": "Yaphet Kotto",
+   "names": {
+    "ru": "Яфет Котто"
+   },
+   "role": "Dennis Monroe Parker",
+   "roles": {
+    "ru": "Деннис Монро Паркер"
+   },
+   "photo": "q266270.jpg"
+  },
+  {
+   "name": "Veronica Cartwright",
+   "names": {
+    "ru": "Вероника Картрайт"
+   },
+   "role": "Joan Lambert",
+   "roles": {
+    "ru": "Джоан Ламберт"
+   },
+   "photo": "q283872.jpg"
+  },
+  {
+   "name": "Tom Skerritt",
+   "names": {
+    "ru": "Том Скерритт"
+   },
+   "role": "Arthur Dallas",
+   "roles": {
+    "ru": "Артур Даллас"
+   },
+   "photo": "q320093.jpg"
+  },
+  {
+   "name": "Harry Dean Stanton",
+   "names": {
+    "az": "Harri Din Stenton",
+    "ru": "Гарри Дин Стэнтон"
+   },
+   "role": "Samuel Brett",
+   "roles": {
+    "ru": "Сэмюэл Бретт"
+   },
+   "photo": "q314290.jpg"
+  },
+  {
+   "name": "John Hurt",
+   "names": {
+    "az": "Con Hört",
+    "ru": "Джон Хёрт"
+   },
+   "role": "Gilbert Kane",
+   "roles": {
+    "ru": "Гилберт Кейн"
+   },
+   "photo": "q200405.jpg"
+  },
+  {
+   "name": "Sigourney Weaver",
+   "names": {
+    "az": "Siqurni Uiver",
+    "ru": "Сигурни Уивер"
+   },
+   "role": "Ellen Ripley",
+   "roles": {
+    "ru": "Эллен Рипли"
+   },
+   "photo": "q102124.jpg"
+  },
+  {
+   "name": "Ian Holm",
+   "names": {
+    "az": "İen Holm",
+    "ru": "Иэн Холм"
+   },
+   "role": "Ash",
+   "roles": {
+    "ru": "Эш"
+   },
+   "photo": "q223091.jpg"
+  },
+  {
+   "name": "Eddie Powell",
+   "names": {
+    "ru": "Эдди Пауэлл"
+   },
+   "role": "Big Chap",
+   "photo": null
+  }
+ ],
+ "gone-girl-2014": [
+  {
+   "name": "Ben Affleck",
+   "names": {
+    "az": "Ben Afflek",
+    "ru": "Бен Аффлек"
+   },
+   "role": "Nick Dunne",
+   "photo": "q483118.jpg"
+  },
+  {
+   "name": "Rosamund Pike",
+   "names": {
+    "ru": "Розамунд Пайк"
+   },
+   "role": "Amy Dunne",
+   "photo": "q230004.jpg"
+  },
+  {
+   "name": "Neil Patrick Harris",
+   "names": {
+    "ru": "Нил Патрик Харрис"
+   },
+   "role": "Desi Collings",
+   "photo": "q485310.jpg"
+  },
+  {
+   "name": "Missi Pyle",
+   "names": {
+    "az": "Missi Payl",
+    "ru": "Мисси Пайл"
+   },
+   "role": "Ellen Abbott",
+   "photo": "q233786.jpg"
+  },
+  {
+   "name": "Tyler Perry",
+   "names": {
+    "ru": "Тайлер Перри"
+   },
+   "role": "Tanner Bolt",
+   "photo": "q686301.jpg"
+  },
+  {
+   "name": "Kim Dickens",
+   "names": {
+    "ru": "Ким Диккенс"
+   },
+   "role": "Detective Rhonda Boney",
+   "photo": "q269894.jpg"
+  },
+  {
+   "name": "Patrick Fugit",
+   "names": {
+    "ru": "Патрик Фьюджит"
+   },
+   "role": "Officer James Gilpin",
+   "photo": "q465152.jpg"
+  },
+  {
+   "name": "Emily Ratajkowski",
+   "names": {
+    "az": "Emili Ratakovski",
+    "ru": "Эмили Ратакофски"
+   },
+   "role": "Andie Fitzgerald",
+   "photo": "q5372335.jpg"
+  }
+ ],
+ "inception-2010": [
+  {
+   "name": "Leonardo DiCaprio",
+   "names": {
+    "az": "Leonardo DiKaprio",
+    "ru": "Леонардо Ди Каприо"
+   },
+   "role": "Dominick Cobb",
+   "roles": {
+    "ru": "Доминик Кобб"
+   },
+   "photo": "q38111.jpg"
+  },
+  {
+   "name": "Ken Watanabe",
+   "names": {
+    "az": "Ken Vatanabe",
+    "ru": "Кэн Ватанабэ"
+   },
+   "role": "Saito",
+   "roles": {
+    "ru": "Сайто"
+   },
+   "photo": "q211553.jpg"
+  },
+  {
+   "name": "Joseph Gordon-Levitt",
+   "names": {
+    "az": "Cozef Qordon-Levitt",
+    "ru": "Джозеф Гордон-Левитт"
+   },
+   "role": "Arthur",
+   "roles": {
+    "ru": "Артур"
+   },
+   "photo": "q177311.jpg"
+  },
+  {
+   "name": "Marion Cotillard",
+   "names": {
+    "az": "Marion Kotiyar",
+    "ru": "Марион Котийяр"
+   },
+   "role": "Mal",
+   "roles": {
+    "ru": "Мэл"
+   },
+   "photo": "q8927.jpg"
+  },
+  {
+   "name": "Elliot Page",
+   "names": {
+    "az": "Elliot Peyc",
+    "ru": "Эллиот Пейдж"
+   },
+   "role": "Ariadne",
+   "roles": {
+    "ru": "Ариадна"
+   },
+   "photo": "q173399.jpg"
+  },
+  {
+   "name": "Tom Hardy",
+   "names": {
+    "az": "Tom Hardi",
+    "ru": "Том Харди"
+   },
+   "role": "Eames",
+   "roles": {
+    "ru": "Имс"
+   },
+   "photo": "q208026.jpg"
+  },
+  {
+   "name": "Cillian Murphy",
+   "names": {
+    "az": "Killian Mörfi",
+    "ru": "Киллиан Мерфи"
+   },
+   "role": "Robert Fischer",
+   "roles": {
+    "ru": "Роберт Фишер"
+   },
+   "photo": null
+  },
+  {
+   "name": "Tom Berenger",
+   "names": {
+    "az": "Tom Berencer",
+    "ru": "Том Беренджер"
+   },
+   "role": "Peter Browning",
+   "roles": {
+    "ru": "Питер Браунинг"
+   },
+   "photo": "q299317.jpg"
+  }
+ ],
+ "taxi-driver-1976": [
+  {
+   "name": "David Chiang",
+   "names": {
+    "ru": "Дэвид Цзян"
+   },
+   "role": null,
+   "photo": "q704140.jpg"
+  }
+ ],
+ "dune-2021": [
+  {
+   "name": "Timothée Chalamet",
+   "names": {
+    "az": "Timoti Şalame",
+    "ru": "Тимоти Шаламе"
+   },
+   "role": "Paul Atreides",
+   "roles": {
+    "ru": "Пол Атрейдес"
+   },
+   "photo": "q19877770.jpg"
+  },
+  {
+   "name": "Rebecca Ferguson",
+   "names": {
+    "ru": "Ребекка Фергюсон"
+   },
+   "role": "Lady Jessica",
+   "roles": {
+    "ru": "леди Джессика",
+    "tr": "Leydi Jessica"
+   },
+   "photo": "q4947838.jpg"
+  },
+  {
+   "name": "Josh Brolin",
+   "names": {
+    "az": "Coş Brolin",
+    "ru": "Джош Бролин"
+   },
+   "role": "Gurney Halleck",
+   "roles": {
+    "ru": "Гурни Халлек"
+   },
+   "photo": "q41396.jpg"
+  },
+  {
+   "name": "Oscar Isaac",
+   "names": {
+    "az": "Oskar Ayzek",
+    "ru": "Оскар Айзек"
+   },
+   "role": "Leto I Atreides",
+   "roles": {
+    "ru": "Лето Атрейдес"
+   },
+   "photo": "q336788.jpg"
+  },
+  {
+   "name": "Jason Momoa",
+   "names": {
+    "az": "Ceyson Momoa",
+    "ru": "Джейсон Момоа"
+   },
+   "role": "Duncan Idaho",
+   "roles": {
+    "ru": "Дункан Айдахо"
+   },
+   "photo": "q315271.jpg"
+  },
+  {
+   "name": "Javier Bardem",
+   "names": {
+    "az": "Xaviyer Bardem",
+    "ru": "Хавьер Бардем"
+   },
+   "role": "Stilgar",
+   "roles": {
+    "ru": "Стилгар"
+   },
+   "photo": "q134895.jpg"
+  },
+  {
+   "name": "Dave Bautista",
+   "names": {
+    "az": "Deyv Botista",
+    "ru": "Дейв Батиста",
+    "tr": "Dave Batista"
+   },
+   "role": "Glossu Rabban",
+   "roles": {
+    "ru": "Глоссу Раббан"
+   },
+   "photo": "q44158.jpg"
+  },
+  {
+   "name": "Zendaya",
+   "names": {
+    "ru": "Зендея"
+   },
+   "role": "Chani",
+   "roles": {
+    "ru": "Чани"
+   },
+   "photo": "q189489.jpg"
+  }
+ ],
+ "toy-story-1995": [
+  {
+   "name": "Tom Hanks",
+   "names": {
+    "az": "Tom Henks",
+    "ru": "Том Хэнкс"
+   },
+   "role": "Woody",
+   "roles": {
+    "ru": "Шериф Вуди"
+   },
+   "photo": "q2263.jpg"
+  },
+  {
+   "name": "Tim Allen",
+   "names": {
+    "ru": "Тим Аллен"
+   },
+   "role": "Buzz Lightyear",
+   "roles": {
+    "ru": "Базз Лайтер",
+    "tr": "Buzz Işıkyılı"
+   },
+   "photo": "q208408.jpg"
+  },
+  {
+   "name": "Don Rickles",
+   "names": {
+    "ru": "Дон Риклс"
+   },
+   "role": "Mr. Potato Head",
+   "roles": {
+    "ru": "мистер Картофельная Голова"
+   },
+   "photo": "q269890.jpg"
+  },
+  {
+   "name": "Wallace Shawn",
+   "names": {
+    "ru": "Уоллес Шон"
+   },
+   "role": "Rex",
+   "roles": {
+    "ru": "Рекс"
+   },
+   "photo": "q311068.jpg"
+  },
+  {
+   "name": "Jim Varney",
+   "names": {
+    "ru": "Джим Варни"
+   },
+   "role": "Slinky Dog",
+   "photo": null
+  },
+  {
+   "name": "John Ratzenberger",
+   "names": {
+    "ru": "Джон Ратценбергер"
+   },
+   "role": "Hamm",
+   "roles": {
+    "ru": "Хэмм"
+   },
+   "photo": "q374093.jpg"
+  },
+  {
+   "name": "Annie Potts",
+   "names": {
+    "ru": "Энни Поттс"
+   },
+   "role": "Bo Peep",
+   "roles": {
+    "ru": "Бо Пип"
+   },
+   "photo": "q253536.jpg"
+  },
+  {
+   "name": "Erik von Detten",
+   "names": {
+    "ru": "Эрик фон Деттен"
+   },
+   "role": "Sid Phillips",
+   "photo": "q979189.jpg"
+  }
+ ],
+ "north-by-northwest-1959": [
+  {
+   "name": "Eva Marie Saint",
+   "names": {
+    "ru": "Эва Мари Сейнт"
+   },
+   "role": "Eve Kendall",
+   "photo": "q228928.jpg"
+  },
+  {
+   "name": "James Mason",
+   "names": {
+    "ru": "Джеймс Мэйсон"
+   },
+   "role": null,
+   "photo": "q209186.jpg"
+  },
+  {
+   "name": "Jessie Royce Landis",
+   "names": {
+    "ru": "Джесси Ройс Лэндис"
+   },
+   "role": null,
+   "photo": "q541270.jpg"
+  },
+  {
+   "name": "Leo G. Carroll",
+   "names": {
+    "ru": "Лео Г. Кэрролл"
+   },
+   "role": null,
+   "photo": "q919192.jpg"
+  },
+  {
+   "name": "Philip Ober",
+   "names": {
+    "ru": "Филип Обер"
+   },
+   "role": null,
+   "photo": "q2073712.jpg"
+  },
+  {
+   "name": "Martin Landau",
+   "names": {
+    "ru": "Мартин Ландау"
+   },
+   "role": null,
+   "photo": "q294641.jpg"
+  },
+  {
+   "name": "Les Tremayne",
+   "names": {
+    "ru": "Лес Тремейн"
+   },
+   "role": null,
+   "photo": "q927542.jpg"
+  },
+  {
+   "name": "Josephine Hutchinson",
+   "names": {
+    "ru": "Джозефин Хатчинсон"
+   },
+   "role": null,
+   "photo": "q932792.jpg"
+  }
+ ],
+ "goodfellas-1990": [
+  {
+   "name": "Joe Pesci",
+   "names": {
+    "az": "Co Peski",
+    "ru": "Джо Пеши"
+   },
+   "role": "Tommy DeVito",
+   "roles": {
+    "ru": "Томми Девито"
+   },
+   "photo": "q20178.jpg"
+  },
+  {
+   "name": "Robert De Niro",
+   "names": {
+    "az": "Robert de Niro",
+    "ru": "Роберт Де Ниро"
+   },
+   "role": "Jimmy Conway",
+   "photo": "q36949.jpg"
+  },
+  {
+   "name": "Ray Liotta",
+   "names": {
+    "az": "Rey Liotta",
+    "ru": "Рэй Лиотта"
+   },
+   "role": "Henry Hill",
+   "photo": "q211280.jpg"
+  },
+  {
+   "name": "Lorraine Bracco",
+   "names": {
+    "ru": "Лоррейн Бракко"
+   },
+   "role": "Karen Hill",
+   "photo": "q229319.jpg"
+  },
+  {
+   "name": "Paul Sorvino",
+   "names": {
+    "ru": "Пол Сорвино"
+   },
+   "role": "Paulie Cicero",
+   "photo": "q447892.jpg"
+  },
+  {
+   "name": "Frank Sivero",
+   "names": {
+    "ru": "Фрэнк Сиверо"
+   },
+   "role": "Frankie Carbone",
+   "photo": "q1369720.jpg"
+  },
+  {
+   "name": "Tony Darrow",
+   "names": {
+    "ru": "Тони Дарроу"
+   },
+   "role": "Sonny Bunz",
+   "photo": null
+  },
+  {
+   "name": "Mike Starr",
+   "names": {
+    "ru": "Майк Старр"
+   },
+   "role": "Frenchy",
+   "photo": null
+  }
+ ],
+ "mad-max-fury-road-2015": [
+  {
+   "name": "Tom Hardy",
+   "names": {
+    "az": "Tom Hardi",
+    "ru": "Том Харди"
+   },
+   "role": "Max Rockatansky",
+   "roles": {
+    "ru": "Макс Рокатански",
+    "tr": "Max Rokatansky"
+   },
+   "photo": "q208026.jpg"
+  },
+  {
+   "name": "Charlize Theron",
+   "names": {
+    "az": "Şarliz Teron",
+    "ru": "Шарлиз Терон"
+   },
+   "role": "Imperator Furiosa",
+   "roles": {
+    "ru": "Фуриоса"
+   },
+   "photo": "q80046.jpg"
+  },
+  {
+   "name": "Nicholas Hoult",
+   "names": {
+    "az": "Nikolas Holt",
+    "ru": "Николас Холт"
+   },
+   "role": "Nux",
+   "photo": "q298347.jpg"
+  },
+  {
+   "name": "Josh Helman",
+   "names": {
+    "ru": "Джош Хелман"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Nathan Jones",
+   "names": {
+    "ru": "Натан Джонс"
+   },
+   "role": "Rictus Erectus",
+   "photo": "q707158.jpg"
+  },
+  {
+   "name": "Zoë Kravitz",
+   "names": {
+    "az": "Zoi Kravits",
+    "ru": "Зои Кравиц"
+   },
+   "role": "Toast the Knowing",
+   "photo": "q227129.jpg"
+  },
+  {
+   "name": "Rosie Huntington-Whiteley",
+   "names": {
+    "az": "Rouzi Hantinqton-Vaytli",
+    "ru": "Роузи Хантингтон-Уайтли"
+   },
+   "role": "The Splendid Angharad",
+   "photo": "q212006.jpg"
+  },
+  {
+   "name": "Riley Keough",
+   "names": {
+    "az": "Rayli Kio",
+    "ru": "Райли Кио"
+   },
+   "role": "Capable",
+   "photo": "q254947.jpg"
+  }
+ ],
+ "the-exorcist-1973": [
+  {
+   "name": "Ellen Burstyn",
+   "names": {
+    "ru": "Эллен Бёрстин"
+   },
+   "role": null,
+   "photo": "q211144.jpg"
+  },
+  {
+   "name": "Max von Sydow",
+   "names": {
+    "az": "Maks fon Südov",
+    "ru": "Макс фон Сюдов"
+   },
+   "role": "Lankester Merrin",
+   "roles": {
+    "ru": "Ланкастер Меррин"
+   },
+   "photo": "q203215.jpg"
+  },
+  {
+   "name": "Lee J. Cobb",
+   "names": {
+    "ru": "Ли Джей Кобб"
+   },
+   "role": "William F. Kinderman",
+   "photo": "q348351.jpg"
+  },
+  {
+   "name": "Kitty Winn",
+   "names": {
+    "ru": "Китти Уинн"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Jack MacGowran",
+   "names": {
+    "ru": "Джек МакГоурэн"
+   },
+   "role": null,
+   "photo": "q1388853.jpg"
+  },
+  {
+   "name": "Linda Blair",
+   "names": {
+    "ru": "Линда Блэр"
+   },
+   "role": "Regan MacNeil",
+   "roles": {
+    "ru": "Риган Макнил"
+   },
+   "photo": "q232280.jpg"
+  },
+  {
+   "name": "William O'Malley",
+   "names": {
+    "ru": "Уильям О’Мэлли"
+   },
+   "role": null,
+   "photo": "q1615517.jpg"
+  },
+  {
+   "name": "Peter Masterson",
+   "names": {
+    "ru": "Питер Мастерсон"
+   },
+   "role": null,
+   "photo": null
+  }
+ ],
+ "pirates-of-the-caribbean-the-curse-of-the-black-pearl-2003": [
+  {
+   "name": "Geoffrey Rush",
+   "names": {
+    "az": "Ceffri Raş",
+    "ru": "Джеффри Раш"
+   },
+   "role": "Hector Barbossa",
+   "roles": {
+    "ru": "Гектор Барбосса"
+   },
+   "photo": "q166272.jpg"
+  },
+  {
+   "name": "Orlando Bloom",
+   "names": {
+    "az": "Orlando Blum",
+    "ru": "Орландо Блум"
+   },
+   "role": "Will Turner",
+   "roles": {
+    "ru": "Уилл Тёрнер"
+   },
+   "photo": "q44467.jpg"
+  },
+  {
+   "name": "Keira Knightley",
+   "names": {
+    "az": "Kira Naytli",
+    "ru": "Кира Найтли"
+   },
+   "role": "Elizabeth Swann",
+   "roles": {
+    "ru": "Элизабет Суонн"
+   },
+   "photo": "q42581.jpg"
+  },
+  {
+   "name": "Zoe Saldaña",
+   "names": {
+    "az": "Zoe Saldana",
+    "ru": "Зои Салдана"
+   },
+   "role": "Anamaria",
+   "roles": {
+    "ru": "Анна-Мария"
+   },
+   "photo": "q190162.jpg"
+  },
+  {
+   "name": "Treva Etienne",
+   "names": {
+    "ru": "Трева Этьен"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Martin Klebba",
+   "names": {
+    "ru": "Мартин Клебба"
+   },
+   "role": "Marty",
+   "roles": {
+    "ru": "Марти"
+   },
+   "photo": "q151168.jpg"
+  },
+  {
+   "name": "Lee Arenberg",
+   "names": {
+    "ru": "Ли Аренберг"
+   },
+   "role": "Pintel",
+   "roles": {
+    "ru": "Пинтел"
+   },
+   "photo": "q548163.jpg"
+  },
+  {
+   "name": "Mackenzie Crook",
+   "names": {
+    "ru": "Маккензи Крук"
+   },
+   "role": "Ragetti",
+   "roles": {
+    "ru": "Раджетти"
+   },
+   "photo": "q447614.jpg"
+  }
+ ],
+ "dead-poets-society-1989": [
+  {
+   "name": "Robin Williams",
+   "names": {
+    "az": "Robin Vilyams",
+    "ru": "Робин Уильямс"
+   },
+   "role": "John Keating",
+   "photo": "q83338.jpg"
+  },
+  {
+   "name": "Robert Sean Leonard",
+   "names": {
+    "ru": "Роберт Шон Леонард"
+   },
+   "role": "Neil Perry",
+   "photo": "q193160.jpg"
+  },
+  {
+   "name": "Ethan Hawke",
+   "names": {
+    "az": "İtan Houk",
+    "ru": "Итан Хоук"
+   },
+   "role": "Todd Anderson",
+   "photo": "q484615.jpg"
+  },
+  {
+   "name": "Josh Charles",
+   "names": {
+    "ru": "Джош Чарльз"
+   },
+   "role": "Knox Overstreet",
+   "photo": "q472282.jpg"
+  },
+  {
+   "name": "Gale Hansen",
+   "names": {
+    "ru": "Гейл Хэнсен"
+   },
+   "role": "Charles Dalton",
+   "photo": null
+  },
+  {
+   "name": "Norman Lloyd",
+   "names": {
+    "ru": "Норман Ллойд"
+   },
+   "role": null,
+   "photo": "q1999640.jpg"
+  },
+  {
+   "name": "Kurtwood Smith",
+   "names": {
+    "az": "Kertvud Smit",
+    "ru": "Кертвуд Смит"
+   },
+   "role": null,
+   "photo": "q317228.jpg"
+  },
+  {
+   "name": "George Martin",
+   "names": {
+    "ru": "Джордж Мартин"
+   },
+   "role": null,
+   "photo": null
+  }
+ ],
+ "a-quiet-place-2018": [
+  {
+   "name": "Emily Blunt",
+   "names": {
+    "az": "Emili Blant",
+    "ru": "Эмили Блант"
+   },
+   "role": null,
+   "photo": "q193517.jpg"
+  },
+  {
+   "name": "John Krasinski",
+   "names": {
+    "az": "Con Krasinski",
+    "ru": "Джон Красински"
+   },
+   "role": null,
+   "photo": "q313039.jpg"
+  },
+  {
+   "name": "Millicent Simmonds",
+   "names": {
+    "ru": "Миллисент Симмондс"
+   },
+   "role": null,
+   "photo": "q29809869.jpg"
+  },
+  {
+   "name": "Noah Jupe",
+   "names": {
+    "ru": "Ноа Джуп"
+   },
+   "role": null,
+   "photo": "q38410137.jpg"
+  },
+  {
+   "name": "Leon Russom",
+   "names": {
+    "ru": "Леон Рассом"
+   },
+   "role": null,
+   "photo": "q599274.jpg"
+  }
+ ],
+ "amelie-2001": [
+  {
+   "name": "Audrey Tautou",
+   "names": {
+    "az": "Odri Totu",
+    "ru": "Одри Тоту"
+   },
+   "role": "Amélie Poulain",
+   "photo": "q304123.jpg"
+  },
+  {
+   "name": "Mathieu Kassovitz",
+   "names": {
+    "ru": "Матьё Кассовитц"
+   },
+   "role": null,
+   "photo": "q491766.jpg"
+  },
+  {
+   "name": "Jamel Debbouze",
+   "names": {
+    "az": "Camal Dəbuz",
+    "ru": "Жамель Деббуз"
+   },
+   "role": null,
+   "photo": "q312661.jpg"
+  },
+  {
+   "name": "Dominique Pinon",
+   "names": {
+    "ru": "Доминик Пинон"
+   },
+   "role": null,
+   "photo": "q38554.jpg"
+  },
+  {
+   "name": "Yolande Moreau",
+   "names": {
+    "ru": "Иоланда Моро"
+   },
+   "role": null,
+   "photo": "q241437.jpg"
+  },
+  {
+   "name": "André Dussollier",
+   "names": {
+    "ru": "Андре Дюссолье"
+   },
+   "role": null,
+   "photo": "q518457.jpg"
+  },
+  {
+   "name": "Isabelle Nanty",
+   "names": {
+    "ru": "Изабель Нанти"
+   },
+   "role": null,
+   "photo": "q3141565.jpg"
+  },
+  {
+   "name": "Rufus",
+   "names": {
+    "ru": "Рюфюс"
+   },
+   "role": null,
+   "photo": "q715111.jpg"
+  }
+ ],
+ "citizen-kane-1941": [
+  {
+   "name": "Orson Welles",
+   "names": {
+    "az": "Orson Uells",
+    "ru": "Орсон Уэллс"
+   },
+   "role": "Charles Foster Kane",
+   "photo": "q24829.jpg"
+  },
+  {
+   "name": "Joseph Cotten",
+   "names": {
+    "az": "Cozef Kotten",
+    "ru": "Джозеф Коттен"
+   },
+   "role": "Jedediah Leland",
+   "photo": "q95148.jpg"
+  },
+  {
+   "name": "Ruth Warrick",
+   "names": {
+    "ru": "Рут Уоррик"
+   },
+   "role": "Emily Monroe Norton Kane",
+   "photo": "q456375.jpg"
+  },
+  {
+   "name": "Everett Sloane",
+   "names": {
+    "ru": "Эверетт Слоун"
+   },
+   "role": "Mr. Bernstein",
+   "photo": "q600233.jpg"
+  },
+  {
+   "name": "William Alland",
+   "names": {
+    "ru": "Уильям Олленд"
+   },
+   "role": "Jerry Thompson",
+   "photo": "q925872.jpg"
+  },
+  {
+   "name": "Paul Stewart",
+   "names": {
+    "ru": "Пол Стюарт"
+   },
+   "role": "Raymond",
+   "photo": "q1385381.jpg"
+  },
+  {
+   "name": "George Coulouris",
+   "names": {
+    "ru": "Джордж Кулурис"
+   },
+   "role": "Walter Parks Thatcher",
+   "photo": "q1507169.jpg"
+  },
+  {
+   "name": "Dorothy Comingore",
+   "names": {
+    "ru": "Дороти Коминьоре"
+   },
+   "role": "Susan Alexander Kane",
+   "photo": "q221874.jpg"
+  }
+ ],
+ "howl-s-moving-castle-2004": [
+  {
+   "name": "Chieko Baishō",
+   "names": {
+    "ru": "Тиэко Байсё"
+   },
+   "role": null,
+   "photo": "q1138444.jpg"
+  },
+  {
+   "name": "Takuya Kimura",
+   "names": {
+    "ru": "Такуя Кимура"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Akihiro Miwa",
+   "names": {
+    "ru": "Акихиро Мива"
+   },
+   "role": null,
+   "photo": "q1076203.jpg"
+  },
+  {
+   "name": "Ryūnosuke Kamiki",
+   "names": {
+    "ru": "Рюноскэ Камики"
+   },
+   "role": null,
+   "photo": "q1041546.jpg"
+  },
+  {
+   "name": "Yō Ōizumi",
+   "names": {
+    "ru": "Ё Оойдзуми"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Akio Ōtsuka",
+   "names": {
+    "ru": "Акио Оцука"
+   },
+   "role": null,
+   "photo": "q418649.jpg"
+  },
+  {
+   "name": "Tatsuya Gashūin",
+   "names": {
+    "ru": "Тацуя Гасюин"
+   },
+   "role": null,
+   "photo": null
+  },
+  {
+   "name": "Haruko Katō",
+   "names": {
+    "ru": "Харуко Като"
+   },
+   "role": null,
+   "photo": null
+  }
+ ],
+ "shutter-island-2010": [
+  {
+   "name": "Leonardo DiCaprio",
+   "names": {
+    "az": "Leonardo DiKaprio",
+    "ru": "Леонардо Ди Каприо"
+   },
+   "role": "Edward \"Teddy\" Daniels",
+   "photo": "q38111.jpg"
+  },
+  {
+   "name": "Mark Ruffalo",
+   "names": {
+    "ru": "Марк Руффало"
+   },
+   "role": "Chuck Aule",
+   "photo": "q41422.jpg"
+  },
+  {
+   "name": "Ben Kingsley",
+   "names": {
+    "az": "Ben Kinqsli",
+    "ru": "Бен Кингсли"
+   },
+   "role": "Dr. John Cawley",
+   "photo": "q173158.jpg"
+  },
+  {
+   "name": "Michelle Williams",
+   "names": {
+    "az": "Mişel Vilyams",
+    "ru": "Мишель Уильямс"
+   },
+   "role": "Dolores Chanal",
+   "photo": "q156796.jpg"
+  },
+  {
+   "name": "Patricia Clarkson",
+   "names": {
+    "ru": "Патриша Кларксон"
+   },
+   "role": "Rachel Solando",
+   "photo": "q229268.jpg"
+  },
+  {
+   "name": "Max von Sydow",
+   "names": {
+    "az": "Maks fon Südov",
+    "ru": "Макс фон Сюдов"
+   },
+   "role": "Dr. Jeremiah Naehring",
+   "photo": "q203215.jpg"
+  },
+  {
+   "name": "Emily Mortimer",
+   "names": {
+    "az": "Emili Mortimer",
+    "ru": "Эмили Мортимер"
+   },
+   "role": "The Nurse Portraying Rachel Solando",
+   "photo": "q230308.jpg"
+  },
+  {
+   "name": "Jackie Earle Haley",
+   "names": {
+    "ru": "Джеки Эрл Хейли"
+   },
+   "role": "George Noyce",
+   "photo": "q314841.jpg"
+  }
+ ]
+}

@@ -71,8 +71,17 @@ try {
             if ((Get-Date).Hour -ge 3 -and $last.Date -lt (Get-Date).Date) {
                 Say "Nightly API check starting."
                 & dotnet build $hostDir -c Debug -p:SkipClientBuild=true --nologo -v q 2>&1 | Out-Null
-                & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "api-check.ps1") 2>&1 | Out-Null
-                Say "Nightly API check finished (exit code $LASTEXITCODE)."
+                # An hour at most (it takes about twenty minutes): one that hangs is stopped and
+                # reported, and the backups above carry on either way.
+                $check = Start-Process -FilePath "powershell.exe" -WindowStyle Hidden -PassThru -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $PSScriptRoot "api-check.ps1")
+                $null = $check.Handle   # without it PowerShell loses the exit code
+                if ($check.WaitForExit(3600000)) { Say "Nightly API check finished (exit code $($check.ExitCode))." }
+                else {
+                    & taskkill.exe /PID $check.Id /T /F 2>&1 | Out-Null
+                    . (Join-Path $PSScriptRoot "write-report.ps1")
+                    Write-CheckReport -Name "api" -Summary "Stopped after an hour without finishing." -Problems @("FAIL the API check did not finish within an hour; see tools\run-site.ps1")
+                    Say "Nightly API check STOPPED after an hour."
+                }
             }
         }
         Say "The site stopped (exit code $($site.ExitCode)); starting it again in 5 seconds."

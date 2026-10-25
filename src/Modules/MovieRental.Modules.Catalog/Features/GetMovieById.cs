@@ -32,7 +32,7 @@ internal sealed class GetMovieByIdHandler(CatalogDbContext db, IHostEnvironment 
                     .ToList(),
                 m.VideoUrl != null && m.VideoUrl != ""))
             .FirstOrDefaultAsync(ct);
-        return movie is null ? null : movie with { Descriptions = MovieDescriptions.For(environment, movie.Slug) };
+        return movie is null ? null : movie with { Descriptions = MovieDescriptions.For(environment, movie.Slug), Cast = MovieCast.For(environment, movie.Slug) };
     }
 }
 
