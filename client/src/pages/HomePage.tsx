@@ -4,7 +4,7 @@ import StackSpread from "@/components/ui/stack-spread";
 import { HeroEye } from "@/components/ui/hero-eye";
 import { MovieCarousel } from "@/components/ui/movie-carousel";
 import { PhoneDemo } from "@/components/PhoneDemo";
-import { MovieCard, type MovieListItem } from "@/components/MovieCard";
+import { MovieCard, type MovieListItem, type RentTarget } from "@/components/MovieCard";
 import { SearchField } from "@/components/SearchField";
 import { Section, Notice, Empty, Spinner } from "@/components/Shell";
 import { Pagination } from "@/components/Pagination";
@@ -109,7 +109,7 @@ export default function HomePage() {
   const [dialog, setDialog] = useState<{ id: string; mode: "details" | "watch" } | null>(null);
   const [rentingId] = useState<string | null>(null);
   // The film being paid for: the payment sheet is open while this is set.
-  const [payFor, setPayFor] = useState<MovieListItem | null>(null);
+  const [payFor, setPayFor] = useState<RentTarget | null>(null);
   const [trailer, setTrailer] = useState<MovieListItem | null>(null);
 
   // Watch plays the film when the site has it, and otherwise its trailer, full screen over the
@@ -235,7 +235,7 @@ export default function HomePage() {
     if (data && data.items.length === 0 && data.totalCount > 0 && page > 1) setPage(1);
   }, [data, page]);
 
-  async function rent(movie: MovieListItem) {
+  async function rent(movie: RentTarget) {
     if (!isSignedIn) {
       window.location.href = "/account";
       return;
@@ -245,7 +245,7 @@ export default function HomePage() {
   }
 
   // After the receipt: copies, shelves and recommendations have all changed.
-  async function rented(movie: MovieListItem) {
+  async function rented(movie: RentTarget) {
     setToast({ id: Date.now(), tone: "ok", text: `${movie.title} — ${t("movie.rented")}` });
     await Promise.all([load(), refreshFeatured(), refreshRecommended(), loadAccess()]);
   }
@@ -271,10 +271,7 @@ export default function HomePage() {
           movieId={dialog.id}
           mode={dialog.mode}
           onClose={() => setDialog(null)}
-          onRent={inApp ? undefined : (id) => {
-            const movie = [...featured, ...(data?.items ?? [])].find((m) => m.id === id);
-            if (movie) { setDialog(null); void rent(movie); }
-          }}
+          onRent={inApp ? undefined : (movie) => { setDialog(null); void rent(movie); }}
         />
       ) : null}
 

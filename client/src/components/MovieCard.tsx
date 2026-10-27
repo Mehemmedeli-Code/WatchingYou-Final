@@ -29,6 +29,9 @@ export interface MovieListItem {
   trailerUrl?: string | null;
 }
 
+/** What renting needs: a film from any list, or one picked inside the film dialog. */
+export type RentTarget = Pick<MovieListItem, "id" | "title">;
+
 export function MovieCard({
   movie,
   index,

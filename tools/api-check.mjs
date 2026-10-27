@@ -157,6 +157,12 @@ const star = r.json?.cast?.find((a) => a.photoUrl);
 expect("a film's detail lists its cast", ok(r) && r.json.cast?.length > 0 && !!star, `${r.status} ${JSON.stringify(r.json?.cast)?.slice(0, 100)}`);
 if (star) { const photo = await call("GET", star.photoUrl); expect("an actor's photo is served", photo.status === 200, `${photo.status}`); }
 r = await call("GET", "/api/cast/..%2F..%2Fappsettings.json"); expect("the photo endpoint gives out no other file", r.status === 404, `${r.status}`);
+
+// The cinema paper: today's date and only web links (the feeds are not ours). The sources may be
+// out of reach from the test machine, so an empty paper passes; a broken one does not.
+r = await call("GET", "/api/news?lang=az");
+expect("the cinema paper answers with today's edition", ok(r) && /^\d{4}-\d\d-\d\d$/.test(r.json?.date) && Array.isArray(r.json?.stories), `${r.status}`);
+expect("every story in the paper links to a web page", (r.json?.stories ?? []).every((s) => /^https?:\/\//.test(s.link) && (!s.image || s.image.startsWith("https://"))), JSON.stringify(r.json?.stories?.[0])?.slice(0, 120));
 r = await call("PUT", `/api/watchlist/${movie.id}`, { token: c }); expect("watchlist add", ok(r), `${r.status} ${r.text}`);
 r = await call("GET", "/api/watchlist/ids", { token: c }); expect("watchlist contains it", ok(r) && JSON.stringify(r.json).includes(movie.id), r.text.slice(0, 120));
 r = await call("DELETE", `/api/watchlist/${movie.id}`, { token: c }); expect("watchlist remove", ok(r), `${r.status}`);

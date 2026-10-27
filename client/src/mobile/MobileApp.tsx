@@ -21,6 +21,7 @@ import { openServerPage } from "@/lib/platform";
 // The website's other pages, loaded only when opened: the globe alone brings a map library.
 const CataloguePage = lazy(() => import("@/pages/HomePage"));
 const OnDisplayPage = lazy(() => import("@/pages/OnDisplayPage"));
+const NewsPage = lazy(() => import("@/pages/NewsPage"));
 const AiCatalogPage = lazy(() => import("@/pages/GalleryPage"));
 const HumanCraftPage = lazy(() => import("@/pages/HumanCraftPage"));
 const GlobePage = lazy(() => import("@/pages/GlobePage"));
@@ -204,6 +205,7 @@ export default function MobileApp() {
           <Suspense fallback={<p className="p-8 text-center text-sm text-ink-mute">…</p>}>
             {current === "catalogue" ? <CataloguePage /> : null}
             {current === "on-display" ? <OnDisplayPage /> : null}
+            {current === "news" ? <NewsPage /> : null}
             {current === "ai-catalog" ? <AiCatalogPage /> : null}
             {current === "human-craft" ? <HumanCraftPage /> : null}
             {current === "globe" ? <GlobePage /> : null}
