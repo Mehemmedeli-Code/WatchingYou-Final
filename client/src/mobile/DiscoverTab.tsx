@@ -1,14 +1,15 @@
 import type { ReactNode } from "react";
-import { ChevronRight, Clapperboard, Film, Globe2, Hand, LifeBuoy, Sparkles } from "lucide-react";
+import { ChevronRight, Clapperboard, Film, Globe2, Hand, LifeBuoy, Newspaper, Sparkles } from "lucide-react";
 import { t } from "@/lib/i18n";
 
 /** The website's pages the app also carries, beyond its three main tabs. */
-export const DISCOVER_ROUTES = ["catalogue", "on-display", "ai-catalog", "human-craft", "globe", "help"] as const;
+export const DISCOVER_ROUTES = ["catalogue", "on-display", "news", "ai-catalog", "human-craft", "globe", "help"] as const;
 export type DiscoverRoute = (typeof DISCOVER_ROUTES)[number];
 
 const ITEMS: { route: DiscoverRoute; icon: ReactNode; label: () => string; hint: () => string }[] = [
   { route: "catalogue", icon: <Film size={22} />, label: () => t("nav.catalogue", "Catalogue"), hint: () => t("app.catalogueHint", "Every film: search, browse, save for later") },
   { route: "on-display", icon: <Clapperboard size={22} />, label: () => t("nav.onDisplay", "Movies on Display"), hint: () => t("app.onDisplayHint", "What is on at the cinemas today") },
+  { route: "news", icon: <Newspaper size={22} />, label: () => t("nav.news", "Newspaper"), hint: () => t("app.newsHint", "Today's cinema news, no politics") },
   { route: "ai-catalog", icon: <Sparkles size={22} />, label: () => t("nav.aiCatalog", "AI Catalog"), hint: () => t("app.aiHint", "Short films made with AI") },
   { route: "human-craft", icon: <Hand size={22} />, label: () => t("nav.humanCraft", "Human Craft"), hint: () => t("app.craftHint", "Short films made by hand") },
   { route: "globe", icon: <Globe2 size={22} />, label: () => t("nav.globe", "Globe"), hint: () => t("app.globeHint", "See who is watching around the world") },

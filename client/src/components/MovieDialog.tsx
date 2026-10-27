@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { Star, X } from "lucide-react";
+import { Clapperboard, Star, X } from "lucide-react";
 import { Textarea } from "@/components/ui/input";
 import { post, ApiError } from "@/lib/api";
 import { Notice } from "@/components/Shell";
@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/Shell";
 import { get, query } from "@/lib/api";
-import { formatRuntime, formatUsd } from "@/lib/format";
+import { formatRuntime, formatUsd, RENTAL_PRICE } from "@/lib/format";
+import { PaymentSheet } from "@/components/CardPayment";
 import { useAuth } from "@/components/useAuth";
 import { t, formatWhen, genreName, lang } from "@/lib/i18n";
 import { isApp } from "@/lib/platform";
@@ -82,7 +83,9 @@ export function MovieDialog({
   movieId: string;
   mode: "details" | "watch";
   onClose: () => void;
-  onRent?: (id: string) => void;
+  /** Gets the film itself: it may be a similar film picked inside the dialog, which the page's own list does not hold.
+   *  Left out, the dialog takes the payment itself, so renting works wherever a film is opened. */
+  onRent?: (movie: { id: string; title: string }) => void;
 }) {
   // A similar film picked inside the dialog replaces the one shown, without closing it.
   const [movieId, setMovieId] = useState(startId);
@@ -101,6 +104,12 @@ export function MovieDialog({
   const [blocked, setBlocked] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [payFor, setPayFor] = useState<{ id: string; title: string } | null>(null);
+  const [rentedNote, setRentedNote] = useState<string | null>(null);
+  const rent = onRent ?? ((movie: { id: string; title: string }) => {
+    if (!isSignedIn) { window.location.href = "/account"; return; }
+    setPayFor(movie);
+  });
 
   const watch = useCallback(async () => {
     if (!isSignedIn) { setBlocked("signedOut"); return; }
@@ -180,7 +189,8 @@ export function MovieDialog({
 
   // Escape closes, and the page behind stops scrolling while the dialog is open.
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    // While the payment sheet is open, Escape is its own: it closes the sheet, not the film.
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape" && !payFor) onClose(); };
     document.addEventListener("keydown", onKey);
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -188,11 +198,26 @@ export function MovieDialog({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = previous;
     };
-  }, [onClose]);
+  }, [onClose, payFor]);
 
   const source = videoUrl ? embedFor(videoUrl) : null;
 
-  return createPortal(
+  return (
+    <>
+    {payFor ? (
+      <PaymentSheet
+        item={{ title: payFor.title, detail: t("pay.rentalDetail", "Rental · 3 days"), amount: formatUsd(RENTAL_PRICE), icon: <Clapperboard size={18} aria-hidden /> }}
+        pay={(card) => post("/api/rentals", { movieId: payFor.id, days: 3, card })}
+        onClose={() => setPayFor(null)}
+        onPaid={() => {
+          setRentedNote(`${payFor.title} — ${t("movie.rented")}`);
+          setPayFor(null);
+          setBlocked(null);
+          void reload();
+        }}
+      />
+    ) : null}
+    {createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -276,6 +301,7 @@ export function MovieDialog({
                 ) : null}
               </div>
 
+              {rentedNote ? <div className="mt-4"><Notice tone="ok">{rentedNote}</Notice></div> : null}
               <div className="mt-5 flex flex-wrap gap-2">
                 {detail.hasVideo ? (
                   <Button size="sm" disabled={asking} onClick={() => (playing ? setPlaying(false) : void watch())}>
@@ -294,9 +320,9 @@ export function MovieDialog({
                   <TrailerPlayer film={{ ...detail, trailerUrl: detail.trailerUrl }} onClose={() => setShowTrailer(false)} />
                 ) : null}
 
-                {onRent && !isStaff ? (
+                {!inApp && !isStaff ? (
                   <Button size="sm" variant="outline" disabled={detail.availableCopies === 0}
-                          onClick={() => onRent(detail.id)}>
+                          onClick={() => rent({ id: detail.id, title: detail.title })}>
                     {t("movie.rent")} · {formatUsd(0.5)}
                   </Button>
                 ) : null}
@@ -320,8 +346,8 @@ export function MovieDialog({
                     <>
                       <p className="text-sm text-ink">{t("pro.howToWatch", "Rent it for 3 days, or watch everything with Watching PRO.")}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {onRent ? (
-                          <Button size="sm" variant="outline" onClick={() => onRent(detail.id)}>
+                        {!isStaff ? (
+                          <Button size="sm" variant="outline" onClick={() => rent({ id: detail.id, title: detail.title })}>
                             {t("pro.rentFor", "Rent 3 days")} · {formatUsd(0.5)}
                           </Button>
                         ) : null}
@@ -445,5 +471,7 @@ export function MovieDialog({
       </motion.div>
     </AnimatePresence>,
     document.body,
+  )}
+    </>
   );
 }

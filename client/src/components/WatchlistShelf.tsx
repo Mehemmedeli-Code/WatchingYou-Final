@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Clapperboard, Heart } from "lucide-react";
 import { Section, Empty, Spinner, Notice } from "@/components/Shell";
-import { MovieCard, type MovieListItem } from "@/components/MovieCard";
+import { MovieCard, type MovieListItem, type RentTarget } from "@/components/MovieCard";
 import { MovieDialog } from "@/components/MovieDialog";
 import { get, post, ApiError } from "@/lib/api";
 import { loadWatchlist, toggleWatchlist } from "@/lib/watchlist";
@@ -21,7 +21,7 @@ export function WatchlistShelf() {
   const [notice, setNotice] = useState<string | null>(null);
   const [dialog, setDialog] = useState<{ id: string; mode: "details" | "watch" } | null>(null);
   const [busyId] = useState<string | null>(null);
-  const [payFor, setPayFor] = useState<MovieListItem | null>(null);
+  const [payFor, setPayFor] = useState<RentTarget | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -43,15 +43,16 @@ export function WatchlistShelf() {
     }
   }
 
-  async function rent(movie: MovieListItem) {
+  async function rent(movie: RentTarget) {
     setNotice(null);
     setPayFor(movie);
   }
 
   // After the receipt. Rented films leave the list: it was a reminder, and it has done its job.
-  async function rented(movie: MovieListItem) {
+  async function rented(movie: RentTarget) {
     setNotice(`${movie.title} — ${t("movie.rented")}`);
-    await toggleWatchlist(movie.id).catch(() => undefined);
+    // Only a film that was on the list leaves it; one rented from "similar" was never there.
+    if (entries?.some((e) => e.movie.id === movie.id)) await toggleWatchlist(movie.id).catch(() => undefined);
     await Promise.all([load(), loadWatchlist(true)]);
   }
 
@@ -62,10 +63,7 @@ export function WatchlistShelf() {
           movieId={dialog.id}
           mode={dialog.mode}
           onClose={() => setDialog(null)}
-          onRent={(id) => {
-            const entry = entries?.find((e) => e.movie.id === id);
-            if (entry) { setDialog(null); void rent(entry.movie); }
-          }}
+          onRent={(movie) => { setDialog(null); void rent(movie); }}
         />
       ) : null}
 

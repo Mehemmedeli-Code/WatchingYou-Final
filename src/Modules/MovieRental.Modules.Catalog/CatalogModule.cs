@@ -22,6 +22,11 @@ public sealed class CatalogModule : IModule
 
         services.AddScoped<ICatalogApi, CatalogApi>();
         services.AddScoped<ICatalogAnalytics, CatalogAnalytics>();
+        services.AddHttpClient(CinemaNews.ClientName, client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("WatchingYou/1.0 (cinema news reader)");
+        });
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
@@ -37,6 +42,7 @@ public sealed class CatalogModule : IModule
         RecommendationsEndpoint.Map(endpoints);
         MoviePosters.Map(endpoints);
         MovieCast.Map(endpoints);
+        CinemaNews.Map(endpoints);
         MovieTrailers.Map(endpoints);
     }
 }

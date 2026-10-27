@@ -52,6 +52,7 @@ const ISLANDS: Record<string, () => Promise<IslandModule>> = {
   favourites: () => import("@/pages/FavouritesPage"),
   pro: () => import("@/pages/ProPage"),
   guide: () => import("@/pages/GuidePage"),
+  news: () => import("@/pages/NewsPage"),
   searching: () => import("@/pages/SearchingPage"),
 };
 
